@@ -1,0 +1,5 @@
+delayId,line,stops,plannedDeparture,delayMinutes,detectedAt,cause
+# One row per Line L delay situation. stops = affected stations separated by ";" (names as in service/rejsegaranti/stations.py). Times ISO-8601 with offset. cause is optional: fire / person_collision / natural_event.
+# The two rows below are FORMAT EXAMPLES ONLY, not recorded data.
+EXAMPLE-1,L,Lyngby;Gammelmosevej;Buddinge,2026-11-04T07:00:00+01:00,42,2026-11-04T07:30:00+01:00,
+EXAMPLE-2,L,Glostrup;Kirkebjerg,2026-11-05T16:10:00+01:00,35,2026-11-05T16:40:00+01:00,fire

@@ -1,0 +1,613 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_rejsegaranti_to_be" targetNamespace="http://poeds-group-14.dtu.dk/rejsegaranti" exporter="tools/build_bpmn.py" exporterVersion="1.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:documentation>Rejsegaranti TO-BE, author Liam Palmqvist</bpmn:documentation>
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_rejsegaranti-delay-case" name="Rejsegaranti delay case (started by the CEP)" processRef="rejsegaranti-delay-case" />
+    <bpmn:participant id="Participant_rejsegaranti-claim" name="Rejsegaranti claim handling" processRef="rejsegaranti-claim" />
+    <bpmn:participant id="Participant_CEP" name="CEP (Siddhi agents, issue #37)" />
+    <bpmn:participant id="Participant_Passenger" name="Passenger (claim form)" />
+    <bpmn:messageFlow id="MF_Delay" name="Line L delay 30+ min" sourceRef="Participant_CEP" targetRef="D_Start" />
+    <bpmn:messageFlow id="MF_Assessed" name="DelayAssessed" sourceRef="D_Report" targetRef="Participant_CEP" />
+    <bpmn:messageFlow id="MF_Outcome" name="ClaimPaid / ClaimRejected" sourceRef="C_Report" targetRef="Participant_CEP" />
+    <bpmn:messageFlow id="MF_Claim" name="claim with receipt" sourceRef="Participant_Passenger" targetRef="C_Start" />
+    <bpmn:messageFlow id="MF_Refund" name="refund" sourceRef="C_Pay" targetRef="Participant_Passenger" />
+    <bpmn:messageFlow id="MF_Rejection" name="rejection with reason" sourceRef="C_Reject" targetRef="Participant_Passenger" />
+    <bpmn:textAnnotation id="Annotation_Author"><bpmn:text>Process 1 Rejsegaranti, TO-BE. Author: Liam Palmqvist. Scope: Line L. Situations (delays, notices, weather) come from the CEP; claims are simulated.</bpmn:text></bpmn:textAnnotation>
+  </bpmn:collaboration>
+  <bpmn:message id="Msg_Delay" name="DelaySituationDetected" />
+  <bpmn:message id="Msg_Claim" name="ClaimSubmitted" />
+  <bpmn:process id="rejsegaranti-delay-case" name="Rejsegaranti delay case (started by the CEP)" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:startEvent id="D_Start" name="Line L delay of 30+ minutes detected">
+      <bpmn:outgoing>Flow_D_Start_D_Fork</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="D_StartDef" messageRef="Msg_Delay" />
+    </bpmn:startEvent>
+    <bpmn:parallelGateway id="D_Fork">
+      <bpmn:incoming>Flow_D_Start_D_Fork</bpmn:incoming>
+      <bpmn:outgoing>Flow_D_Fork_D_CheckNotice</bpmn:outgoing>
+      <bpmn:outgoing>Flow_D_Fork_D_CheckFM</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:serviceTask id="D_CheckNotice" name="Check planned service notice" camunda:type="external" camunda:topic="rg-check-notice">
+      <bpmn:incoming>Flow_D_Fork_D_CheckNotice</bpmn:incoming>
+      <bpmn:outgoing>Flow_D_CheckNotice_D_Join</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="D_CheckFM" name="Check force majeure" camunda:type="external" camunda:topic="rg-check-force-majeure">
+      <bpmn:incoming>Flow_D_Fork_D_CheckFM</bpmn:incoming>
+      <bpmn:outgoing>Flow_D_CheckFM_D_Join</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:parallelGateway id="D_Join" camunda:asyncBefore="true">
+      <bpmn:incoming>Flow_D_CheckNotice_D_Join</bpmn:incoming>
+      <bpmn:incoming>Flow_D_CheckFM_D_Join</bpmn:incoming>
+      <bpmn:outgoing>Flow_D_Join_D_GwNotice</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:exclusiveGateway id="D_GwNotice" name="Announced by the day before?" default="D_f_notice_no">
+      <bpmn:incoming>Flow_D_Join_D_GwNotice</bpmn:incoming>
+      <bpmn:outgoing>Flow_D_GwNotice_D_EvNotice</bpmn:outgoing>
+      <bpmn:outgoing>D_f_notice_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:intermediateThrowEvent id="D_EvNotice" name="Planned change announced by the day before">
+      <bpmn:incoming>Flow_D_GwNotice_D_EvNotice</bpmn:incoming>
+      <bpmn:outgoing>Flow_D_EvNotice_D_Merge</bpmn:outgoing>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:exclusiveGateway id="D_GwFM" name="Force majeure?" default="D_f_fm_no">
+      <bpmn:incoming>D_f_notice_no</bpmn:incoming>
+      <bpmn:outgoing>Flow_D_GwFM_D_EvFM</bpmn:outgoing>
+      <bpmn:outgoing>D_f_fm_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:intermediateThrowEvent id="D_EvFM" name="Force majeure">
+      <bpmn:incoming>Flow_D_GwFM_D_EvFM</bpmn:incoming>
+      <bpmn:outgoing>Flow_D_EvFM_D_Merge</bpmn:outgoing>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="D_EvApplies" name="Rejsegaranti applies">
+      <bpmn:incoming>D_f_fm_no</bpmn:incoming>
+      <bpmn:outgoing>Flow_D_EvApplies_D_Merge</bpmn:outgoing>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:exclusiveGateway id="D_Merge">
+      <bpmn:incoming>Flow_D_EvNotice_D_Merge</bpmn:incoming>
+      <bpmn:incoming>Flow_D_EvFM_D_Merge</bpmn:incoming>
+      <bpmn:incoming>Flow_D_EvApplies_D_Merge</bpmn:incoming>
+      <bpmn:outgoing>Flow_D_Merge_D_Report</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="D_Report" name="Report delay assessment to CEP" camunda:type="external" camunda:topic="rg-report-assessment">
+      <bpmn:incoming>Flow_D_Merge_D_Report</bpmn:incoming>
+      <bpmn:outgoing>Flow_D_Report_D_End</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="D_End" name="Delay case assessed">
+      <bpmn:incoming>Flow_D_Report_D_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_D_Start_D_Fork" sourceRef="D_Start" targetRef="D_Fork" />
+    <bpmn:sequenceFlow id="Flow_D_Fork_D_CheckNotice" sourceRef="D_Fork" targetRef="D_CheckNotice" />
+    <bpmn:sequenceFlow id="Flow_D_Fork_D_CheckFM" sourceRef="D_Fork" targetRef="D_CheckFM" />
+    <bpmn:sequenceFlow id="Flow_D_CheckNotice_D_Join" sourceRef="D_CheckNotice" targetRef="D_Join" />
+    <bpmn:sequenceFlow id="Flow_D_CheckFM_D_Join" sourceRef="D_CheckFM" targetRef="D_Join" />
+    <bpmn:sequenceFlow id="Flow_D_Join_D_GwNotice" sourceRef="D_Join" targetRef="D_GwNotice" />
+    <bpmn:sequenceFlow id="Flow_D_GwNotice_D_EvNotice" name="yes" sourceRef="D_GwNotice" targetRef="D_EvNotice">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${noticeExcluded}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="D_f_notice_no" name="no" sourceRef="D_GwNotice" targetRef="D_GwFM" />
+    <bpmn:sequenceFlow id="Flow_D_GwFM_D_EvFM" name="yes" sourceRef="D_GwFM" targetRef="D_EvFM">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${forceMajeure}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="D_f_fm_no" name="no" sourceRef="D_GwFM" targetRef="D_EvApplies" />
+    <bpmn:sequenceFlow id="Flow_D_EvNotice_D_Merge" sourceRef="D_EvNotice" targetRef="D_Merge" />
+    <bpmn:sequenceFlow id="Flow_D_EvFM_D_Merge" sourceRef="D_EvFM" targetRef="D_Merge" />
+    <bpmn:sequenceFlow id="Flow_D_EvApplies_D_Merge" sourceRef="D_EvApplies" targetRef="D_Merge" />
+    <bpmn:sequenceFlow id="Flow_D_Merge_D_Report" sourceRef="D_Merge" targetRef="D_Report" />
+    <bpmn:sequenceFlow id="Flow_D_Report_D_End" sourceRef="D_Report" targetRef="D_End" />
+  </bpmn:process>
+  <bpmn:process id="rejsegaranti-claim" name="Rejsegaranti claim handling" isExecutable="true" camunda:historyTimeToLive="180">
+    <bpmn:startEvent id="C_Start" name="Claim submitted">
+      <bpmn:outgoing>Flow_C_Start_C_Match</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="C_StartDef" messageRef="Msg_Claim" />
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="C_Match" name="Match claim to CEP delay situation" camunda:type="external" camunda:topic="rg-match-delay">
+      <bpmn:incoming>Flow_C_Start_C_Match</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_Match_C_GwDelay</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="C_GwDelay" name="Delay verified?" default="C_f_delay_yes">
+      <bpmn:incoming>Flow_C_Match_C_GwDelay</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_GwDelay_C_EvNoDelay</bpmn:outgoing>
+      <bpmn:outgoing>C_f_delay_yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:intermediateThrowEvent id="C_EvNoDelay" name="No verified delay">
+      <bpmn:incoming>Flow_C_GwDelay_C_EvNoDelay</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_EvNoDelay_C_RejMerge</bpmn:outgoing>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:exclusiveGateway id="C_GwNotice" name="Announced by the day before?" default="C_f_notice_no">
+      <bpmn:incoming>C_f_delay_yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_GwNotice_C_EvNotice</bpmn:outgoing>
+      <bpmn:outgoing>C_f_notice_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:intermediateThrowEvent id="C_EvNotice" name="Planned change announced by the day before">
+      <bpmn:incoming>Flow_C_GwNotice_C_EvNotice</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_EvNotice_C_RejMerge</bpmn:outgoing>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:exclusiveGateway id="C_GwFM" name="Force majeure?" default="C_f_fm_no">
+      <bpmn:incoming>C_f_notice_no</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_GwFM_C_EvFM</bpmn:outgoing>
+      <bpmn:outgoing>C_f_fm_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:intermediateThrowEvent id="C_EvFM" name="Force majeure">
+      <bpmn:incoming>Flow_C_GwFM_C_EvFM</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_EvFM_C_RejMerge</bpmn:outgoing>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="C_EvDelayOK" name="Delay verified">
+      <bpmn:incoming>C_f_fm_no</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_EvDelayOK_C_Fork</bpmn:outgoing>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:parallelGateway id="C_Fork">
+      <bpmn:incoming>Flow_C_EvDelayOK_C_Fork</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_Fork_C_CheckReceipt</bpmn:outgoing>
+      <bpmn:outgoing>Flow_C_Fork_C_CheckDistance</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:serviceTask id="C_CheckReceipt" name="Check receipt" camunda:type="external" camunda:topic="rg-check-receipt">
+      <bpmn:incoming>Flow_C_Fork_C_CheckReceipt</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_CheckReceipt_C_Join</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="C_CheckDistance" name="Check distance to stations" camunda:type="external" camunda:topic="rg-check-distance">
+      <bpmn:incoming>Flow_C_Fork_C_CheckDistance</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_CheckDistance_C_Join</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:parallelGateway id="C_Join" camunda:asyncBefore="true">
+      <bpmn:incoming>Flow_C_CheckReceipt_C_Join</bpmn:incoming>
+      <bpmn:incoming>Flow_C_CheckDistance_C_Join</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_Join_C_GwReceipt</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:exclusiveGateway id="C_GwReceipt" name="Receipt valid?" default="C_f_receipt_yes">
+      <bpmn:incoming>Flow_C_Join_C_GwReceipt</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_GwReceipt_C_EvReceiptBad</bpmn:outgoing>
+      <bpmn:outgoing>C_f_receipt_yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:intermediateThrowEvent id="C_EvReceiptBad" name="Receipt rejected">
+      <bpmn:incoming>Flow_C_GwReceipt_C_EvReceiptBad</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_EvReceiptBad_C_RejMerge</bpmn:outgoing>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="C_EvReceiptOK" name="Receipt verified">
+      <bpmn:incoming>C_f_receipt_yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_EvReceiptOK_C_GwDist</bpmn:outgoing>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:exclusiveGateway id="C_GwDist" name="Within 250 m?" default="C_f_dist_yes">
+      <bpmn:incoming>Flow_C_EvReceiptOK_C_GwDist</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_GwDist_C_EvFar</bpmn:outgoing>
+      <bpmn:outgoing>C_f_dist_yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:intermediateThrowEvent id="C_EvFar" name="Trip outside 250 m">
+      <bpmn:incoming>Flow_C_GwDist_C_EvFar</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_EvFar_C_RejMerge</bpmn:outgoing>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="C_EvNear" name="Trip within 250 m">
+      <bpmn:incoming>C_f_dist_yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_EvNear_C_Calc</bpmn:outgoing>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:serviceTask id="C_Calc" name="Calculate payout" camunda:type="external" camunda:topic="rg-calc-payout">
+      <bpmn:incoming>Flow_C_EvNear_C_Calc</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_Calc_C_Pay</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="C_Pay" name="Pay out claim" camunda:type="external" camunda:topic="rg-pay-out">
+      <bpmn:incoming>Flow_C_Calc_C_Pay</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_Pay_C_OutMerge</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="C_RejMerge">
+      <bpmn:incoming>Flow_C_EvNoDelay_C_RejMerge</bpmn:incoming>
+      <bpmn:incoming>Flow_C_EvNotice_C_RejMerge</bpmn:incoming>
+      <bpmn:incoming>Flow_C_EvFM_C_RejMerge</bpmn:incoming>
+      <bpmn:incoming>Flow_C_EvReceiptBad_C_RejMerge</bpmn:incoming>
+      <bpmn:incoming>Flow_C_EvFar_C_RejMerge</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_RejMerge_C_Reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="C_Reject" name="Reject claim" camunda:type="external" camunda:topic="rg-reject">
+      <bpmn:incoming>Flow_C_RejMerge_C_Reject</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_Reject_C_OutMerge</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="C_OutMerge">
+      <bpmn:incoming>Flow_C_Pay_C_OutMerge</bpmn:incoming>
+      <bpmn:incoming>Flow_C_Reject_C_OutMerge</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_OutMerge_C_Report</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="C_Report" name="Report claim outcome to CEP" camunda:type="external" camunda:topic="rg-report-outcome">
+      <bpmn:incoming>Flow_C_OutMerge_C_Report</bpmn:incoming>
+      <bpmn:outgoing>Flow_C_Report_C_End</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="C_End" name="Claim closed">
+      <bpmn:incoming>Flow_C_Report_C_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_C_Start_C_Match" sourceRef="C_Start" targetRef="C_Match" />
+    <bpmn:sequenceFlow id="Flow_C_Match_C_GwDelay" sourceRef="C_Match" targetRef="C_GwDelay" />
+    <bpmn:sequenceFlow id="Flow_C_GwDelay_C_EvNoDelay" name="no" sourceRef="C_GwDelay" targetRef="C_EvNoDelay">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${!delayVerified}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="C_f_delay_yes" name="yes" sourceRef="C_GwDelay" targetRef="C_GwNotice" />
+    <bpmn:sequenceFlow id="Flow_C_GwNotice_C_EvNotice" name="yes" sourceRef="C_GwNotice" targetRef="C_EvNotice">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${noticeExcluded}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="C_f_notice_no" name="no" sourceRef="C_GwNotice" targetRef="C_GwFM" />
+    <bpmn:sequenceFlow id="Flow_C_GwFM_C_EvFM" name="yes" sourceRef="C_GwFM" targetRef="C_EvFM">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${forceMajeure}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="C_f_fm_no" name="no" sourceRef="C_GwFM" targetRef="C_EvDelayOK" />
+    <bpmn:sequenceFlow id="Flow_C_EvDelayOK_C_Fork" sourceRef="C_EvDelayOK" targetRef="C_Fork" />
+    <bpmn:sequenceFlow id="Flow_C_Fork_C_CheckReceipt" sourceRef="C_Fork" targetRef="C_CheckReceipt" />
+    <bpmn:sequenceFlow id="Flow_C_Fork_C_CheckDistance" sourceRef="C_Fork" targetRef="C_CheckDistance" />
+    <bpmn:sequenceFlow id="Flow_C_CheckReceipt_C_Join" sourceRef="C_CheckReceipt" targetRef="C_Join" />
+    <bpmn:sequenceFlow id="Flow_C_CheckDistance_C_Join" sourceRef="C_CheckDistance" targetRef="C_Join" />
+    <bpmn:sequenceFlow id="Flow_C_Join_C_GwReceipt" sourceRef="C_Join" targetRef="C_GwReceipt" />
+    <bpmn:sequenceFlow id="Flow_C_GwReceipt_C_EvReceiptBad" name="no" sourceRef="C_GwReceipt" targetRef="C_EvReceiptBad">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${!receiptValid}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="C_f_receipt_yes" name="yes" sourceRef="C_GwReceipt" targetRef="C_EvReceiptOK" />
+    <bpmn:sequenceFlow id="Flow_C_EvReceiptOK_C_GwDist" sourceRef="C_EvReceiptOK" targetRef="C_GwDist" />
+    <bpmn:sequenceFlow id="Flow_C_GwDist_C_EvFar" name="no" sourceRef="C_GwDist" targetRef="C_EvFar">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${!withinRadius}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="C_f_dist_yes" name="yes" sourceRef="C_GwDist" targetRef="C_EvNear" />
+    <bpmn:sequenceFlow id="Flow_C_EvNear_C_Calc" sourceRef="C_EvNear" targetRef="C_Calc" />
+    <bpmn:sequenceFlow id="Flow_C_Calc_C_Pay" sourceRef="C_Calc" targetRef="C_Pay" />
+    <bpmn:sequenceFlow id="Flow_C_Pay_C_OutMerge" sourceRef="C_Pay" targetRef="C_OutMerge" />
+    <bpmn:sequenceFlow id="Flow_C_EvNoDelay_C_RejMerge" sourceRef="C_EvNoDelay" targetRef="C_RejMerge" />
+    <bpmn:sequenceFlow id="Flow_C_EvNotice_C_RejMerge" sourceRef="C_EvNotice" targetRef="C_RejMerge" />
+    <bpmn:sequenceFlow id="Flow_C_EvFM_C_RejMerge" sourceRef="C_EvFM" targetRef="C_RejMerge" />
+    <bpmn:sequenceFlow id="Flow_C_EvReceiptBad_C_RejMerge" sourceRef="C_EvReceiptBad" targetRef="C_RejMerge" />
+    <bpmn:sequenceFlow id="Flow_C_EvFar_C_RejMerge" sourceRef="C_EvFar" targetRef="C_RejMerge" />
+    <bpmn:sequenceFlow id="Flow_C_RejMerge_C_Reject" sourceRef="C_RejMerge" targetRef="C_Reject" />
+    <bpmn:sequenceFlow id="Flow_C_Reject_C_OutMerge" sourceRef="C_Reject" targetRef="C_OutMerge" />
+    <bpmn:sequenceFlow id="Flow_C_OutMerge_C_Report" sourceRef="C_OutMerge" targetRef="C_Report" />
+    <bpmn:sequenceFlow id="Flow_C_Report_C_End" sourceRef="C_Report" targetRef="C_End" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_rejsegaranti-delay-case_di" bpmnElement="Participant_rejsegaranti-delay-case" isHorizontal="true"><dc:Bounds x="100" y="110" width="2060" height="370" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_Start_di" bpmnElement="D_Start"><dc:Bounds x="172" y="287" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="135" y="327" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_Fork_di" bpmnElement="D_Fork"><dc:Bounds x="255" y="280" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="225" y="334" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_CheckNotice_di" bpmnElement="D_CheckNotice"><dc:Bounds x="340" y="265" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_CheckFM_di" bpmnElement="D_CheckFM"><dc:Bounds x="340" y="370" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_Join_di" bpmnElement="D_Join"><dc:Bounds x="475" y="280" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="445" y="334" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_GwNotice_di" bpmnElement="D_GwNotice" isMarkerVisible="true"><dc:Bounds x="575" y="280" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="545" y="334" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_EvNotice_di" bpmnElement="D_EvNotice"><dc:Bounds x="582" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="490" y="210" width="88" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_GwFM_di" bpmnElement="D_GwFM" isMarkerVisible="true"><dc:Bounds x="715" y="280" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="685" y="334" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_EvFM_di" bpmnElement="D_EvFM"><dc:Bounds x="722" y="212" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="630" y="210" width="88" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_EvApplies_di" bpmnElement="D_EvApplies"><dc:Bounds x="842" y="287" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="805" y="327" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_Merge_di" bpmnElement="D_Merge" isMarkerVisible="true"><dc:Bounds x="935" y="280" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="905" y="334" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_Report_di" bpmnElement="D_Report"><dc:Bounds x="1020" y="265" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_End_di" bpmnElement="D_End"><dc:Bounds x="1162" y="287" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1125" y="327" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_D_Start_D_Fork_di" bpmnElement="Flow_D_Start_D_Fork">
+        <di:waypoint x="208" y="305" />
+        <di:waypoint x="255" y="305" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_D_Fork_D_CheckNotice_di" bpmnElement="Flow_D_Fork_D_CheckNotice">
+        <di:waypoint x="305" y="305" />
+        <di:waypoint x="340" y="305" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_D_Fork_D_CheckFM_di" bpmnElement="Flow_D_Fork_D_CheckFM">
+        <di:waypoint x="280" y="330" />
+        <di:waypoint x="280" y="410" />
+        <di:waypoint x="340" y="410" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_D_CheckNotice_D_Join_di" bpmnElement="Flow_D_CheckNotice_D_Join">
+        <di:waypoint x="440" y="305" />
+        <di:waypoint x="475" y="305" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_D_CheckFM_D_Join_di" bpmnElement="Flow_D_CheckFM_D_Join">
+        <di:waypoint x="440" y="410" />
+        <di:waypoint x="500" y="410" />
+        <di:waypoint x="500" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_D_Join_D_GwNotice_di" bpmnElement="Flow_D_Join_D_GwNotice">
+        <di:waypoint x="525" y="305" />
+        <di:waypoint x="575" y="305" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_D_GwNotice_D_EvNotice_di" bpmnElement="Flow_D_GwNotice_D_EvNotice">
+        <di:waypoint x="600" y="280" />
+        <di:waypoint x="600" y="248" />
+        <bpmndi:BPMNLabel><dc:Bounds x="604" y="256" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="D_f_notice_no_di" bpmnElement="D_f_notice_no">
+        <di:waypoint x="625" y="305" />
+        <di:waypoint x="715" y="305" />
+        <bpmndi:BPMNLabel><dc:Bounds x="627" y="288" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_D_GwFM_D_EvFM_di" bpmnElement="Flow_D_GwFM_D_EvFM">
+        <di:waypoint x="740" y="280" />
+        <di:waypoint x="740" y="248" />
+        <bpmndi:BPMNLabel><dc:Bounds x="744" y="256" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="D_f_fm_no_di" bpmnElement="D_f_fm_no">
+        <di:waypoint x="765" y="305" />
+        <di:waypoint x="842" y="305" />
+        <bpmndi:BPMNLabel><dc:Bounds x="767" y="288" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_D_EvNotice_D_Merge_di" bpmnElement="Flow_D_EvNotice_D_Merge">
+        <di:waypoint x="600" y="212" />
+        <di:waypoint x="600" y="165" />
+        <di:waypoint x="960" y="165" />
+        <di:waypoint x="960" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_D_EvFM_D_Merge_di" bpmnElement="Flow_D_EvFM_D_Merge">
+        <di:waypoint x="740" y="212" />
+        <di:waypoint x="740" y="165" />
+        <di:waypoint x="960" y="165" />
+        <di:waypoint x="960" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_D_EvApplies_D_Merge_di" bpmnElement="Flow_D_EvApplies_D_Merge">
+        <di:waypoint x="878" y="305" />
+        <di:waypoint x="935" y="305" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_D_Merge_D_Report_di" bpmnElement="Flow_D_Merge_D_Report">
+        <di:waypoint x="985" y="305" />
+        <di:waypoint x="1020" y="305" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_D_Report_D_End_di" bpmnElement="Flow_D_Report_D_End">
+        <di:waypoint x="1120" y="305" />
+        <di:waypoint x="1162" y="305" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Participant_rejsegaranti-claim_di" bpmnElement="Participant_rejsegaranti-claim" isHorizontal="true"><dc:Bounds x="100" y="510" width="2060" height="370" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_Start_di" bpmnElement="C_Start"><dc:Bounds x="172" y="687" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="135" y="727" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_Match_di" bpmnElement="C_Match"><dc:Bounds x="250" y="665" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_GwDelay_di" bpmnElement="C_GwDelay" isMarkerVisible="true"><dc:Bounds x="395" y="680" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="365" y="734" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_EvNoDelay_di" bpmnElement="C_EvNoDelay"><dc:Bounds x="402" y="612" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="310" y="610" width="88" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_GwNotice_di" bpmnElement="C_GwNotice" isMarkerVisible="true"><dc:Bounds x="535" y="680" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="505" y="734" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_EvNotice_di" bpmnElement="C_EvNotice"><dc:Bounds x="542" y="612" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="450" y="610" width="88" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_GwFM_di" bpmnElement="C_GwFM" isMarkerVisible="true"><dc:Bounds x="675" y="680" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="645" y="734" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_EvFM_di" bpmnElement="C_EvFM"><dc:Bounds x="682" y="612" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="590" y="610" width="88" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_EvDelayOK_di" bpmnElement="C_EvDelayOK"><dc:Bounds x="782" y="687" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="745" y="727" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_Fork_di" bpmnElement="C_Fork"><dc:Bounds x="855" y="680" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="825" y="734" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_CheckReceipt_di" bpmnElement="C_CheckReceipt"><dc:Bounds x="940" y="665" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_CheckDistance_di" bpmnElement="C_CheckDistance"><dc:Bounds x="940" y="770" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_Join_di" bpmnElement="C_Join"><dc:Bounds x="1075" y="680" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1045" y="734" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_GwReceipt_di" bpmnElement="C_GwReceipt" isMarkerVisible="true"><dc:Bounds x="1165" y="680" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1135" y="734" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_EvReceiptBad_di" bpmnElement="C_EvReceiptBad"><dc:Bounds x="1172" y="612" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1080" y="610" width="88" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_EvReceiptOK_di" bpmnElement="C_EvReceiptOK"><dc:Bounds x="1272" y="687" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1235" y="727" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_GwDist_di" bpmnElement="C_GwDist" isMarkerVisible="true"><dc:Bounds x="1365" y="680" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1335" y="734" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_EvFar_di" bpmnElement="C_EvFar"><dc:Bounds x="1372" y="612" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1280" y="610" width="88" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_EvNear_di" bpmnElement="C_EvNear"><dc:Bounds x="1472" y="687" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1435" y="727" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_Calc_di" bpmnElement="C_Calc"><dc:Bounds x="1540" y="665" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_Pay_di" bpmnElement="C_Pay"><dc:Bounds x="1670" y="665" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_RejMerge_di" bpmnElement="C_RejMerge" isMarkerVisible="true"><dc:Bounds x="1695" y="540" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1665" y="594" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_Reject_di" bpmnElement="C_Reject"><dc:Bounds x="1790" y="525" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_OutMerge_di" bpmnElement="C_OutMerge" isMarkerVisible="true"><dc:Bounds x="1815" y="680" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1785" y="734" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_Report_di" bpmnElement="C_Report"><dc:Bounds x="1920" y="665" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_End_di" bpmnElement="C_End"><dc:Bounds x="2062" y="687" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2025" y="727" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_C_Start_C_Match_di" bpmnElement="Flow_C_Start_C_Match">
+        <di:waypoint x="208" y="705" />
+        <di:waypoint x="250" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_Match_C_GwDelay_di" bpmnElement="Flow_C_Match_C_GwDelay">
+        <di:waypoint x="350" y="705" />
+        <di:waypoint x="395" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_GwDelay_C_EvNoDelay_di" bpmnElement="Flow_C_GwDelay_C_EvNoDelay">
+        <di:waypoint x="420" y="680" />
+        <di:waypoint x="420" y="648" />
+        <bpmndi:BPMNLabel><dc:Bounds x="424" y="656" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="C_f_delay_yes_di" bpmnElement="C_f_delay_yes">
+        <di:waypoint x="445" y="705" />
+        <di:waypoint x="535" y="705" />
+        <bpmndi:BPMNLabel><dc:Bounds x="447" y="688" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_GwNotice_C_EvNotice_di" bpmnElement="Flow_C_GwNotice_C_EvNotice">
+        <di:waypoint x="560" y="680" />
+        <di:waypoint x="560" y="648" />
+        <bpmndi:BPMNLabel><dc:Bounds x="564" y="656" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="C_f_notice_no_di" bpmnElement="C_f_notice_no">
+        <di:waypoint x="585" y="705" />
+        <di:waypoint x="675" y="705" />
+        <bpmndi:BPMNLabel><dc:Bounds x="587" y="688" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_GwFM_C_EvFM_di" bpmnElement="Flow_C_GwFM_C_EvFM">
+        <di:waypoint x="700" y="680" />
+        <di:waypoint x="700" y="648" />
+        <bpmndi:BPMNLabel><dc:Bounds x="704" y="656" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="C_f_fm_no_di" bpmnElement="C_f_fm_no">
+        <di:waypoint x="725" y="705" />
+        <di:waypoint x="782" y="705" />
+        <bpmndi:BPMNLabel><dc:Bounds x="727" y="688" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_EvDelayOK_C_Fork_di" bpmnElement="Flow_C_EvDelayOK_C_Fork">
+        <di:waypoint x="818" y="705" />
+        <di:waypoint x="855" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_Fork_C_CheckReceipt_di" bpmnElement="Flow_C_Fork_C_CheckReceipt">
+        <di:waypoint x="905" y="705" />
+        <di:waypoint x="940" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_Fork_C_CheckDistance_di" bpmnElement="Flow_C_Fork_C_CheckDistance">
+        <di:waypoint x="880" y="730" />
+        <di:waypoint x="880" y="810" />
+        <di:waypoint x="940" y="810" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_CheckReceipt_C_Join_di" bpmnElement="Flow_C_CheckReceipt_C_Join">
+        <di:waypoint x="1040" y="705" />
+        <di:waypoint x="1075" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_CheckDistance_C_Join_di" bpmnElement="Flow_C_CheckDistance_C_Join">
+        <di:waypoint x="1040" y="810" />
+        <di:waypoint x="1100" y="810" />
+        <di:waypoint x="1100" y="730" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_Join_C_GwReceipt_di" bpmnElement="Flow_C_Join_C_GwReceipt">
+        <di:waypoint x="1125" y="705" />
+        <di:waypoint x="1165" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_GwReceipt_C_EvReceiptBad_di" bpmnElement="Flow_C_GwReceipt_C_EvReceiptBad">
+        <di:waypoint x="1190" y="680" />
+        <di:waypoint x="1190" y="648" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1194" y="656" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="C_f_receipt_yes_di" bpmnElement="C_f_receipt_yes">
+        <di:waypoint x="1215" y="705" />
+        <di:waypoint x="1272" y="705" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1217" y="688" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_EvReceiptOK_C_GwDist_di" bpmnElement="Flow_C_EvReceiptOK_C_GwDist">
+        <di:waypoint x="1308" y="705" />
+        <di:waypoint x="1365" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_GwDist_C_EvFar_di" bpmnElement="Flow_C_GwDist_C_EvFar">
+        <di:waypoint x="1390" y="680" />
+        <di:waypoint x="1390" y="648" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1394" y="656" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="C_f_dist_yes_di" bpmnElement="C_f_dist_yes">
+        <di:waypoint x="1415" y="705" />
+        <di:waypoint x="1472" y="705" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1417" y="688" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_EvNear_C_Calc_di" bpmnElement="Flow_C_EvNear_C_Calc">
+        <di:waypoint x="1508" y="705" />
+        <di:waypoint x="1540" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_Calc_C_Pay_di" bpmnElement="Flow_C_Calc_C_Pay">
+        <di:waypoint x="1640" y="705" />
+        <di:waypoint x="1670" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_Pay_C_OutMerge_di" bpmnElement="Flow_C_Pay_C_OutMerge">
+        <di:waypoint x="1770" y="705" />
+        <di:waypoint x="1815" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_EvNoDelay_C_RejMerge_di" bpmnElement="Flow_C_EvNoDelay_C_RejMerge">
+        <di:waypoint x="420" y="612" />
+        <di:waypoint x="420" y="565" />
+        <di:waypoint x="1695" y="565" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_EvNotice_C_RejMerge_di" bpmnElement="Flow_C_EvNotice_C_RejMerge">
+        <di:waypoint x="560" y="612" />
+        <di:waypoint x="560" y="565" />
+        <di:waypoint x="1695" y="565" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_EvFM_C_RejMerge_di" bpmnElement="Flow_C_EvFM_C_RejMerge">
+        <di:waypoint x="700" y="612" />
+        <di:waypoint x="700" y="565" />
+        <di:waypoint x="1695" y="565" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_EvReceiptBad_C_RejMerge_di" bpmnElement="Flow_C_EvReceiptBad_C_RejMerge">
+        <di:waypoint x="1190" y="612" />
+        <di:waypoint x="1190" y="565" />
+        <di:waypoint x="1695" y="565" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_EvFar_C_RejMerge_di" bpmnElement="Flow_C_EvFar_C_RejMerge">
+        <di:waypoint x="1390" y="612" />
+        <di:waypoint x="1390" y="565" />
+        <di:waypoint x="1695" y="565" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_RejMerge_C_Reject_di" bpmnElement="Flow_C_RejMerge_C_Reject">
+        <di:waypoint x="1745" y="565" />
+        <di:waypoint x="1790" y="565" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_Reject_C_OutMerge_di" bpmnElement="Flow_C_Reject_C_OutMerge">
+        <di:waypoint x="1840" y="605" />
+        <di:waypoint x="1840" y="680" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_OutMerge_C_Report_di" bpmnElement="Flow_C_OutMerge_C_Report">
+        <di:waypoint x="1865" y="705" />
+        <di:waypoint x="1920" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_Report_C_End_di" bpmnElement="Flow_C_Report_C_End">
+        <di:waypoint x="2020" y="705" />
+        <di:waypoint x="2062" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Participant_CEP_di" bpmnElement="Participant_CEP" isHorizontal="true"><dc:Bounds x="100" y="20" width="2060" height="60" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_Passenger_di" bpmnElement="Participant_Passenger" isHorizontal="true"><dc:Bounds x="100" y="910" width="2060" height="60" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="MF_Delay_di" bpmnElement="MF_Delay">
+        <di:waypoint x="190" y="80" />
+        <di:waypoint x="190" y="287" />
+        <bpmndi:BPMNLabel><dc:Bounds x="196" y="176" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Assessed_di" bpmnElement="MF_Assessed">
+        <di:waypoint x="1070" y="265" />
+        <di:waypoint x="1070" y="80" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1076" y="166" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Outcome_di" bpmnElement="MF_Outcome">
+        <di:waypoint x="1970" y="665" />
+        <di:waypoint x="1970" y="80" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1976" y="366" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Claim_di" bpmnElement="MF_Claim">
+        <di:waypoint x="190" y="910" />
+        <di:waypoint x="190" y="723" />
+        <bpmndi:BPMNLabel><dc:Bounds x="196" y="810" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Refund_di" bpmnElement="MF_Refund">
+        <di:waypoint x="1720" y="745" />
+        <di:waypoint x="1720" y="910" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1726" y="820" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Rejection_di" bpmnElement="MF_Rejection">
+        <di:waypoint x="1890" y="565" />
+        <di:waypoint x="1895" y="565" />
+        <di:waypoint x="1895" y="910" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1901" y="730" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Annotation_Author_di" bpmnElement="Annotation_Author"><dc:Bounds x="1400" y="140" width="420" height="60" /></bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

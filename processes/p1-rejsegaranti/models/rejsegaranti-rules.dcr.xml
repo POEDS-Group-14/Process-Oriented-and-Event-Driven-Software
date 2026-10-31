@@ -1,0 +1,649 @@
+<?xml version='1.0' encoding='utf-8'?>
+<dcrgraph title="Rejsegaranti claim - compliance rules (author: Liam Palmqvist)" dataTypesStatus="hide" filterLevel="-1" insightFilter="false" zoomLevel="-1" formGroupStyle="Normal" formLayoutStyle="Horizontal" graphBG="#f1f6fe" graphType="0" exercise="false" version="1.1">
+  <specification>
+    <resources>
+      <events>
+        <event id="Activity0">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="50" yLoc="50" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Passenger</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>1</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity1">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="250" yLoc="50" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>2</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity2">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="450" yLoc="50" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>3</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity3">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="650" yLoc="50" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>4</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity4">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="850" yLoc="50" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>5</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity5">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="1050" yLoc="50" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>6</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity6">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="50" yLoc="270" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>7</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity7">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="250" yLoc="270" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>8</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity8">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="450" yLoc="270" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>9</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity9">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="650" yLoc="270" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>10</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity10">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="850" yLoc="270" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>11</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity11">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="1050" yLoc="270" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>12</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity12">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="50" yLoc="490" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>13</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity13">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="250" yLoc="490" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Finance</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>14</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity14">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="450" yLoc="490" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>15</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity15">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="650" yLoc="490" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>16</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+        <event id="Activity16">
+          <precondition message="" />
+          <custom>
+            <visualization>
+              <location xLoc="850" yLoc="490" />
+              <size width="130" height="150" />
+            </visualization>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <groups>
+              <group />
+            </groups>
+            <phases>
+              <phase />
+            </phases>
+            <eventType />
+            <eventScope>private</eventScope>
+            <eventTypeData />
+            <eventDescription />
+            <purpose />
+            <guide />
+            <insight use="false" />
+            <level>1</level>
+            <sequence>17</sequence>
+            <costs>0</costs>
+            <eventData />
+            <interfaces />
+          </custom>
+        </event>
+      </events>
+      <subProcesses />
+      <distribution>
+        <externalEvents />
+      </distribution>
+      <labels>
+        <label id="Claim submitted" />
+        <label id="Match claim to CEP delay situation" />
+        <label id="No verified delay" />
+        <label id="Planned change announced by the day before" />
+        <label id="Force majeure" />
+        <label id="Delay verified" />
+        <label id="Check receipt" />
+        <label id="Check distance to stations" />
+        <label id="Receipt rejected" />
+        <label id="Receipt verified" />
+        <label id="Trip outside 250 m" />
+        <label id="Trip within 250 m" />
+        <label id="Calculate payout" />
+        <label id="Pay out claim" />
+        <label id="Reject claim" />
+        <label id="Report claim outcome to CEP" />
+        <label id="Claim closed" />
+      </labels>
+      <labelMappings>
+        <labelMapping eventId="Activity0" labelId="Claim submitted" />
+        <labelMapping eventId="Activity1" labelId="Match claim to CEP delay situation" />
+        <labelMapping eventId="Activity2" labelId="No verified delay" />
+        <labelMapping eventId="Activity3" labelId="Planned change announced by the day before" />
+        <labelMapping eventId="Activity4" labelId="Force majeure" />
+        <labelMapping eventId="Activity5" labelId="Delay verified" />
+        <labelMapping eventId="Activity6" labelId="Check receipt" />
+        <labelMapping eventId="Activity7" labelId="Check distance to stations" />
+        <labelMapping eventId="Activity8" labelId="Receipt rejected" />
+        <labelMapping eventId="Activity9" labelId="Receipt verified" />
+        <labelMapping eventId="Activity10" labelId="Trip outside 250 m" />
+        <labelMapping eventId="Activity11" labelId="Trip within 250 m" />
+        <labelMapping eventId="Activity12" labelId="Calculate payout" />
+        <labelMapping eventId="Activity13" labelId="Pay out claim" />
+        <labelMapping eventId="Activity14" labelId="Reject claim" />
+        <labelMapping eventId="Activity15" labelId="Report claim outcome to CEP" />
+        <labelMapping eventId="Activity16" labelId="Claim closed" />
+      </labelMappings>
+      <expressions />
+      <variables />
+      <variableAccesses>
+        <writeAccesses />
+      </variableAccesses>
+      <custom>
+        <keywords />
+        <roles>
+          <role description="">Claim engine</role>
+          <role description="">Finance</role>
+          <role description="">Passenger</role>
+        </roles>
+        <groups />
+        <phases />
+        <eventTypes />
+        <eventParameters />
+        <graphDetails>Compliance rules for Line L rejsegaranti claims (process 1). Source: dinletbane.dk/da/kontakt-og-kundeservice/rejsegaranti/</graphDetails>
+        <graphDocumentation />
+        <graphLanguage>en-US</graphLanguage>
+        <domain>process</domain>
+      </custom>
+    </resources>
+    <constraints>
+      <conditions>
+        <condition sourceId="Activity0" targetId="Activity1" filterLevel="1" description="a claim is matched only after it is submitted" time="" groups="" />
+        <condition sourceId="Activity1" targetId="Activity5" filterLevel="1" description="verification comes from the CEP match" time="" groups="" />
+        <condition sourceId="Activity1" targetId="Activity2" filterLevel="1" description="" time="" groups="" />
+        <condition sourceId="Activity5" targetId="Activity6" filterLevel="1" description="receipt checked only for a verified delay" time="" groups="" />
+        <condition sourceId="Activity5" targetId="Activity7" filterLevel="1" description="" time="" groups="" />
+        <condition sourceId="Activity6" targetId="Activity9" filterLevel="1" description="" time="" groups="" />
+        <condition sourceId="Activity6" targetId="Activity8" filterLevel="1" description="" time="" groups="" />
+        <condition sourceId="Activity7" targetId="Activity11" filterLevel="1" description="" time="" groups="" />
+        <condition sourceId="Activity7" targetId="Activity10" filterLevel="1" description="" time="" groups="" />
+        <condition sourceId="Activity9" targetId="Activity13" filterLevel="1" description="R1 no payout without a verified receipt" time="" groups="" />
+        <condition sourceId="Activity5" targetId="Activity13" filterLevel="1" description="R3 payout needs a verified delay" time="" groups="" />
+        <condition sourceId="Activity11" targetId="Activity13" filterLevel="1" description="R4 payout needs start and end within 250 m" time="" groups="" />
+        <condition sourceId="Activity12" targetId="Activity13" filterLevel="1" description="R5 the capped amount is calculated first" time="" groups="" />
+        <condition sourceId="Activity13" targetId="Activity15" filterLevel="1" description="R7 the outcome follows the decision" time="" groups="" />
+        <condition sourceId="Activity14" targetId="Activity15" filterLevel="1" description="R7" time="" groups="" />
+        <condition sourceId="Activity15" targetId="Activity16" filterLevel="1" description="" time="" groups="" />
+      </conditions>
+      <responses>
+        <response sourceId="Activity0" targetId="Activity15" filterLevel="1" description="R7 every claim gets an outcome" time="" groups="" />
+        <response sourceId="Activity11" targetId="Activity13" filterLevel="1" description="R8 an eligible claim must be paid" time="" groups="" />
+      </responses>
+      <coresponces />
+      <excludes>
+        <exclude sourceId="Activity8" targetId="Activity13" filterLevel="1" description="R1 a rejected receipt rules out payout" time="" groups="" />
+        <exclude sourceId="Activity3" targetId="Activity13" filterLevel="1" description="R2 no payout for changes announced by the day before" time="" groups="" />
+        <exclude sourceId="Activity4" targetId="Activity13" filterLevel="1" description="R3 no payout under force majeure" time="" groups="" />
+        <exclude sourceId="Activity2" targetId="Activity13" filterLevel="1" description="R3 no payout without a verified delay" time="" groups="" />
+        <exclude sourceId="Activity10" targetId="Activity13" filterLevel="1" description="R4" time="" groups="" />
+        <exclude sourceId="Activity13" targetId="Activity13" filterLevel="1" description="R6 at most one payout per claim" time="" groups="" />
+        <exclude sourceId="Activity13" targetId="Activity14" filterLevel="1" description="R6 a paid claim cannot also be rejected" time="" groups="" />
+        <exclude sourceId="Activity14" targetId="Activity13" filterLevel="1" description="R6 a rejected claim cannot be paid" time="" groups="" />
+        <exclude sourceId="Activity15" targetId="Activity15" filterLevel="1" description="R7 reported once" time="" groups="" />
+        <exclude sourceId="Activity11" targetId="Activity14" filterLevel="1" description="R8 an eligible claim cannot be rejected" time="" groups="" />
+      </excludes>
+      <includes />
+      <milestones />
+      <updates />
+      <spawns />
+    </constraints>
+  </specification>
+  <runtime>
+    <marking>
+      <globalStore />
+      <executed />
+      <included>
+        <event id="Activity0" />
+        <event id="Activity1" />
+        <event id="Activity2" />
+        <event id="Activity3" />
+        <event id="Activity4" />
+        <event id="Activity5" />
+        <event id="Activity6" />
+        <event id="Activity7" />
+        <event id="Activity8" />
+        <event id="Activity9" />
+        <event id="Activity10" />
+        <event id="Activity11" />
+        <event id="Activity12" />
+        <event id="Activity13" />
+        <event id="Activity14" />
+        <event id="Activity15" />
+        <event id="Activity16" />
+      </included>
+      <pendingResponses />
+    </marking>
+  </runtime>
+</dcrgraph>

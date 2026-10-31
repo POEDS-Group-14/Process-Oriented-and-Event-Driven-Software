@@ -1,0 +1,15 @@
+# Camunda 7 Run for process 1 (rejsegaranti).
+#   docker compose up -d       -> http://localhost:8080/camunda  (demo / demo)
+#   REST API                   -> http://localhost:8080/engine-rest
+services:
+  camunda:
+    image: camunda/camunda-bpm-platform:run-7.24.0
+    ports:
+      - "8080:8080"
+    environment:
+      # H2 in a volume so history (the event log) survives restarts
+      - DB_URL=jdbc:h2:/camunda/data/process-engine;TRACE_LEVEL_FILE=0;DB_CLOSE_ON_EXIT=FALSE
+    volumes:
+      - camunda-data:/camunda/data
+volumes:
+  camunda-data:

@@ -1,0 +1,434 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_rejsegaranti_as_is" targetNamespace="http://poeds-group-14.dtu.dk/rejsegaranti" exporter="tools/build_bpmn.py" exporterVersion="1.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:documentation>Rejsegaranti AS-IS, author Liam Palmqvist</bpmn:documentation>
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_rejsegaranti-as-is-passenger" name="Passenger" processRef="rejsegaranti-as-is-passenger" />
+    <bpmn:participant id="Participant_rejsegaranti-as-is-customer-service" name="Hovedstadens Letbane, customer service" processRef="rejsegaranti-as-is-customer-service" />
+    <bpmn:messageFlow id="MF_Form" name="claim form + receipt" sourceRef="P_Form" targetRef="S_Start" />
+    <bpmn:messageFlow id="MF_Ask" name="request for details" sourceRef="S_Ask" targetRef="P_Ask" />
+    <bpmn:messageFlow id="MF_Details" name="missing details" sourceRef="P_Send" targetRef="S_Details" />
+    <bpmn:messageFlow id="MF_Decision" name="refund or rejection" sourceRef="S_Send" targetRef="P_Decision" />
+    <bpmn:textAnnotation id="Annotation_Author"><bpmn:text>Process 1 Rejsegaranti, AS-IS (manual handling today). Author: Liam Palmqvist. Rules: dinletbane.dk/da/kontakt-og-kundeservice/rejsegaranti</bpmn:text></bpmn:textAnnotation>
+  </bpmn:collaboration>
+  <bpmn:process id="rejsegaranti-as-is-passenger" name="Passenger" isExecutable="false">
+    <bpmn:startEvent id="P_Start" name="Line L 30+ minutes late">
+      <bpmn:outgoing>Flow_P_Start_P_Taxi</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="P_Taxi" name="Take taxi, shared bike or shared car">
+      <bpmn:incoming>Flow_P_Start_P_Taxi</bpmn:incoming>
+      <bpmn:outgoing>Flow_P_Taxi_P_Receipt</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="P_Receipt" name="Pay and keep the receipt">
+      <bpmn:incoming>Flow_P_Taxi_P_Receipt</bpmn:incoming>
+      <bpmn:outgoing>Flow_P_Receipt_P_Form</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sendTask id="P_Form" name="Fill in rejsegaranti form with receipt">
+      <bpmn:incoming>Flow_P_Receipt_P_Form</bpmn:incoming>
+      <bpmn:outgoing>Flow_P_Form_P_Merge</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:exclusiveGateway id="P_Merge">
+      <bpmn:incoming>Flow_P_Form_P_Merge</bpmn:incoming>
+      <bpmn:incoming>Flow_P_Send_P_Merge</bpmn:incoming>
+      <bpmn:outgoing>Flow_P_Merge_P_Wait</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:eventBasedGateway id="P_Wait">
+      <bpmn:incoming>Flow_P_Merge_P_Wait</bpmn:incoming>
+      <bpmn:outgoing>Flow_P_Wait_P_Ask</bpmn:outgoing>
+      <bpmn:outgoing>Flow_P_Wait_P_Decision</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+    <bpmn:intermediateCatchEvent id="P_Ask" name="Asked for missing details">
+      <bpmn:incoming>Flow_P_Wait_P_Ask</bpmn:incoming>
+      <bpmn:outgoing>Flow_P_Ask_P_Send</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="P_AskDef" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sendTask id="P_Send" name="Send missing receipt details">
+      <bpmn:incoming>Flow_P_Ask_P_Send</bpmn:incoming>
+      <bpmn:outgoing>Flow_P_Send_P_Merge</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:intermediateCatchEvent id="P_Decision" name="Decision received">
+      <bpmn:incoming>Flow_P_Wait_P_Decision</bpmn:incoming>
+      <bpmn:outgoing>Flow_P_Decision_P_End</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="P_DecisionDef" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="P_End" name="Claim settled">
+      <bpmn:incoming>Flow_P_Decision_P_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_P_Start_P_Taxi" sourceRef="P_Start" targetRef="P_Taxi" />
+    <bpmn:sequenceFlow id="Flow_P_Taxi_P_Receipt" sourceRef="P_Taxi" targetRef="P_Receipt" />
+    <bpmn:sequenceFlow id="Flow_P_Receipt_P_Form" sourceRef="P_Receipt" targetRef="P_Form" />
+    <bpmn:sequenceFlow id="Flow_P_Form_P_Merge" sourceRef="P_Form" targetRef="P_Merge" />
+    <bpmn:sequenceFlow id="Flow_P_Merge_P_Wait" sourceRef="P_Merge" targetRef="P_Wait" />
+    <bpmn:sequenceFlow id="Flow_P_Wait_P_Ask" sourceRef="P_Wait" targetRef="P_Ask" />
+    <bpmn:sequenceFlow id="Flow_P_Wait_P_Decision" sourceRef="P_Wait" targetRef="P_Decision" />
+    <bpmn:sequenceFlow id="Flow_P_Ask_P_Send" sourceRef="P_Ask" targetRef="P_Send" />
+    <bpmn:sequenceFlow id="Flow_P_Send_P_Merge" sourceRef="P_Send" targetRef="P_Merge" />
+    <bpmn:sequenceFlow id="Flow_P_Decision_P_End" sourceRef="P_Decision" targetRef="P_End" />
+  </bpmn:process>
+  <bpmn:process id="rejsegaranti-as-is-customer-service" name="Hovedstadens Letbane, customer service" isExecutable="false">
+    <bpmn:startEvent id="S_Start" name="Claim received">
+      <bpmn:outgoing>Flow_S_Start_S_Delay</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="S_StartDef" />
+    </bpmn:startEvent>
+    <bpmn:userTask id="S_Delay" name="Look up the delay in the operations log">
+      <bpmn:incoming>Flow_S_Start_S_Delay</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Delay_S_GwDelay</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="S_GwDelay" name="Delay of 30+ minutes?" default="S_f_delay_yes">
+      <bpmn:incoming>Flow_S_Delay_S_GwDelay</bpmn:incoming>
+      <bpmn:outgoing>S_f_delay_yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_S_GwDelay_S_Reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="S_Notice" name="Check notices of planned changes">
+      <bpmn:incoming>S_f_delay_yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Notice_S_GwNotice</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="S_GwNotice" name="Announced by the day before?" default="S_f_notice_no">
+      <bpmn:incoming>Flow_S_Notice_S_GwNotice</bpmn:incoming>
+      <bpmn:outgoing>S_f_notice_no</bpmn:outgoing>
+      <bpmn:outgoing>Flow_S_GwNotice_S_Reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="S_FM" name="Assess force majeure">
+      <bpmn:incoming>S_f_notice_no</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_FM_S_GwFM</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="S_GwFM" name="Force majeure?" default="S_f_fm_no">
+      <bpmn:incoming>Flow_S_FM_S_GwFM</bpmn:incoming>
+      <bpmn:outgoing>S_f_fm_no</bpmn:outgoing>
+      <bpmn:outgoing>Flow_S_GwFM_S_Reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="S_Receipt" name="Check the receipt">
+      <bpmn:incoming>S_f_fm_no</bpmn:incoming>
+      <bpmn:incoming>Flow_S_Details_S_Receipt</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Receipt_S_GwReceipt</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="S_GwReceipt" name="Receipt complete?" default="S_f_receipt_yes">
+      <bpmn:incoming>Flow_S_Receipt_S_GwReceipt</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_GwReceipt_S_Ask</bpmn:outgoing>
+      <bpmn:outgoing>S_f_receipt_yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="S_Ask" name="Ask passenger for missing details">
+      <bpmn:incoming>Flow_S_GwReceipt_S_Ask</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Ask_S_Details</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:intermediateCatchEvent id="S_Details" name="Details received">
+      <bpmn:incoming>Flow_S_Ask_S_Details</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Details_S_Receipt</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="S_DetailsDef" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:userTask id="S_Dist" name="Check start and end within 250 m of a station">
+      <bpmn:incoming>S_f_receipt_yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Dist_S_GwDist</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="S_GwDist" name="Within 250 m?" default="S_f_dist_yes">
+      <bpmn:incoming>Flow_S_Dist_S_GwDist</bpmn:incoming>
+      <bpmn:outgoing>S_f_dist_yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_S_GwDist_S_Reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="S_Calc" name="Calculate refund (max 300 kr)">
+      <bpmn:incoming>S_f_dist_yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Calc_S_Transfer</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="S_Transfer" name="Transfer refund">
+      <bpmn:incoming>Flow_S_Calc_S_Transfer</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Transfer_S_OutMerge</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="S_Reject" name="Write rejection">
+      <bpmn:incoming>Flow_S_GwDelay_S_Reject</bpmn:incoming>
+      <bpmn:incoming>Flow_S_GwNotice_S_Reject</bpmn:incoming>
+      <bpmn:incoming>Flow_S_GwFM_S_Reject</bpmn:incoming>
+      <bpmn:incoming>Flow_S_GwDist_S_Reject</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Reject_S_OutMerge</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="S_OutMerge">
+      <bpmn:incoming>Flow_S_Transfer_S_OutMerge</bpmn:incoming>
+      <bpmn:incoming>Flow_S_Reject_S_OutMerge</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_OutMerge_S_Send</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="S_Send" name="Send decision to passenger">
+      <bpmn:incoming>Flow_S_OutMerge_S_Send</bpmn:incoming>
+      <bpmn:outgoing>Flow_S_Send_S_End</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="S_End" name="Claim closed">
+      <bpmn:incoming>Flow_S_Send_S_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_S_Start_S_Delay" sourceRef="S_Start" targetRef="S_Delay" />
+    <bpmn:sequenceFlow id="Flow_S_Delay_S_GwDelay" sourceRef="S_Delay" targetRef="S_GwDelay" />
+    <bpmn:sequenceFlow id="S_f_delay_yes" name="yes" sourceRef="S_GwDelay" targetRef="S_Notice" />
+    <bpmn:sequenceFlow id="Flow_S_Notice_S_GwNotice" sourceRef="S_Notice" targetRef="S_GwNotice" />
+    <bpmn:sequenceFlow id="S_f_notice_no" name="no" sourceRef="S_GwNotice" targetRef="S_FM" />
+    <bpmn:sequenceFlow id="Flow_S_FM_S_GwFM" sourceRef="S_FM" targetRef="S_GwFM" />
+    <bpmn:sequenceFlow id="S_f_fm_no" name="no" sourceRef="S_GwFM" targetRef="S_Receipt" />
+    <bpmn:sequenceFlow id="Flow_S_Receipt_S_GwReceipt" sourceRef="S_Receipt" targetRef="S_GwReceipt" />
+    <bpmn:sequenceFlow id="Flow_S_GwReceipt_S_Ask" name="no" sourceRef="S_GwReceipt" targetRef="S_Ask" />
+    <bpmn:sequenceFlow id="Flow_S_Ask_S_Details" sourceRef="S_Ask" targetRef="S_Details" />
+    <bpmn:sequenceFlow id="Flow_S_Details_S_Receipt" sourceRef="S_Details" targetRef="S_Receipt" />
+    <bpmn:sequenceFlow id="S_f_receipt_yes" name="yes" sourceRef="S_GwReceipt" targetRef="S_Dist" />
+    <bpmn:sequenceFlow id="Flow_S_Dist_S_GwDist" sourceRef="S_Dist" targetRef="S_GwDist" />
+    <bpmn:sequenceFlow id="S_f_dist_yes" name="yes" sourceRef="S_GwDist" targetRef="S_Calc" />
+    <bpmn:sequenceFlow id="Flow_S_Calc_S_Transfer" sourceRef="S_Calc" targetRef="S_Transfer" />
+    <bpmn:sequenceFlow id="Flow_S_Transfer_S_OutMerge" sourceRef="S_Transfer" targetRef="S_OutMerge" />
+    <bpmn:sequenceFlow id="Flow_S_GwDelay_S_Reject" name="no" sourceRef="S_GwDelay" targetRef="S_Reject" />
+    <bpmn:sequenceFlow id="Flow_S_GwNotice_S_Reject" name="yes" sourceRef="S_GwNotice" targetRef="S_Reject" />
+    <bpmn:sequenceFlow id="Flow_S_GwFM_S_Reject" name="yes" sourceRef="S_GwFM" targetRef="S_Reject" />
+    <bpmn:sequenceFlow id="Flow_S_GwDist_S_Reject" name="no" sourceRef="S_GwDist" targetRef="S_Reject" />
+    <bpmn:sequenceFlow id="Flow_S_Reject_S_OutMerge" sourceRef="S_Reject" targetRef="S_OutMerge" />
+    <bpmn:sequenceFlow id="Flow_S_OutMerge_S_Send" sourceRef="S_OutMerge" targetRef="S_Send" />
+    <bpmn:sequenceFlow id="Flow_S_Send_S_End" sourceRef="S_Send" targetRef="S_End" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_rejsegaranti-as-is-passenger_di" bpmnElement="Participant_rejsegaranti-as-is-passenger" isHorizontal="true"><dc:Bounds x="100" y="20" width="2240" height="230" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_Start_di" bpmnElement="P_Start"><dc:Bounds x="162" y="152" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="125" y="192" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_Taxi_di" bpmnElement="P_Taxi"><dc:Bounds x="250" y="130" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_Receipt_di" bpmnElement="P_Receipt"><dc:Bounds x="380" y="130" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_Form_di" bpmnElement="P_Form"><dc:Bounds x="510" y="130" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_Merge_di" bpmnElement="P_Merge" isMarkerVisible="true"><dc:Bounds x="625" y="145" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="595" y="199" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_Wait_di" bpmnElement="P_Wait"><dc:Bounds x="705" y="145" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="675" y="199" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_Ask_di" bpmnElement="P_Ask"><dc:Bounds x="782" y="62" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="745" y="102" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_Send_di" bpmnElement="P_Send"><dc:Bounds x="860" y="40" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_Decision_di" bpmnElement="P_Decision"><dc:Bounds x="842" y="152" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="805" y="192" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_End_di" bpmnElement="P_End"><dc:Bounds x="952" y="152" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="915" y="192" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_P_Start_P_Taxi_di" bpmnElement="Flow_P_Start_P_Taxi">
+        <di:waypoint x="198" y="170" />
+        <di:waypoint x="250" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_P_Taxi_P_Receipt_di" bpmnElement="Flow_P_Taxi_P_Receipt">
+        <di:waypoint x="350" y="170" />
+        <di:waypoint x="380" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_P_Receipt_P_Form_di" bpmnElement="Flow_P_Receipt_P_Form">
+        <di:waypoint x="480" y="170" />
+        <di:waypoint x="510" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_P_Form_P_Merge_di" bpmnElement="Flow_P_Form_P_Merge">
+        <di:waypoint x="610" y="170" />
+        <di:waypoint x="625" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_P_Merge_P_Wait_di" bpmnElement="Flow_P_Merge_P_Wait">
+        <di:waypoint x="675" y="170" />
+        <di:waypoint x="705" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_P_Wait_P_Ask_di" bpmnElement="Flow_P_Wait_P_Ask">
+        <di:waypoint x="730" y="145" />
+        <di:waypoint x="730" y="80" />
+        <di:waypoint x="782" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_P_Wait_P_Decision_di" bpmnElement="Flow_P_Wait_P_Decision">
+        <di:waypoint x="755" y="170" />
+        <di:waypoint x="842" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_P_Ask_P_Send_di" bpmnElement="Flow_P_Ask_P_Send">
+        <di:waypoint x="818" y="80" />
+        <di:waypoint x="860" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_P_Send_P_Merge_di" bpmnElement="Flow_P_Send_P_Merge">
+        <di:waypoint x="910" y="40" />
+        <di:waypoint x="910" y="30" />
+        <di:waypoint x="650" y="30" />
+        <di:waypoint x="650" y="145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_P_Decision_P_End_di" bpmnElement="Flow_P_Decision_P_End">
+        <di:waypoint x="878" y="170" />
+        <di:waypoint x="952" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Participant_rejsegaranti-as-is-customer-service_di" bpmnElement="Participant_rejsegaranti-as-is-customer-service" isHorizontal="true"><dc:Bounds x="100" y="300" width="2240" height="360" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Start_di" bpmnElement="S_Start"><dc:Bounds x="542" y="472" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="505" y="512" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Delay_di" bpmnElement="S_Delay"><dc:Bounds x="630" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_GwDelay_di" bpmnElement="S_GwDelay" isMarkerVisible="true"><dc:Bounds x="775" y="465" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="745" y="519" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Notice_di" bpmnElement="S_Notice"><dc:Bounds x="860" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_GwNotice_di" bpmnElement="S_GwNotice" isMarkerVisible="true"><dc:Bounds x="1005" y="465" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="975" y="519" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_FM_di" bpmnElement="S_FM"><dc:Bounds x="1090" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_GwFM_di" bpmnElement="S_GwFM" isMarkerVisible="true"><dc:Bounds x="1215" y="465" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1185" y="519" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Receipt_di" bpmnElement="S_Receipt"><dc:Bounds x="1300" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_GwReceipt_di" bpmnElement="S_GwReceipt" isMarkerVisible="true"><dc:Bounds x="1445" y="465" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1415" y="519" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Ask_di" bpmnElement="S_Ask"><dc:Bounds x="1420" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Details_di" bpmnElement="S_Details"><dc:Bounds x="1332" y="352" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1295" y="392" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Dist_di" bpmnElement="S_Dist"><dc:Bounds x="1540" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_GwDist_di" bpmnElement="S_GwDist" isMarkerVisible="true"><dc:Bounds x="1685" y="465" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1655" y="519" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Calc_di" bpmnElement="S_Calc"><dc:Bounds x="1780" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Transfer_di" bpmnElement="S_Transfer"><dc:Bounds x="1910" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Reject_di" bpmnElement="S_Reject"><dc:Bounds x="1910" y="570" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_OutMerge_di" bpmnElement="S_OutMerge" isMarkerVisible="true"><dc:Bounds x="2055" y="465" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2025" y="519" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Send_di" bpmnElement="S_Send"><dc:Bounds x="2140" y="450" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_End_di" bpmnElement="S_End"><dc:Bounds x="2272" y="472" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="2235" y="512" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_S_Start_S_Delay_di" bpmnElement="Flow_S_Start_S_Delay">
+        <di:waypoint x="578" y="490" />
+        <di:waypoint x="630" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_Delay_S_GwDelay_di" bpmnElement="Flow_S_Delay_S_GwDelay">
+        <di:waypoint x="730" y="490" />
+        <di:waypoint x="775" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="S_f_delay_yes_di" bpmnElement="S_f_delay_yes">
+        <di:waypoint x="825" y="490" />
+        <di:waypoint x="860" y="490" />
+        <bpmndi:BPMNLabel><dc:Bounds x="827" y="473" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_Notice_S_GwNotice_di" bpmnElement="Flow_S_Notice_S_GwNotice">
+        <di:waypoint x="960" y="490" />
+        <di:waypoint x="1005" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="S_f_notice_no_di" bpmnElement="S_f_notice_no">
+        <di:waypoint x="1055" y="490" />
+        <di:waypoint x="1090" y="490" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1057" y="473" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_FM_S_GwFM_di" bpmnElement="Flow_S_FM_S_GwFM">
+        <di:waypoint x="1190" y="490" />
+        <di:waypoint x="1215" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="S_f_fm_no_di" bpmnElement="S_f_fm_no">
+        <di:waypoint x="1265" y="490" />
+        <di:waypoint x="1300" y="490" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1267" y="473" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_Receipt_S_GwReceipt_di" bpmnElement="Flow_S_Receipt_S_GwReceipt">
+        <di:waypoint x="1400" y="490" />
+        <di:waypoint x="1445" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_GwReceipt_S_Ask_di" bpmnElement="Flow_S_GwReceipt_S_Ask">
+        <di:waypoint x="1470" y="465" />
+        <di:waypoint x="1470" y="410" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1474" y="430" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_Ask_S_Details_di" bpmnElement="Flow_S_Ask_S_Details">
+        <di:waypoint x="1420" y="370" />
+        <di:waypoint x="1368" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_Details_S_Receipt_di" bpmnElement="Flow_S_Details_S_Receipt">
+        <di:waypoint x="1350" y="388" />
+        <di:waypoint x="1350" y="450" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="S_f_receipt_yes_di" bpmnElement="S_f_receipt_yes">
+        <di:waypoint x="1495" y="490" />
+        <di:waypoint x="1540" y="490" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1497" y="473" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_Dist_S_GwDist_di" bpmnElement="Flow_S_Dist_S_GwDist">
+        <di:waypoint x="1640" y="490" />
+        <di:waypoint x="1685" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="S_f_dist_yes_di" bpmnElement="S_f_dist_yes">
+        <di:waypoint x="1735" y="490" />
+        <di:waypoint x="1780" y="490" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1737" y="473" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_Calc_S_Transfer_di" bpmnElement="Flow_S_Calc_S_Transfer">
+        <di:waypoint x="1880" y="490" />
+        <di:waypoint x="1910" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_Transfer_S_OutMerge_di" bpmnElement="Flow_S_Transfer_S_OutMerge">
+        <di:waypoint x="2010" y="490" />
+        <di:waypoint x="2055" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_GwDelay_S_Reject_di" bpmnElement="Flow_S_GwDelay_S_Reject">
+        <di:waypoint x="800" y="515" />
+        <di:waypoint x="800" y="610" />
+        <di:waypoint x="1910" y="610" />
+        <bpmndi:BPMNLabel><dc:Bounds x="804" y="554" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_GwNotice_S_Reject_di" bpmnElement="Flow_S_GwNotice_S_Reject">
+        <di:waypoint x="1030" y="515" />
+        <di:waypoint x="1030" y="610" />
+        <di:waypoint x="1910" y="610" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1034" y="554" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_GwFM_S_Reject_di" bpmnElement="Flow_S_GwFM_S_Reject">
+        <di:waypoint x="1240" y="515" />
+        <di:waypoint x="1240" y="610" />
+        <di:waypoint x="1910" y="610" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1244" y="554" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_GwDist_S_Reject_di" bpmnElement="Flow_S_GwDist_S_Reject">
+        <di:waypoint x="1710" y="515" />
+        <di:waypoint x="1710" y="610" />
+        <di:waypoint x="1910" y="610" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1714" y="554" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_Reject_S_OutMerge_di" bpmnElement="Flow_S_Reject_S_OutMerge">
+        <di:waypoint x="2010" y="610" />
+        <di:waypoint x="2080" y="610" />
+        <di:waypoint x="2080" y="515" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_OutMerge_S_Send_di" bpmnElement="Flow_S_OutMerge_S_Send">
+        <di:waypoint x="2105" y="490" />
+        <di:waypoint x="2140" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_S_Send_S_End_di" bpmnElement="Flow_S_Send_S_End">
+        <di:waypoint x="2240" y="490" />
+        <di:waypoint x="2272" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Form_di" bpmnElement="MF_Form">
+        <di:waypoint x="560" y="210" />
+        <di:waypoint x="560" y="472" />
+        <bpmndi:BPMNLabel><dc:Bounds x="566" y="334" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Ask_di" bpmnElement="MF_Ask">
+        <di:waypoint x="1470" y="330" />
+        <di:waypoint x="1470" y="275" />
+        <di:waypoint x="800" y="275" />
+        <di:waypoint x="800" y="98" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1075" y="260" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Details_di" bpmnElement="MF_Details">
+        <di:waypoint x="910" y="120" />
+        <di:waypoint x="910" y="260" />
+        <di:waypoint x="1350" y="260" />
+        <di:waypoint x="1350" y="352" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1070" y="245" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Decision_di" bpmnElement="MF_Decision">
+        <di:waypoint x="2190" y="450" />
+        <di:waypoint x="2190" y="290" />
+        <di:waypoint x="860" y="290" />
+        <di:waypoint x="860" y="188" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1465" y="275" width="120" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Annotation_Author_di" bpmnElement="Annotation_Author"><dc:Bounds x="1150" y="60" width="420" height="60" /></bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
