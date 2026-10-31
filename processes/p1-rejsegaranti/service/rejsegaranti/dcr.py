@@ -173,10 +173,11 @@ def to_dot(path: str, side: int = 100) -> None:
     """Draw the graph in DCR notation: square events with the role in a header band."""
     style = {"condition": 'color="#e8a33d" arrowhead=dotnormal',
              "response": 'color="#2a7de1" arrowtail=dot dir=both arrowhead=normal',
-             "exclude": 'color="#d64545" arrowhead=normal label="%" fontcolor="#d64545"',
-             "include": 'color="#2e9e5b" arrowhead=normal label="+" fontcolor="#2e9e5b"',
+             # headlabel, not label: orthogonal edges cannot place mid-edge labels
+             "exclude": 'color="#d64545" arrowhead=normal headlabel="%" fontcolor="#d64545"',
+             "include": 'color="#2e9e5b" arrowhead=normal headlabel="+" fontcolor="#2e9e5b"',
              "milestone": 'color="#7a4dd8" arrowhead=diamond'}
-    lines = ["digraph DCR {", '  graph [rankdir=LR, fontname="Helvetica", labelloc=t, fontsize=18,',
+    lines = ["digraph DCR {", '  graph [rankdir=LR, splines=ortho, fontname="Helvetica", labelloc=t, fontsize=18,',
              '         label="Rejsegaranti claim: DCR compliance rules  (author: Liam Palmqvist)\\n'
              'orange = condition, blue = response, red % = exclude"];',
              '  node [shape=plain, fontname="Helvetica", fontsize=11];',

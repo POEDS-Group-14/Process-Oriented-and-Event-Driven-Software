@@ -1,5 +1,5 @@
 digraph DCR {
-  graph [rankdir=LR, fontname="Helvetica", labelloc=t, fontsize=18,
+  graph [rankdir=LR, splines=ortho, fontname="Helvetica", labelloc=t, fontsize=18,
          label="Rejsegaranti claim: DCR compliance rules  (author: Liam Palmqvist)\norange = condition, blue = response, red % = exclude"];
   node [shape=plain, fontname="Helvetica", fontsize=11];
   edge [fontname="Helvetica", fontsize=10];
@@ -30,22 +30,22 @@ digraph DCR {
   e7 -> e11 [color="#e8a33d" arrowhead=dotnormal];
   e7 -> e10 [color="#e8a33d" arrowhead=dotnormal];
   e9 -> e13 [color="#e8a33d" arrowhead=dotnormal];
-  e8 -> e13 [color="#d64545" arrowhead=normal label="%" fontcolor="#d64545"];
-  e3 -> e13 [color="#d64545" arrowhead=normal label="%" fontcolor="#d64545"];
-  e4 -> e13 [color="#d64545" arrowhead=normal label="%" fontcolor="#d64545"];
-  e2 -> e13 [color="#d64545" arrowhead=normal label="%" fontcolor="#d64545"];
+  e8 -> e13 [color="#d64545" arrowhead=normal headlabel="%" fontcolor="#d64545"];
+  e3 -> e13 [color="#d64545" arrowhead=normal headlabel="%" fontcolor="#d64545"];
+  e4 -> e13 [color="#d64545" arrowhead=normal headlabel="%" fontcolor="#d64545"];
+  e2 -> e13 [color="#d64545" arrowhead=normal headlabel="%" fontcolor="#d64545"];
   e5 -> e13 [color="#e8a33d" arrowhead=dotnormal];
   e11 -> e13 [color="#e8a33d" arrowhead=dotnormal];
-  e10 -> e13 [color="#d64545" arrowhead=normal label="%" fontcolor="#d64545"];
+  e10 -> e13 [color="#d64545" arrowhead=normal headlabel="%" fontcolor="#d64545"];
   e12 -> e13 [color="#e8a33d" arrowhead=dotnormal];
-  e13 -> e13 [color="#d64545" arrowhead=normal label="%" fontcolor="#d64545"];
-  e13 -> e14 [color="#d64545" arrowhead=normal label="%" fontcolor="#d64545"];
-  e14 -> e13 [color="#d64545" arrowhead=normal label="%" fontcolor="#d64545"];
+  e13 -> e13 [color="#d64545" arrowhead=normal headlabel="%" fontcolor="#d64545"];
+  e13 -> e14 [color="#d64545" arrowhead=normal headlabel="%" fontcolor="#d64545"];
+  e14 -> e13 [color="#d64545" arrowhead=normal headlabel="%" fontcolor="#d64545"];
   e0 -> e15 [color="#2a7de1" arrowtail=dot dir=both arrowhead=normal];
   e13 -> e15 [color="#e8a33d" arrowhead=dotnormal];
   e14 -> e15 [color="#e8a33d" arrowhead=dotnormal];
-  e15 -> e15 [color="#d64545" arrowhead=normal label="%" fontcolor="#d64545"];
+  e15 -> e15 [color="#d64545" arrowhead=normal headlabel="%" fontcolor="#d64545"];
   e11 -> e13 [color="#2a7de1" arrowtail=dot dir=both arrowhead=normal];
-  e11 -> e14 [color="#d64545" arrowhead=normal label="%" fontcolor="#d64545"];
+  e11 -> e14 [color="#d64545" arrowhead=normal headlabel="%" fontcolor="#d64545"];
   e15 -> e16 [color="#e8a33d" arrowhead=dotnormal];
 }
