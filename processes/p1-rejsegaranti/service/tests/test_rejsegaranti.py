@@ -16,6 +16,7 @@ from rejsegaranti.bridge import Bridge, make_server
 from rejsegaranti.cep import CepSink
 from rejsegaranti.stations import STATION_BY_NAME, distance_m, offset
 from rejsegaranti.store import Store
+from rejsegaranti.xes import write_xes
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 TO_BE = os.path.join(ROOT, "models", "rejsegaranti-to-be.bpmn")
@@ -232,6 +233,21 @@ class Dcr(unittest.TestCase):
         # R8: eligible but rejected
         rejected = paid[:7] + [A.REJECT, A.REPORT_OUTCOME, A.CLAIM_CLOSED]
         self.assertTrue(any("excluded" in p for p in self.g.replay(rejected)))
+
+    def test_log_roles_match_the_graph(self):
+        # processdoctor replays a log event only on a graph event with the same role
+        root = ET.parse(self.xml).getroot()
+        label = {m.get("eventId"): m.get("labelId") for m in root.iter("labelMapping")}
+        graph_role = {label[e.get("id")]: e.findtext("custom/roles/role")
+                      for e in root.find("specification/resources/events")}
+        _, traces, _ = simulate.run_offline(simulate.generate(seed=5), seed=5)
+        path = os.path.join(self.tmp, "claims.xes")
+        write_xes(path, traces, "test", roles=dcr.ROLES)
+        events = list(ET.parse(path).getroot().iter("{http://www.xes-standard.org/}event"))
+        self.assertTrue(events)
+        for ev in events:
+            a = {x.get("key"): x.get("value") for x in ev}
+            self.assertEqual(a.get("role"), graph_role[a["concept:name"]], a["concept:name"])
 
     def test_noise_is_detected(self):
         sc = simulate.generate(seed=9)

@@ -59,6 +59,7 @@ def cmd_run(a):
 
 def cmd_simulate(a):
     from . import simulate as S
+    from .dcr import ROLES
     from .xes import write_csv, write_xes
 
     delays = S.read_delays_csv(a.delays) if a.delays else None
@@ -74,7 +75,8 @@ def cmd_simulate(a):
         d, c, st = S.run_offline(sc, seed=a.seed, noise=a.noise)
         print(f"{len(st.refused_at_intake)} claims refused at the form (incomplete receipt)")
         tag = "offline" + (f"-noise{int(a.noise * 100)}" if a.noise else "")
-        write_xes(os.path.join(DATA_DIR, f"claims-{tag}.xes"), c, "Rejsegaranti claims (offline, simulated)")
+        write_xes(os.path.join(DATA_DIR, f"claims-{tag}.xes"), c, "Rejsegaranti claims (offline, simulated)",
+                  roles=ROLES)
         write_csv(os.path.join(DATA_DIR, f"claims-{tag}.csv"), c)
         write_xes(os.path.join(DATA_DIR, f"delay-cases-{tag}.xes"), d, "Rejsegaranti delay cases (offline, simulated)")
         print(f"wrote {len(c)} claim traces and {len(d)} delay-case traces to {DATA_DIR}")
@@ -82,6 +84,7 @@ def cmd_simulate(a):
 
 def cmd_export(a):
     from .camunda import Camunda
+    from .dcr import ROLES
     from .export import CLAIM_KEY, DELAY_KEY, traces_from_camunda
     from .xes import write_csv, write_xes
 
@@ -89,7 +92,8 @@ def cmd_export(a):
     os.makedirs(DATA_DIR, exist_ok=True)
     for key, name in ((CLAIM_KEY, "claims-camunda"), (DELAY_KEY, "delay-cases-camunda")):
         tr = traces_from_camunda(cam, key)
-        write_xes(os.path.join(DATA_DIR, name + ".xes"), tr, f"{key} (Camunda history)")
+        write_xes(os.path.join(DATA_DIR, name + ".xes"), tr, f"{key} (Camunda history)",
+                  roles=ROLES if key == CLAIM_KEY else None)
         write_csv(os.path.join(DATA_DIR, name + ".csv"), tr)
         print(f"{key}: {len(tr)} traces -> {name}.xes")
 

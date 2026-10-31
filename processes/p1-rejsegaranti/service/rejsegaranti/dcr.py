@@ -9,9 +9,12 @@ rules can be tested locally before uploading to processdoctor.dtu.dk.
 """
 from __future__ import annotations
 
+import re
+import textwrap
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from typing import Dict, List, Set, Tuple
+from xml.sax.saxutils import escape
 
 from . import activities as A
 
@@ -35,6 +38,9 @@ EVENTS = [
     (A.REPORT_OUTCOME, "Claim engine"),
     (A.CLAIM_CLOSED, "Claim engine"),
 ]
+# The claim logs carry these roles too: processdoctor only replays a log event
+# on a graph event with the same role, so a log without roles never conforms.
+ROLES = dict(EVENTS)
 
 # (kind, source, target, why) - kind in condition/response/exclude/include/milestone
 RULES: List[Tuple[str, str, str, str]] = [
@@ -163,7 +169,8 @@ def to_xml(path: str, title: str = "Rejsegaranti claim - compliance rules (autho
     ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
 
 
-def to_dot(path: str) -> None:
+def to_dot(path: str, side: int = 100) -> None:
+    """Draw the graph in DCR notation: square events with the role in a header band."""
     style = {"condition": 'color="#e8a33d" arrowhead=dotnormal',
              "response": 'color="#2a7de1" arrowtail=dot dir=both arrowhead=normal',
              "exclude": 'color="#d64545" arrowhead=normal label="%" fontcolor="#d64545"',
@@ -172,11 +179,18 @@ def to_dot(path: str) -> None:
     lines = ["digraph DCR {", '  graph [rankdir=LR, fontname="Helvetica", labelloc=t, fontsize=18,',
              '         label="Rejsegaranti claim: DCR compliance rules  (author: Liam Palmqvist)\\n'
              'orange = condition, blue = response, red % = exclude"];',
-             '  node [shape=box, style="rounded,filled", fillcolor="#f8f8f8", fontname="Helvetica", fontsize=11];',
+             '  node [shape=plain, fontname="Helvetica", fontsize=11];',
              '  edge [fontname="Helvetica", fontsize=10];']
     ids = {label: f"e{i}" for i, (label, _) in enumerate(EVENTS)}
+    band = 22
     for label, role in EVENTS:
-        lines.append(f'  {ids[label]} [label="{role}\\n\\n{label}"];')
+        keep_units = re.sub(r"(\d) (\w)", "\\1\u00a0\\2", label)  # no break inside "250 m"
+        text = "<BR/>".join(escape(s) for s in textwrap.wrap(keep_units, 15))
+        lines.append(
+            f'  {ids[label]} [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" STYLE="rounded" BGCOLOR="white">'
+            f'<TR><TD WIDTH="{side}" HEIGHT="{band}" FIXEDSIZE="TRUE">'
+            f'<FONT POINT-SIZE="9" COLOR="#555555">{escape(role)}</FONT></TD></TR><HR/>'
+            f'<TR><TD WIDTH="{side}" HEIGHT="{side - band}" FIXEDSIZE="TRUE">{text}</TD></TR></TABLE>>];')
     for kind, s, t, _ in RULES:
         lines.append(f"  {ids[s]} -> {ids[t]} [{style[kind]}];")
     lines.append("}")

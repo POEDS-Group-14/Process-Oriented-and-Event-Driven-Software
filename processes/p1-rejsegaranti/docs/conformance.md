@@ -18,6 +18,7 @@ Author: Liam Palmqvist
 - Events are completed service and send tasks, milestone events, and start and end events. Gateways are left out.
 - Timestamps are the activities' end times in Camunda.
 - Trace attributes: `delayId`, `outcome`, `payoutDkk`, `rejectionReason`, `exclusionReason`.
+- Each claim event has a `role` attribute (Passenger, Claim engine or Finance), the same role the DCR graph gives that activity (`ROLES` in `service/rejsegaranti/dcr.py`). ProcessDoctor only replays a log event on a graph event with the same role, so without it every trace scores Infinity.
 - The delay-case log (`delay-cases-camunda.xes`) is exported too, for the lead-time and coverage analysis.
 
 ## Steps
@@ -30,8 +31,10 @@ uv run rejsegaranti simulate --post --delays recorded.csv # once real delays exi
 uv run rejsegaranti export          # -> out/claims-camunda.xes / .csv
 # 3. Pre-check
 uv run rejsegaranti check ../out/claims-camunda.xes -v
-# 4. Upload models/rejsegaranti-rules.dcr.xml and out/claims-camunda.xes to processdoctor.dtu.dk
+# 4. Check in ProcessDoctor (see below)
 ```
+
+ProcessDoctor (https://processdoctor.compute.dtu.dk) runs DCR-JS. Use the **Conformance** view: Open Model > **Open DCR Solution XML** with `models/rejsegaranti-rules.dcr.xml`, then open `out/claims-camunda.xes` as the event log. Don't use the Log Generation view: it refuses any DCR Solutions file (the format always contains `<subProcesses>`) with "Log generation not supported for guards, time constraints, variables, and subprocesses". Its alignment mode is also off for graphs with roles, and the rules graph has roles, so use the constraint-violation results. Use a log exported after 31 October 2026: older exports have no `role` attribute.
 
 ## Dry run on simulated data (no engine)
 

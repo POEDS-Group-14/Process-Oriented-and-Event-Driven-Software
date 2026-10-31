@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import csv
 import xml.etree.ElementTree as ET
-from typing import Iterable, List
+from typing import Dict, Iterable, List, Optional
 
 from .timeutil import parse_ts
 
@@ -21,8 +21,9 @@ def _attr(parent: ET.Element, key: str, value) -> None:
         ET.SubElement(parent, "string", key=key, value=str(value))
 
 
-def write_xes(path: str, traces: Iterable[dict], log_name: str) -> int:
-    """traces: [{"id": str, "attrs": {...}, "events": [{"name", "time", "attrs"?}]}]"""
+def write_xes(path: str, traces: Iterable[dict], log_name: str, roles: Optional[Dict[str, str]] = None) -> int:
+    """traces: [{"id": str, "attrs": {...}, "events": [{"name", "time", "attrs"?}]}]
+    roles: activity -> role, written as the event attribute "role" (the key processdoctor reads)"""
     root = ET.Element("log", {"xes.version": "1.0", "xes.features": "nested-attributes",
                               "xmlns": "http://www.xes-standard.org/"})
     for name, prefix, uri in (
@@ -48,6 +49,8 @@ def write_xes(path: str, traces: Iterable[dict], log_name: str) -> int:
             ev = ET.SubElement(tr, "event")
             ET.SubElement(ev, "string", key="concept:name", value=e["name"])
             ET.SubElement(ev, "string", key="lifecycle:transition", value="complete")
+            if roles and e["name"] in roles:
+                ET.SubElement(ev, "string", key="role", value=roles[e["name"]])
             ts = parse_ts(e["time"]).isoformat(timespec="milliseconds")
             ET.SubElement(ev, "date", key="time:timestamp", value=ts)
             for k, v in (e.get("attrs") or {}).items():
