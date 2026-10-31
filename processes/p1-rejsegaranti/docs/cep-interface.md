@@ -1,6 +1,6 @@
 # Process 1 – Interface between the CEP and the engine (for #37 and #38)
 
-The bridge (`python3 -m rejsegaranti run`) listens on `http://localhost:8090`. Bodies are JSON. Siddhi's `@map(type='json')` wrapper `{"event": {...}}` is accepted as well.
+The bridge (`uv run rejsegaranti run`) listens on `http://localhost:8090`. Bodies are JSON. Siddhi's `@map(type='json')` wrapper `{"event": {...}}` is accepted as well.
 
 ## CEP → engine
 

@@ -1,6 +1,6 @@
 """Generate the AS-IS and TO-BE BPMN models for process 1 (rejsegaranti).
 
-  python3 tools/build_bpmn.py        -> models/rejsegaranti-as-is.bpmn
+  uv run --project service python tools/build_bpmn.py        -> models/rejsegaranti-as-is.bpmn
                                         models/rejsegaranti-to-be.bpmn
 
 Both files open in Camunda Modeler. If you edit a model in the Modeler,

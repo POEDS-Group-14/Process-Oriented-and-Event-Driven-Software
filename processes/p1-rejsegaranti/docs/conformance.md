@@ -1,4 +1,4 @@
-# Process 1 – Event log and conformance check (issue #11)
+# Process 1 - Event log and conformance check (issue #11)
 
 Author: Liam Palmqvist
 
@@ -6,9 +6,9 @@ Author: Liam Palmqvist
 
 | Step | Status |
 |---|---|
-| Export of the event log from Camunda history (`python3 -m rejsegaranti export`) | Built. Not yet run against a live engine |
+| Export of the event log from Camunda history (`uv run rejsegaranti export`) | Works. Run against Camunda 7 Run 7.24 on 31 October 2026, with simulated data (see below) |
 | Real Line L delay data | **Blocked**: Rejseplanen API 2.0 access is on request only. Until access is granted, delays are simulated |
-| Local pre-check against the DCR rules (`python3 -m rejsegaranti check`) | Built and tested |
+| Local pre-check against the DCR rules (`uv run rejsegaranti check`) | Built and tested |
 | Check in processdoctor.dtu.dk | To do (manual upload) |
 | Deviation analysis for the report | Template below. Needs the real-data run |
 
@@ -24,12 +24,12 @@ Author: Liam Palmqvist
 
 ```bash
 # 1. Camunda + bridge running (see README), then send data
-python3 -m rejsegaranti simulate --post                       # simulated delays
-python3 -m rejsegaranti simulate --post --delays recorded.csv # once real delays exist
+uv run rejsegaranti simulate --post                       # simulated delays
+uv run rejsegaranti simulate --post --delays recorded.csv # once real delays exist
 # 2. Export
-python3 -m rejsegaranti export          # -> out/claims-camunda.xes / .csv
+uv run rejsegaranti export          # -> out/claims-camunda.xes / .csv
 # 3. Pre-check
-python3 -m rejsegaranti check ../out/claims-camunda.xes -v
+uv run rejsegaranti check ../out/claims-camunda.xes -v
 # 4. Upload models/rejsegaranti-rules.dcr.xml and out/claims-camunda.xes to processdoctor.dtu.dk
 ```
 
@@ -57,6 +57,25 @@ Outcomes in the clean simulated log: 61 paid and 49 rejected. Rejection reasons:
 - 15 were force majeure (DMI warning, OWM thresholds or cause code)
 - 6 had receipt problems (private transport, duplicate)
 - 4 failed the 250 m rule
+
+## Live run on Camunda (simulated data)
+
+The same scenario (seed 14) was sent through the bridge to Camunda 7 Run 7.24 in Docker, on a fresh engine with an empty `out/registry.json`. One hand-made delay and claim were sent first as a smoke test (`TEST-D1`, `TEST-C1`, paid 300 kr), plus one claim without a CVR number (`TEST-C2`), which the bridge refused with HTTP 422.
+
+| | Offline dry run | Live run on Camunda |
+|---|---|---|
+| Claims refused at intake (HTTP 422) | 6 | 7 (6 + `TEST-C2`) |
+| Claim traces in the log | 110 | 111 (110 + `TEST-C1`) |
+| Variants | 9 | 9 |
+| Violating traces | 0 | 0 |
+| Paid | 61 | 62 (61 + `TEST-C1`) |
+| Rejected | 49 | 49 |
+| Delay-case traces | 37 | 38 (37 + `TEST-D1`) |
+| Incidents in Camunda | n/a | 0 |
+
+For each of the 110 simulated claims, the live run gave the same outcome, the same payout and the same set of activities as the dry run. The rejection reasons split the same way as listed above.
+
+**These figures are from simulated data too.** They show that the engine, the workers and the export behave like the dry run, not anything about Line L.
 
 ## Deviation analysis (to fill in after the real-data run)
 

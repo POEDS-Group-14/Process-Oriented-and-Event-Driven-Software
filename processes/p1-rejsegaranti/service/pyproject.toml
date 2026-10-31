@@ -1,0 +1,17 @@
+[project]
+name = "rejsegaranti"
+version = "0.1.0"
+description = "Process 1 (Line L rejsegaranti): CEP bridge, Camunda workers, simulator, event log and DCR check"
+authors = [{ name = "Liam Palmqvist", email = "liam.palmqvist@icloud.com" }]
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+rejsegaranti = "rejsegaranti.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["rejsegaranti"]

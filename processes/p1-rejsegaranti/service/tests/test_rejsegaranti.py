@@ -1,4 +1,4 @@
-"""Tests for process 1. Run from service/:  python3 -m unittest -v"""
+"""Tests for process 1. Run from service/:  uv run python -m unittest -v"""
 from __future__ import annotations
 
 import json
@@ -8,6 +8,7 @@ import threading
 import unittest
 import urllib.request
 import xml.etree.ElementTree as ET
+from unittest import mock
 
 from rejsegaranti import activities as A
 from rejsegaranti import dcr, rules, simulate, workers
@@ -48,6 +49,8 @@ class Rules(unittest.TestCase):
     def test_payout_cap(self):
         self.assertEqual(rules.payout(180), 180)
         self.assertEqual(rules.payout(450), 300)
+        # an int would be sent to Camunda as Long instead of Double
+        self.assertIsInstance(rules.payout(450), float)
 
     def test_notice_example_from_issue_6(self):
         # work planned Wednesday 05:00; notice seen Monday -> excluded
@@ -204,7 +207,7 @@ class Dcr(unittest.TestCase):
 
     def test_committed_xml_is_current(self):
         with open(RULES, encoding="utf-8") as a, open(self.xml, encoding="utf-8") as b:
-            self.assertEqual(a.read(), b.read(), "run: python3 -m rejsegaranti build-dcr")
+            self.assertEqual(a.read(), b.read(), "run: uv run rejsegaranti build-dcr")
 
     def test_clean_log_conforms(self):
         _, traces, _ = simulate.run_offline(simulate.generate(seed=5), seed=5)
@@ -278,6 +281,17 @@ class BridgeHttp(unittest.TestCase):
         self.assertEqual([c[0] for c in self.cam.calls], ["DelaySituationDetected", "ClaimSubmitted"])
         with urllib.request.urlopen(self.base + "/state") as resp:
             self.assertEqual(len(json.load(resp)["claims"]), 1)
+
+    def test_live_run_waits_before_reusing_a_receipt(self):
+        refused = {**claim_near(receiptId="R9"), "claimId": "C2"}
+        del refused["receipt"]["cvr"]
+        claims = [claim_near(), refused, {**claim_near(receiptId="R9"), "claimId": "C3"},
+                  {**claim_near(), "claimId": "C4"}]
+        waited = []
+        with mock.patch.object(simulate, "wait_for_outcome", lambda base, cid: waited.append(cid)):
+            simulate.run_live(self.base, {"notices": [], "weather": [], "delays": [], "claims": claims}, pause=0)
+        # C3 reuses a receipt whose only earlier claim was refused at intake; C4 reuses C1's
+        self.assertEqual(waited, ["C1"])
 
 
 if __name__ == "__main__":

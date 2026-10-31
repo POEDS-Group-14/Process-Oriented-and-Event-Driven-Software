@@ -38,7 +38,8 @@ def from_variables(variables: Dict[str, dict]) -> Dict[str, Any]:
 
 class Camunda:
     def __init__(self, base_url: Optional[str] = None, timeout: float = 30.0):
-        self.base = (base_url or os.environ.get("CAMUNDA_URL", "http://localhost:8080/engine-rest")).rstrip("/")
+        default = f"http://localhost:{os.environ.get('CAMUNDA_PORT', '8085')}/engine-rest"
+        self.base = (base_url or os.environ.get("CAMUNDA_URL", default)).rstrip("/")
         self.timeout = timeout
 
     # ---- low level -------------------------------------------------------

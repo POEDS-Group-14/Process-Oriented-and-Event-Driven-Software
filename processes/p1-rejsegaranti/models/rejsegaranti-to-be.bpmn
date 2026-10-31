@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_rejsegaranti_to_be" targetNamespace="http://poeds-group-14.dtu.dk/rejsegaranti" exporter="tools/build_bpmn.py" exporterVersion="1.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
-  <bpmn:documentation>Rejsegaranti TO-BE, author Liam Palmqvist</bpmn:documentation>
   <bpmn:collaboration id="Collaboration_1">
+    <bpmn:documentation>Rejsegaranti TO-BE, author Liam Palmqvist</bpmn:documentation>
     <bpmn:participant id="Participant_rejsegaranti-delay-case" name="Rejsegaranti delay case (started by the CEP)" processRef="rejsegaranti-delay-case" />
     <bpmn:participant id="Participant_rejsegaranti-claim" name="Rejsegaranti claim handling" processRef="rejsegaranti-claim" />
     <bpmn:participant id="Participant_CEP" name="CEP (Siddhi agents, issue #37)" />

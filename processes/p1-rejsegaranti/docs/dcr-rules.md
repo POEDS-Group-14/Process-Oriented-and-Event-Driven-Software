@@ -2,7 +2,7 @@
 
 Author: Liam Palmqvist · Files: `models/rejsegaranti-rules.dcr.xml` (dcrgraphs.net XML), `models/rejsegaranti-rules.pdf`/`.svg` (drawing)
 
-The graph is generated from `service/rejsegaranti/dcr.py` (`RULES`) with `python3 -m rejsegaranti build-dcr`. The event labels are the activity names in the TO-BE claim process, so the Camunda event log can be checked against the graph without renaming anything.
+The graph is generated from `service/rejsegaranti/dcr.py` (`RULES`) with `uv run rejsegaranti build-dcr`. The event labels are the activity names in the TO-BE claim process, so the Camunda event log can be checked against the graph without renaming anything.
 
 All events start included, none executed or pending.
 
@@ -23,7 +23,7 @@ Legend: →• condition, •→ response, →% exclude.
 
 ## Checking locally
 
-`python3 -m rejsegaranti check <log.xes> [-v]` replays each trace with standard DCR semantics:
+`uv run rejsegaranti check <log.xes> [-v]` replays each trace with standard DCR semantics:
 
 - an event is enabled if it is included, and every included condition has been executed
 - executing an event marks it executed, clears its pending response, makes its responses pending, then applies excludes and includes

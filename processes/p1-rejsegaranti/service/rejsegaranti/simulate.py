@@ -184,6 +184,16 @@ def post(base: str, path: str, body: dict) -> dict:
         return {"status": e.code, **json.loads(e.read() or b"{}")}
 
 
+def wait_for_outcome(base: str, claim_id: str, timeout: float = 120.0) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        with urllib.request.urlopen(base.rstrip("/") + "/state", timeout=30) as r:
+            if any(o["claimId"] == claim_id for o in json.loads(r.read())["outcomes"]):
+                return
+        time.sleep(1)
+    print("no outcome for", claim_id, f"after {timeout:.0f} s; posting the next claim anyway")
+
+
 def run_live(base: str, scenario: dict, pause: float = 3.0) -> None:
     for n in scenario["notices"]:
         post(base, "/cep/notice", n)
@@ -192,8 +202,18 @@ def run_live(base: str, scenario: dict, pause: float = 3.0) -> None:
     for d in scenario["delays"]:
         print("delay", d["delayId"], post(base, "/cep/delay", d))
     time.sleep(pause)  # let the delay cases get assessed first
+    first_use = {}  # receiptId -> first accepted claim with that receipt
     for c in scenario["claims"]:
-        print("claim", c["claimId"], post(base, "/claims", c))
+        rid = c["receipt"].get("receiptId")
+        if rid in first_use:
+            # A resubmitted receipt arrives days after the first claim, as in the
+            # offline run. Posting it at once would race the first claim to the
+            # payout and leave an incident on C_Pay instead of "Receipt rejected".
+            wait_for_outcome(base, first_use[rid])
+        r = post(base, "/claims", c)
+        print("claim", c["claimId"], r)
+        if "status" not in r:
+            first_use.setdefault(rid, c["claimId"])
 
 
 # ---- offline mode: same handlers, no engine ------------------------------

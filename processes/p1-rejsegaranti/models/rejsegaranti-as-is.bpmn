@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_rejsegaranti_as_is" targetNamespace="http://poeds-group-14.dtu.dk/rejsegaranti" exporter="tools/build_bpmn.py" exporterVersion="1.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
-  <bpmn:documentation>Rejsegaranti AS-IS, author Liam Palmqvist</bpmn:documentation>
   <bpmn:collaboration id="Collaboration_1">
+    <bpmn:documentation>Rejsegaranti AS-IS, author Liam Palmqvist</bpmn:documentation>
     <bpmn:participant id="Participant_rejsegaranti-as-is-passenger" name="Passenger" processRef="rejsegaranti-as-is-passenger" />
     <bpmn:participant id="Participant_rejsegaranti-as-is-customer-service" name="Hovedstadens Letbane, customer service" processRef="rejsegaranti-as-is-customer-service" />
     <bpmn:messageFlow id="MF_Form" name="claim form + receipt" sourceRef="P_Form" targetRef="S_Start" />

@@ -1,15 +1,15 @@
 # Camunda 7 Run for process 1 (rejsegaranti).
-#   docker compose up -d       -> http://localhost:8080/camunda  (demo / demo)
-#   REST API                   -> http://localhost:8080/engine-rest
+#   docker compose up -d       -> http://localhost:8085/camunda  (demo / demo)
+#   REST API                   -> http://localhost:8085/engine-rest
+# Host port 8085 by default (8080 is often taken). Change it with
+#   CAMUNDA_PORT=9090 docker compose up -d   (and use the same CAMUNDA_PORT for uv run)
+# Data (incl. history = the event log) lives in the container until `docker compose down`.
 services:
   camunda:
     image: camunda/camunda-bpm-platform:run-7.24.0
     ports:
-      - "8080:8080"
+      - "${CAMUNDA_PORT:-8085}:8080"
     environment:
-      # H2 in a volume so history (the event log) survives restarts
-      - DB_URL=jdbc:h2:/camunda/data/process-engine;TRACE_LEVEL_FILE=0;DB_CLOSE_ON_EXIT=FALSE
-    volumes:
-      - camunda-data:/camunda/data
-volumes:
-  camunda-data:
+      # Camunda Run deploys an "invoice" demo with running instances by default;
+      # leave it out so incidents and instance counts are ours only
+      - CAMUNDA_BPM_RUN_EXAMPLE_ENABLED=false

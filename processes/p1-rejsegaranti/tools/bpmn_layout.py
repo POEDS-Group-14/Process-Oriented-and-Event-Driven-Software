@@ -165,9 +165,10 @@ def document(defs_id, processes, collapsed=(), message_flows=(), messages=(), do
          f'id="{defs_id}" targetNamespace="http://poeds-group-14.dtu.dk/rejsegaranti" '
          'exporter="tools/build_bpmn.py" exporterVersion="1.0" '
          'modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">']
-    if doc:
-        h.append(f"  <bpmn:documentation>{q(doc)}</bpmn:documentation>")
     h.append('  <bpmn:collaboration id="Collaboration_1">')
+    # documentation is not allowed directly under <definitions> (the engine's XSD check rejects it)
+    if doc:
+        h.append(f"    <bpmn:documentation>{q(doc)}</bpmn:documentation>")
     for p in processes:
         h.append(f'    <bpmn:participant id="Participant_{p.id}" name="{q(p.name)}" processRef="{p.id}" />')
     for pid, name, _ in collapsed:

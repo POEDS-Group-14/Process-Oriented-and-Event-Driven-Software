@@ -1,14 +1,14 @@
 """Command line for process 1 (rejsegaranti).
 
-  python -m rejsegaranti deploy               deploy the TO-BE BPMN to Camunda
-  python -m rejsegaranti run                  CEP bridge (:8090) + external-task workers
-  python -m rejsegaranti simulate --post      send simulated situations and claims to the bridge
-  python -m rejsegaranti simulate --offline   dry run without Camunda -> out/*.xes
-  python -m rejsegaranti export               Camunda history -> out/*.xes and .csv
-  python -m rejsegaranti check LOG.xes        replay a log against the DCR rules
-  python -m rejsegaranti build-dcr            regenerate models/rejsegaranti-rules.*
+  uv run rejsegaranti deploy               deploy the TO-BE BPMN to Camunda
+  uv run rejsegaranti run                  CEP bridge (:8090) + external-task workers
+  uv run rejsegaranti simulate --post      send simulated situations and claims to the bridge
+  uv run rejsegaranti simulate --offline   dry run without Camunda -> out/*.xes
+  uv run rejsegaranti export               Camunda history -> out/*.xes and .csv
+  uv run rejsegaranti check LOG.xes        replay a log against the DCR rules
+  uv run rejsegaranti build-dcr            regenerate models/rejsegaranti-rules.*
 
-Settings (environment): CAMUNDA_URL (default http://localhost:8080/engine-rest),
+Settings (environment): CAMUNDA_PORT (default 8085) or CAMUNDA_URL (default http://localhost:8085/engine-rest),
 CEP_URL (Siddhi HTTP source; optional), BRIDGE_PORT (8090), DATA_DIR (./out).
 """
 from __future__ import annotations

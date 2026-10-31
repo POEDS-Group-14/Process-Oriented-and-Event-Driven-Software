@@ -30,7 +30,7 @@ from .timeutil import local_date, parse_ts
 
 LINE = "L"
 DELAY_THRESHOLD_MIN = 30
-PAYOUT_CAP_DKK = 300
+PAYOUT_CAP_DKK = 300.0  # float, so a capped payout stays a Double in Camunda
 RADIUS_M = 250
 
 # A claim's trip must start between the planned departure and this long
