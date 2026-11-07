@@ -44,6 +44,10 @@ Settings, all optional:
 
 Without Camunda, run `uv run rejsegaranti simulate --offline [--noise 0.1]`. It runs the same rules and writes an XES log with the same activity names.
 
+## Always on: the pinklady server
+
+Liam's Mac mini (`pinklady`) runs Camunda, the bridge, an hourly feed of **simulated** delays and claims, and the weather recorder as systemd services that start on boot. Cockpit: http://pinklady:8085/camunda (home network or Tailscale). Setup, access, updating and troubleshooting: [`deploy/README.md`](deploy/README.md).
+
 ## Tests
 
 ```bash

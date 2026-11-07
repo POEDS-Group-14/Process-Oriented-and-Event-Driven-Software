@@ -47,7 +47,7 @@ def _segment(rng: random.Random) -> List[str]:
 
 
 def generate(seed: int = 14, n_delays: int = 40, start: Optional[datetime] = None,
-             delays: Optional[List[dict]] = None) -> dict:
+             delays: Optional[List[dict]] = None, id_prefix: str = "") -> dict:
     rng = random.Random(seed)
     start = start or datetime(2026, 11, 2, 6, 0, tzinfo=CPH)
     out = {"delays": [], "weather": [], "notices": [], "claims": []}
@@ -100,25 +100,25 @@ def generate(seed: int = 14, n_delays: int = 40, start: Optional[datetime] = Non
         t = parse_ts(d["plannedDeparture"])
         for _ in range(rng.randint(1, 4)):
             n += 1
-            out["claims"].append(_claim(rng, n, d, t))
+            out["claims"].append(_claim(rng, n, d, t, id_prefix))
     # duplicates: the same receipt claimed twice
     for c in rng.sample(out["claims"], k=max(1, len(out["claims"]) // 25)):
         n += 1
         dup = json.loads(json.dumps(c))
-        dup["claimId"] = f"C{n:04d}"
+        dup["claimId"] = f"{id_prefix}C{n:04d}"
         dup["scenario"] = "duplicate receipt"
         out["claims"].append(dup)
     # claims that match no delay (wrong time)
     for _ in range(max(1, len(delays) // 10)):
         n += 1
         d = rng.choice(delays)
-        c = _claim(rng, n, d, parse_ts(d["plannedDeparture"]) + timedelta(hours=8))
+        c = _claim(rng, n, d, parse_ts(d["plannedDeparture"]) + timedelta(hours=8), id_prefix)
         c["scenario"] = "no delay at that time"
         out["claims"].append(c)
     return out
 
 
-def _claim(rng: random.Random, n: int, d: dict, t: datetime) -> dict:
+def _claim(rng: random.Random, n: int, d: dict, t: datetime, id_prefix: str = "") -> dict:
     stops = d["stops"]
     i = rng.randrange(len(stops))
     s_name = stops[i]
@@ -139,7 +139,7 @@ def _claim(rng: random.Random, n: int, d: dict, t: datetime) -> dict:
     amount = round(rng.uniform(60, 450), 2)
     trip = t + timedelta(minutes=rng.randint(5, int(d["delayMinutes"]) + 20))
     receipt = {
-        "receiptId": f"R{n:05d}", "provider": prov, "cvr": cvr, "transportType": ttype,
+        "receiptId": f"{id_prefix}R{n:05d}", "provider": prov, "cvr": cvr, "transportType": ttype,
         "startAddress": f"near {s_name}", "endAddress": f"near {e_name}",
         "distanceKm": round(rng.uniform(1.5, 12), 1), "minutes": rng.randint(6, 35),
         "time": iso(trip), "amountDkk": amount, "publiclyAvailable": True,
@@ -150,7 +150,7 @@ def _claim(rng: random.Random, n: int, d: dict, t: datetime) -> dict:
     elif roll < 0.10:
         receipt.update(provider="Neighbour car pool", transportType="private_car", publiclyAvailable=False)
         scenario = "private transport"
-    return {"claimId": f"C{n:04d}", "passenger": f"P{rng.randint(1, 400):04d}", "tripStart": iso(trip),
+    return {"claimId": f"{id_prefix}C{n:04d}", "passenger": f"P{rng.randint(1, 400):04d}", "tripStart": iso(trip),
             "startLat": round(start[0], 6), "startLon": round(start[1], 6),
             "endLat": round(end[0], 6), "endLon": round(end[1], 6),
             "receipt": receipt, "scenario": scenario, "simulated": True}
@@ -214,6 +214,34 @@ def run_live(base: str, scenario: dict, pause: float = 3.0) -> None:
         print("claim", c["claimId"], r)
         if "status" not in r:
             first_use.setdefault(rid, c["claimId"])
+
+
+def feed(base: str, batch: int = 5, interval: float = 3600.0, seed: Optional[int] = None) -> None:
+    """Keep the bridge busy: every `interval` seconds, post `batch` delays that happened
+    during the last interval, with their notices, weather and claims. IDs carry the batch
+    time, so batches never collide with each other or with a restarted feed."""
+    rng = random.Random(seed)
+    while True:
+        now = datetime.now(CPH)
+        tag = now.strftime("%Y%m%d%H%M%S") + "-"
+        delays = []
+        for k in range(batch):
+            minutes = rng.choice([12, 20, 31, 35, 40, 45, 55, 70, 95]) if rng.random() < 0.2 else rng.randint(30, 90)
+            # departed long enough ago that the detour trips in the claims are over by now
+            t = now - timedelta(minutes=minutes + 40, seconds=rng.uniform(0, interval))
+            delays.append({
+                "delayId": f"{tag}D{k + 1:03d}", "line": "L", "stops": _segment(rng),
+                "plannedDeparture": iso(t), "delayMinutes": float(minutes),
+                "detectedAt": iso(t + timedelta(minutes=min(minutes, 30))),
+                "cause": rng.choice([None] * 12 + ["fire", "person_collision"]),
+            })
+        sc = generate(seed=rng.randrange(1 << 30), delays=delays, id_prefix=tag)
+        try:
+            run_live(base, sc)
+            print(f"batch {tag[:-1]}: {len(sc['delays'])} delays, {len(sc['claims'])} claims", flush=True)
+        except OSError as e:  # bridge down or restarting: skip this batch, try again next time
+            print(f"batch {tag[:-1]} not sent: {e}", flush=True)
+        time.sleep(interval)
 
 
 # ---- offline mode: same handlers, no engine ------------------------------

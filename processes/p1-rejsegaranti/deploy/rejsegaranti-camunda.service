@@ -1,0 +1,21 @@
+[Unit]
+Description=Camunda 7 Run for process 1 (rejsegaranti), port 8085
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=rejsegaranti
+Group=rejsegaranti
+WorkingDirectory=/opt/camunda
+# Camunda Run keeps its H2 database (and so the history = the event log) in /opt/camunda
+Environment=JAVA_OPTS=-Xmx768m
+ExecStart=/opt/camunda/internal/run.sh start --webapps --rest
+Restart=always
+RestartSec=30
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

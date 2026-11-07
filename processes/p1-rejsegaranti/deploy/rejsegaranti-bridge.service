@@ -1,0 +1,28 @@
+[Unit]
+Description=Process 1 (rejsegaranti): CEP bridge on :8090 and Camunda external-task workers
+Wants=rejsegaranti-camunda.service
+After=rejsegaranti-camunda.service
+
+[Service]
+Type=simple
+User=rejsegaranti
+Group=rejsegaranti
+WorkingDirectory=/opt/rejsegaranti/service
+Environment=PYTHONPATH=/opt/rejsegaranti/service
+Environment=PYTHONUNBUFFERED=1
+Environment=DATA_DIR=/var/lib/rejsegaranti
+Environment=CAMUNDA_PORT=8085
+StateDirectory=rejsegaranti
+# Camunda takes a minute or two to boot on this machine; deploy is a no-op when the BPMN is unchanged
+ExecStartPre=/bin/sh -c 'until curl -sf http://localhost:8085/engine-rest/engine >/dev/null; do sleep 5; done'
+ExecStartPre=/usr/bin/python3 -m rejsegaranti deploy
+ExecStart=/usr/bin/python3 -m rejsegaranti run
+TimeoutStartSec=600
+Restart=always
+RestartSec=30
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

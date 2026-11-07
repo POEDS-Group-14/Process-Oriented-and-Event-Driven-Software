@@ -1,0 +1,23 @@
+[Unit]
+Description=Rejsegaranti recorder (Movia real-time, OpenWeatherMap, DMI)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=rejsegaranti
+Group=rejsegaranti
+WorkingDirectory=/opt/rejsegaranti/recorder
+EnvironmentFile=-/etc/rejsegaranti-recorder.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m recorder run
+Restart=always
+RestartSec=30
+StateDirectory=rejsegaranti-recorder
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/rejsegaranti-recorder
+
+[Install]
+WantedBy=multi-user.target

@@ -198,6 +198,29 @@ class Bpmn(unittest.TestCase):
                 self.assertIn((a, b), allowed, f"{t['id']}: {a} -> {b}")
 
 
+class Feed(unittest.TestCase):
+    def test_batches_have_fresh_ids_and_past_delays(self):
+        sent = []
+
+        class Stop(Exception):
+            pass
+
+        with mock.patch.object(simulate, "run_live", lambda base, sc: sent.append(sc)), \
+                mock.patch.object(simulate.time, "sleep", side_effect=[None, Stop()]), \
+                mock.patch.object(simulate, "datetime", wraps=simulate.datetime) as dt:
+            dt.now.side_effect = [simulate.datetime(2026, 11, 7, 12, 0, tzinfo=simulate.CPH),
+                                  simulate.datetime(2026, 11, 7, 13, 0, tzinfo=simulate.CPH)]
+            with self.assertRaises(Stop):
+                simulate.feed("http://bridge", batch=3, interval=3600, seed=1)
+        self.assertEqual(len(sent), 2)
+        ids = [[c["claimId"] for c in sc["claims"]] + [c["receipt"]["receiptId"] for c in sc["claims"]]
+               + [d["delayId"] for d in sc["delays"]] for sc in sent]
+        self.assertFalse(set(ids[0]) & set(ids[1]))
+        for d in sent[1]["delays"]:
+            self.assertLess(simulate.parse_ts(d["detectedAt"]),
+                            simulate.datetime(2026, 11, 7, 13, 0, tzinfo=simulate.CPH))
+
+
 class Dcr(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

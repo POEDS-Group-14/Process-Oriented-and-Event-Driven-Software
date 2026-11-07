@@ -4,6 +4,7 @@
   uv run rejsegaranti run                  CEP bridge (:8090) + external-task workers
   uv run rejsegaranti simulate --post      send simulated situations and claims to the bridge
   uv run rejsegaranti simulate --offline   dry run without Camunda -> out/*.xes
+  uv run rejsegaranti feed                 post simulated delays and claims every hour, forever
   uv run rejsegaranti export               Camunda history -> out/*.xes and .csv
   uv run rejsegaranti check LOG.xes        replay a log against the DCR rules
   uv run rejsegaranti build-dcr            regenerate models/rejsegaranti-rules.*
@@ -82,6 +83,11 @@ def cmd_simulate(a):
         print(f"wrote {len(c)} claim traces and {len(d)} delay-case traces to {DATA_DIR}")
 
 
+def cmd_feed(a):
+    from . import simulate as S
+    S.feed(a.bridge, batch=a.batch, interval=a.interval)
+
+
 def cmd_export(a):
     from .camunda import Camunda
     from .dcr import ROLES
@@ -146,6 +152,11 @@ def main(argv=None):
     s.add_argument("--offline", action="store_true", help="dry run without Camunda")
     s.add_argument("--noise", type=float, default=0.0, help="share of offline traces with injected violations")
     s.set_defaults(fn=cmd_simulate)
+    s = sub.add_parser("feed", help="post a batch of simulated delays and claims every interval, forever")
+    s.add_argument("--bridge", default="http://localhost:8090")
+    s.add_argument("--batch", type=int, default=5, help="delays per batch")
+    s.add_argument("--interval", type=float, default=3600, help="seconds between batches")
+    s.set_defaults(fn=cmd_feed)
     sub.add_parser("export").set_defaults(fn=cmd_export)
     s = sub.add_parser("check")
     s.add_argument("log")

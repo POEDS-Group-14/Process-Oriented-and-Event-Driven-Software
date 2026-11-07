@@ -1,0 +1,23 @@
+[Unit]
+Description=Process 1 (rejsegaranti): simulated Line L delays and claims, one batch an hour
+Wants=rejsegaranti-bridge.service
+After=rejsegaranti-bridge.service
+
+[Service]
+Type=simple
+User=rejsegaranti
+Group=rejsegaranti
+WorkingDirectory=/opt/rejsegaranti/service
+Environment=PYTHONPATH=/opt/rejsegaranti/service
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=/bin/sh -c 'until curl -sf http://localhost:8090/state >/dev/null; do sleep 5; done'
+ExecStart=/usr/bin/python3 -m rejsegaranti feed --batch 5 --interval 3600
+TimeoutStartSec=600
+Restart=always
+RestartSec=60
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
