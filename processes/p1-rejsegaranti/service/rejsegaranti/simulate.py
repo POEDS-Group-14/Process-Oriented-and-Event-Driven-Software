@@ -15,6 +15,7 @@ Two modes:
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import random
 import time
@@ -25,7 +26,7 @@ from typing import List, Optional
 from . import activities as A
 from . import rules, workers
 from .cep import CepSink
-from .stations import STATIONS, offset
+from .stations import STATION_BY_NAME, STATIONS, offset
 from .store import Store
 from .timeutil import CPH, iso, parse_ts
 
@@ -58,7 +59,7 @@ def generate(seed: int = 14, n_delays: int = 40, start: Optional[datetime] = Non
             t = start + timedelta(days=rng.randint(0, 27), minutes=rng.randint(0, 17 * 60))
             minutes = rng.choice([12, 20, 31, 35, 40, 45, 55, 70, 95]) if rng.random() < 0.2 else rng.randint(30, 90)
             delays.append({
-                "delayId": f"D{k + 1:03d}", "line": "L", "stops": _segment(rng),
+                "delayId": f"D{k + 1:03d}", "line": rules.LINE, "stops": _segment(rng),
                 "plannedDeparture": iso(t), "delayMinutes": float(minutes),
                 "detectedAt": iso(t + timedelta(minutes=min(minutes, 30))),
                 "cause": rng.choice([None] * 12 + ["fire", "person_collision"]),
@@ -69,12 +70,12 @@ def generate(seed: int = 14, n_delays: int = 40, start: Optional[datetime] = Non
         t = parse_ts(d["plannedDeparture"])
         r = rng.random()
         if r < 0.08:  # notice published two days before -> excluded
-            out["notices"].append({"noticeId": f"N-{d['delayId']}", "lines": ["L"], "stops": d["stops"],
+            out["notices"].append({"noticeId": f"N-{d['delayId']}", "lines": [rules.LINE], "stops": d["stops"],
                                    "effectiveFrom": iso(t - timedelta(hours=1)),
                                    "effectiveTo": iso(t + timedelta(hours=6)),
                                    "firstSeen": iso(t - timedelta(days=2)), "simulated": True})
         elif r < 0.14:  # late notice, same morning -> guarantee applies
-            out["notices"].append({"noticeId": f"N-{d['delayId']}", "lines": ["L"], "stops": d["stops"],
+            out["notices"].append({"noticeId": f"N-{d['delayId']}", "lines": [rules.LINE], "stops": d["stops"],
                                    "effectiveFrom": iso(t - timedelta(minutes=30)),
                                    "effectiveTo": iso(t + timedelta(hours=3)),
                                    "firstSeen": iso(t - timedelta(minutes=60)), "simulated": True})
@@ -163,7 +164,7 @@ def read_delays_csv(path: str) -> List[dict]:
             if not r.get("delayId") or r["delayId"].startswith("#"):
                 continue
             rows.append({
-                "delayId": r["delayId"], "line": r.get("line") or "L",
+                "delayId": r["delayId"], "line": r.get("line") or rules.LINE,
                 "stops": [s.strip() for s in (r.get("stops") or "").split(";") if s.strip()],
                 "plannedDeparture": r["plannedDeparture"], "delayMinutes": float(r["delayMinutes"]),
                 "detectedAt": r.get("detectedAt") or r["plannedDeparture"],
@@ -230,17 +231,60 @@ def feed(base: str, batch: int = 5, interval: float = 3600.0, seed: Optional[int
             # departed long enough ago that the detour trips in the claims are over by now
             t = now - timedelta(minutes=minutes + 40, seconds=rng.uniform(0, interval))
             delays.append({
-                "delayId": f"{tag}D{k + 1:03d}", "line": "L", "stops": _segment(rng),
+                "delayId": f"{tag}D{k + 1:03d}", "line": rules.LINE, "stops": _segment(rng),
                 "plannedDeparture": iso(t), "delayMinutes": float(minutes),
                 "detectedAt": iso(t + timedelta(minutes=min(minutes, 30))),
                 "cause": rng.choice([None] * 12 + ["fire", "person_collision"]),
             })
         sc = generate(seed=rng.randrange(1 << 30), delays=delays, id_prefix=tag)
+        # generate() draws weather and notices per delay, assuming delays weeks apart. Here the whole
+        # batch falls in one hour, and one storm or notice covers every delay in it, so keep only one
+        # delay's worth per batch; otherwise nearly every claim ends up excluded.
+        sc["weather"] = [w for w in sc["weather"] if rng.random() < 1 / batch]
+        sc["notices"] = [n for n in sc["notices"] if rng.random() < 1 / batch]
         try:
             run_live(base, sc)
             print(f"batch {tag[:-1]}: {len(sc['delays'])} delays, {len(sc['claims'])} claims", flush=True)
         except OSError as e:  # bridge down or restarting: skip this batch, try again next time
             print(f"batch {tag[:-1]} not sent: {e}", flush=True)
+        time.sleep(interval)
+
+
+def claims_for(delay: dict) -> List[dict]:
+    """Simulated claims for one real delay. IDs and choices depend only on the delay, so the same delay
+    always gets the same claims: posting them again after a restart only gets HTTP 409."""
+    key = hashlib.sha1(delay["delayId"].encode()).hexdigest()[:10]
+    stops = [s for s in delay.get("stops", []) if s in STATION_BY_NAME]
+    if not stops:
+        return []
+    rng = random.Random(int(key, 16))
+    claims = generate(seed=rng.randrange(1 << 30), delays=[{**delay, "stops": stops}], id_prefix=key + "-")["claims"]
+    # generate() adds one duplicate receipt and one claim at the wrong time per batch, sized for 40 delays;
+    # for a batch of one, keep them about as rarely
+    return [c for c in claims if c["scenario"] not in ("duplicate receipt", "no delay at that time") or rng.random() < 0.1]
+
+
+def feed_real(base: str, interval: float = 300.0, settle_min: float = 40.0) -> None:
+    """Simulate claims for the real delays the bridge has received (from the recorder). A delay gets its
+    claims once it has played out, `settle_min` minutes after its delayed departure, so the claimed
+    taxi trips are over. Weather and notices are not simulated: the recorder sends the real weather."""
+    done = set()
+    while True:
+        try:
+            with urllib.request.urlopen(base.rstrip("/") + "/state", timeout=30) as r:
+                delays = json.loads(r.read())["delays"]
+            now = datetime.now(CPH)
+            for d in delays:
+                if d["delayId"] in done or not rules.qualifies_as_delay(d):
+                    continue
+                if rules.delay_time(d) + timedelta(minutes=float(d["delayMinutes"]) + settle_min) > now:
+                    continue
+                claims = claims_for(d)
+                run_live(base, {"notices": [], "weather": [], "delays": [], "claims": claims}, pause=0)
+                done.add(d["delayId"])
+                print(f"delay {d['delayId']}: {len(claims)} claims", flush=True)
+        except OSError as e:  # bridge down or restarting: try again next time
+            print(f"bridge not reachable: {e}", flush=True)
         time.sleep(interval)
 
 

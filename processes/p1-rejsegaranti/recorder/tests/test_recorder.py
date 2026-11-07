@@ -8,9 +8,9 @@ import tempfile
 import unittest
 from datetime import datetime, timezone
 
-from recorder import owm, siri
+from recorder import cep, owm, siri
 from recorder.__main__ import Recorder
-from recorder.config import Config
+from recorder.config import Config, sb_subscription
 
 T = datetime(2026, 11, 4, 7, 40, tzinfo=timezone.utc)
 
@@ -81,6 +81,44 @@ class SiriTest(unittest.TestCase):
         self.assertEqual(r["validFrom"], "2026-11-04T05:00:00+01:00")
 
 
+class ConfigTest(unittest.TestCase):
+    def test_amqp_urls(self):
+        url = "amqps://sb-duvproddistribution.servicebus.windows.net/t-distribution-788/0e2ea952"
+        self.assertEqual(sb_subscription(url),
+                         ("sb-duvproddistribution.servicebus.windows.net", "t-distribution-788", "0e2ea952"))
+        self.assertIsNone(sb_subscription("amqps://host/topic-only"))
+        os.environ["SB_AMQP_URLS"] = url + ", amqps://host/t-801/sub\n"
+        try:
+            cfg = Config()
+        finally:
+            del os.environ["SB_AMQP_URLS"]
+        self.assertEqual([sb_subscription(u)[1] for u in cfg.sb_amqp_urls], ["t-distribution-788", "t-801"])
+
+
+class CepTest(unittest.TestCase):
+    def row(self, stop, minutes, kind="expected", line="150S", journey="J1"):
+        return {"type": "delay", "line": line, "journeyRef": journey, "stopName": stop, "minutes": minutes,
+                "timeKind": kind, "aimedTime": "2026-11-07T08:00:00+01:00", "receivedAt": "2026-11-07T07:40:00Z"}
+
+    def test_one_situation_per_journey_sent_when_it_changes(self):
+        t = cep.DelayTracker(["150S"])
+        (s,) = t.update([self.row("Rævehøjvej, DTU (Helsingørmotorvejen)", 31.0), self.row("Other line", 50.0, line="6A")])
+        self.assertEqual((s["delayId"], s["stops"], s["delayMinutes"]),
+                         ("150S|J1", ["Rævehøjvej, DTU"], 31.0))
+        t.mark_sent(s)
+        self.assertEqual(t.update([self.row("Rævehøjvej, DTU (Helsingørmotorvejen)", 33.0)]), [])  # < 5 min change
+        (s,) = t.update([self.row("Lundtofteparken (Helsingørmotorvejen)", 33.0, "actual")])
+        self.assertEqual((s["stops"], s["timeKind"]), (["Rævehøjvej, DTU", "Lundtofteparken"], "actual"))
+        t.forget_before(datetime(2026, 11, 8, tzinfo=timezone.utc))
+        self.assertEqual(t.journeys, {})
+
+    def test_weather_situation(self):
+        w = cep.weather_situation({"observedAt": "2026-11-07T08:00:00+00:00", "wind_speed": 25.0, "wind_gust": "",
+                                   "rain_1h": 0, "snow_1h": None}, 600)
+        self.assertEqual(w["metrics"], {"wind_speed": 25.0, "wind_gust": 0.0, "rain_1h": 0.0, "snow_1h": 0.0})
+        self.assertEqual(w["validTo"], "2026-11-07T08:10:00+00:00")
+
+
 class OwmTest(unittest.TestCase):
     def test_row(self):
         r = owm.to_row(OWM_JSON, T)
@@ -98,10 +136,10 @@ class RecorderTest(unittest.TestCase):
             return list(csv.DictReader(fh))
 
     def test_raw_kept_and_incidents_deduplicated(self):
-        self.rec.handle_siri(ET_XML, {"messageId": "m1"})
-        self.rec.handle_siri(ET_XML, {"messageId": "m2"})  # same message again: no new incident rows
+        self.rec.handle_siri(ET_XML, {"topic": "t-distribution-788", "messageId": "m1"})
+        self.rec.handle_siri(ET_XML, {"topic": "t-distribution-788", "messageId": "m2"})  # same message again: no new incident rows
         self.assertEqual(len(self._csv("movia-incidents.csv")), 4)
-        raw_dir = os.path.join(self.dir, "raw", "dataudveksleren")
+        raw_dir = os.path.join(self.dir, "raw", "dataudveksleren", "t-distribution-788")
         (f,) = os.listdir(raw_dir)
         with gzip.open(os.path.join(raw_dir, f), "rt", encoding="utf-8") as fh:
             recs = [json.loads(l) for l in fh]

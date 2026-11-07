@@ -221,6 +221,26 @@ class Feed(unittest.TestCase):
                             simulate.datetime(2026, 11, 7, 13, 0, tzinfo=simulate.CPH))
 
 
+class RealDelays(unittest.TestCase):
+    def test_claims_for_a_delay_are_always_the_same(self):
+        d = {**DELAY, "delayId": "L|2026-11-04:J1", "stops": ["Lyngby", "Gammelmosevej", "Not a station"]}
+        a, b = simulate.claims_for(d), simulate.claims_for(d)
+        self.assertTrue(a)
+        self.assertEqual(a, b)
+        self.assertNotIn("Not a station", json.dumps(a))
+        self.assertEqual(simulate.claims_for({**d, "stops": ["Not a station"]}), [])
+
+    def test_bus_150s_stations(self):
+        from rejsegaranti import stations
+        points = stations.load("150S")
+        campus = [p for p in points if p[0] == "Nørre Campus"]
+        self.assertEqual(len(campus), 2)  # one stop point per side of the road
+        self.assertIn("Rævehøjvej, DTU", {p[0] for p in points})
+        with mock.patch.object(stations, "STATIONS", points):
+            # the distance to a station is to its closer stop point
+            self.assertLess(stations.station_distance_m(campus[1][1], campus[1][2], "Nørre Campus"), 1)
+
+
 class Dcr(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -292,7 +312,8 @@ class FakeCamunda:
 class BridgeHttp(unittest.TestCase):
     def setUp(self):
         self.cam = FakeCamunda()
-        self.srv = make_server(Bridge(Store(), self.cam), host="127.0.0.1", port=0)
+        self.store = Store()
+        self.srv = make_server(Bridge(self.store, self.cam), host="127.0.0.1", port=0)
         threading.Thread(target=self.srv.serve_forever, daemon=True).start()
         self.base = f"http://127.0.0.1:{self.srv.server_address[1]}"
 
@@ -320,6 +341,17 @@ class BridgeHttp(unittest.TestCase):
         self.assertEqual([c[0] for c in self.cam.calls], ["DelaySituationDetected", "ClaimSubmitted"])
         with urllib.request.urlopen(self.base + "/state") as resp:
             self.assertEqual(len(json.load(resp)["claims"]), 1)
+
+    def test_results_page(self):
+        self.post("/claims", {**claim_near(), "passenger": "P0042"})
+        self.store.put("outcomes", "C1", {"claimId": "C1", "outcome": "rejected", "payoutDkk": 0.0,
+                                          "reason": "<b>no delay</b>"})
+        with urllib.request.urlopen(self.base + "/results/?x=1") as resp:
+            self.assertIn("text/html", resp.headers["Content-Type"])
+            page = resp.read().decode()
+        self.assertIn("simulator", page)  # every banner says the claims are simulated
+        self.assertIn("&lt;b&gt;no delay&lt;/b&gt;", page)  # escaped
+        self.assertNotIn("P0042", page)  # no passenger IDs on the public page
 
     def test_live_run_waits_before_reusing_a_receipt(self):
         refused = {**claim_near(receiptId="R9"), "claimId": "C2"}

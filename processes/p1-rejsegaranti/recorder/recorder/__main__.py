@@ -17,19 +17,23 @@ Output (RECORDER_DATA_DIR):
 from __future__ import annotations
 
 import argparse
+import csv
+import glob
 import json
 import logging
 import os
 import signal
 import sys
 import threading
+from datetime import timedelta
 
-from . import dmi, owm, siri
-from .config import Config, load_env_file
+from . import cep, dmi, owm, siri
+from .config import Config, load_env_file, sb_subscription
 from .http import HttpError
 from .store import Store, now_utc
 
 log = logging.getLogger("recorder")
+STATIONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data")
 
 
 class Recorder:
@@ -37,7 +41,20 @@ class Recorder:
         self.cfg, self.store = cfg, Store(cfg.data_dir)
         self.stop = threading.Event()
         self._dmi_seen: set = set()
+        self._delays = cep.DelayTracker(cfg.bridge_lines)
         self._incidents: dict = {}  # incidentId -> (minutes, timeKind) last written
+        self._names_path = os.path.join(cfg.data_dir, "stop-names.json")  # stopRef -> name, see siri.parse_et
+        try:
+            with open(self._names_path, encoding="utf-8") as fh:
+                self._stop_names = json.load(fh)
+        except (OSError, ValueError):
+            self._stop_names = {}
+        # the stops of the lines the process runs on are known from GTFS (tools/build_stations.py)
+        for path in glob.glob(os.path.join(STATIONS_DIR, "stations-*.csv")):
+            with open(path, encoding="utf-8") as fh:
+                for r in csv.DictReader(fh):
+                    if r.get("stopRef"):
+                        self._stop_names.setdefault(r["stopRef"], r["stopName"])
         self._first_seen_path = os.path.join(cfg.data_dir, "situations-first-seen.json")
         try:
             with open(self._first_seen_path, encoding="utf-8") as fh:
@@ -50,7 +67,13 @@ class Recorder:
         data = owm.fetch(self.cfg.owm_api_key, self.cfg.lat, self.cfg.lon)
         t = now_utc()
         self.store.raw("owm", data, t)
-        self.store.rows("weather-owm.csv", owm.FIELDS, [owm.to_row(data, t)])
+        row = owm.to_row(data, t)
+        self.store.rows("weather-owm.csv", owm.FIELDS, [row])
+        if self.cfg.bridge_url and row["observedAt"]:
+            try:
+                cep.post(self.cfg.bridge_url, "/cep/weather", cep.weather_situation(row, self.cfg.owm_interval_s))
+            except OSError as e:  # stored anyway; the next observation is sent in owm_interval_s
+                log.warning("bridge: weather not sent: %s", e)
 
     def dmi_once(self) -> int:
         data = dmi.fetch_observations(self.cfg.dmi_api_key, self.cfg.dmi_station_id,
@@ -79,16 +102,26 @@ class Recorder:
     # ---- Movia real-time (Dataudveksleren) ---------------------------------
     def handle_siri(self, text: str, meta: dict) -> None:
         t = now_utc()
-        self.store.raw("dataudveksleren", text, t, meta)  # always keep the original first
+        # always keep the original first, one folder per dataset (topic)
+        self.store.raw(f"dataudveksleren/{meta.get('topic', 'unknown')}", text, t, meta)
         try:
             kind = siri.message_kind(text)
         except Exception as e:
             log.warning("message %s is not XML: %s", meta.get("messageId"), e)
             return
         if kind == "ET":
-            rows = [r for r in siri.parse_et(text, t, self.cfg.delay_threshold_min, self.cfg.early_threshold_min)
-                    if self._incident_changed(r)]
+            known = len(self._stop_names)
+            parsed = siri.parse_et(text, t, self.cfg.delay_threshold_min, self.cfg.early_threshold_min,
+                                   self._stop_names)
+            if len(self._stop_names) > known:
+                tmp = self._names_path + ".tmp"
+                with open(tmp, "w", encoding="utf-8") as fh:
+                    json.dump(self._stop_names, fh, ensure_ascii=False)
+                os.replace(tmp, self._names_path)
+            rows = [r for r in parsed if self._incident_changed(r)]
             self.store.rows("movia-incidents.csv", siri.INCIDENT_FIELDS, rows)
+            if self.cfg.bridge_url:
+                self._send_delays(parsed, t)
         elif kind == "SX":
             rows = siri.parse_sx(text, t)
             changed = False
@@ -104,6 +137,15 @@ class Recorder:
                     json.dump(self._first_seen, fh)
                 os.replace(tmp, self._first_seen_path)
             self.store.rows("movia-situations.csv", siri.SITUATION_FIELDS, rows)
+
+    def _send_delays(self, rows: list, t) -> None:
+        for s in self._delays.update(rows):
+            try:
+                cep.post(self.cfg.bridge_url, "/cep/delay", s)
+                self._delays.mark_sent(s)  # not marked on failure, so the next message sends it again
+            except OSError as e:
+                log.warning("bridge: delay %s not sent: %s", s["delayId"], e)
+        self._delays.forget_before(t - timedelta(days=1))
 
     def _incident_changed(self, r: dict) -> bool:
         """Write an incident the first time, when a prediction becomes an actual time, or when it moves 5+ min."""
@@ -123,9 +165,11 @@ class Recorder:
             threads.append(threading.Thread(target=self._poll, args=("owm", self.owm_once, c.owm_interval_s), daemon=True))
         if c.dmi_station_id:
             threads.append(threading.Thread(target=self._poll, args=("dmi", self.dmi_once, c.dmi_interval_s), daemon=True))
-        if (c.sb_connection_string or c.sb_namespace) and (c.sb_queue or (c.sb_topic and c.sb_subscription)):
+        if c.azure_tenant_id and c.azure_client_id and c.azure_client_secret:
             from .servicebus import receive_forever
-            threads.append(threading.Thread(target=receive_forever, args=(c, self.handle_siri, self.stop), daemon=True))
+            for sub in filter(None, map(sb_subscription, c.sb_amqp_urls)):  # one receiver per dataset
+                threads.append(threading.Thread(target=receive_forever, args=(c, *sub, self.handle_siri, self.stop),
+                                                daemon=True))
         for p in c.problems():
             log.warning("not running: %s", p)
         if not threads:
@@ -145,6 +189,7 @@ def main(argv=None) -> None:
     ap.add_argument("query", nargs="?", help="SQL for the sql command")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.getLogger("azure").setLevel(logging.WARNING)  # it logs every HTTP request and AMQP state change at INFO
     env_file = load_env_file()
     cfg = Config()
     if a.command == "check":

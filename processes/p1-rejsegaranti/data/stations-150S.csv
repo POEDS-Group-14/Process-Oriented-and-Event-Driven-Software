@@ -1,0 +1,64 @@
+station,lat,lon,stopName,stopRef
+Kokkedal St.,55.902477,12.502493,Kokkedal St.,6231
+Kokkedal Industripark,55.901284,12.486894,Kokkedal Industripark (Ådalsvej),28183
+Egedal Kirke,55.905758,12.486687,Egedal Kirke (Egedalsvej),6001
+Fredensborg Rådhus,55.904009,12.477311,Fredensborg Rådhus (Usserød Kongevej),6137
+Breelte Skov,55.898370,12.485640,Breelte Skov (Usserød Kongevej),6003
+Bloustrødvej,55.894670,12.491516,Bloustrødvej (Usserød Kongevej),6004
+Bolbrovej,55.890842,12.496164,Bolbrovej (Usserød Kongevej),6005
+Kongevejs Centret,55.886177,12.497392,Kongevejs Centret (Usserød Kongevej),6006
+Hørsholm Midtpunkt,55.880949,12.498777,Hørsholm Midtpunkt (Usserød Kongevej),6007
+Hovedgaden,55.878443,12.498695,Hovedgaden (Rungstedvej),6008
+"Frederiksborgvej, Forskerparken",55.875938,12.488138,"Frederiksborgvej, Forskerparken (Bøge Allé)",47415
+Søhuset,55.873548,12.489027,Søhuset (Bøge Allé),46843
+Forskerparken,55.870349,12.493073,Forskerparken (Agern Allé),49107
+Dr. Neergaards Vej,55.868092,12.498771,Dr. Neergaards Vej (Hørsholm Kongevej),6011
+Ubberødvej,55.860930,12.494529,Ubberødvej (Hørsholm Kongevej),6410
+"Gl. Holte, Øverødvej",55.832053,12.522754,"Gl. Holte, Øverødvej (Helsingørmotorvejen)",6012
+Nærum St.,55.813500,12.528836,Nærum St. (Helsingørmotorvejen),490
+Lundtofteparken,55.795204,12.531569,Lundtofteparken (Helsingørmotorvejen),6014
+"Rævehøjvej, DTU",55.786605,12.528237,"Rævehøjvej, DTU (Helsingørmotorvejen)",6015
+Klampenborgvej,55.775107,12.523783,Klampenborgvej (Helsingørmotorvejen),10120
+Brogårdsvej,55.752168,12.523227,Brogårdsvej (Lyngbyvej),6516
+Kildegårds Plads,55.737242,12.539762,Kildegårds Plads (Lyngbyvej),6044
+Tuborgvej,55.726802,12.551005,Tuborgvej (Lyngbyvej),6522
+Ryparken St.,55.714969,12.558149,Ryparken St. (Lyngbyvej),6524
+Hans Knudsens Plads,55.712593,12.559749,Hans Knudsens Plads (Lyngbyvej),1406
+Haraldsgade,55.709282,12.561390,Haraldsgade (Lyngbyvej),1407
+Vibenshus Runddel St.,55.705609,12.562776,Vibenshus Runddel St. (Nørre Allé),2693
+Universitetsparken,55.700164,12.562025,Universitetsparken (Nørre Allé),6016
+Nørre Campus,55.695863,12.562429,Nørre Campus (Tagensvej),6017
+Rigshospitalet Syd,55.693199,12.567154,Rigshospitalet Syd (Fredensgade),6018
+Sølvtorvet,55.689074,12.575103,Sølvtorvet (Sølvgade),28274
+Nørreport St.,55.684048,12.572622,Nørreport St. (Nørre Voldgade),6584
+Nørreport St.,55.684486,12.573346,Nørreport St. (Nørre Voldgade),50460
+Sølvtorvet,55.689190,12.575129,Sølvtorvet (Sølvgade),6022
+Rigshospitalet Syd,55.694008,12.565619,Rigshospitalet Syd (Tagensvej),6023
+Nørre Campus,55.697081,12.561665,Nørre Campus (Nørre Allé),6024
+Universitetsparken,55.699761,12.561972,Universitetsparken (Nørre Allé),6025
+Vibenshus Runddel St.,55.706091,12.562899,Vibenshus Runddel St. (Lyngbyvej),1367
+Haraldsgade,55.709703,12.561142,Haraldsgade (Lyngbyvej),1368
+Hans Knudsens Plads,55.712932,12.559843,Hans Knudsens Plads (Lyngbyvej),1369
+Ryparken St.,55.715498,12.558819,Ryparken St. (Lyngbyvej),6660
+Tuborgvej,55.728251,12.550324,Tuborgvej (Lyngbyvej),6475
+Kildegårds Plads,55.738275,12.539489,Kildegårds Plads (Lyngbyvej),6477
+Brogårdsvej,55.752903,12.523293,Brogårdsvej (Lyngbyvej),6481
+Klampenborgvej,55.773839,12.524434,Klampenborgvej (Helsingørmotorvejen),10121
+"Rævehøjvej, DTU",55.788427,12.529615,"Rævehøjvej, DTU (Helsingørmotorvejen)",6026
+Lundtofteparken,55.795748,12.532368,Lundtofteparken (Helsingørmotorvejen),6027
+Nærum St.,55.814468,12.529228,Nærum St. (Helsingørmotorvejen),479
+"Gl. Holte, Øverødvej",55.833279,12.522625,"Gl. Holte, Øverødvej (Helsingørmotorvejen)",6028
+Ubberødvej,55.861150,12.494677,Ubberødvej (Hørsholm Kongevej),6351
+Hørsholm Kongevej,55.868551,12.496846,Hørsholm Kongevej (Dr Neergaards Vej),46846
+Forskerparken,55.870458,12.493051,Forskerparken (Agern Allé),46714
+"Søhuset, Forskerparken",55.874273,12.488836,"Søhuset, Forskerparken (Bøge Allé)",46844
+Mariehøj Allé,55.877112,12.489235,Mariehøj Allé (Frederiksborgvej),6226
+Hovedgaden,55.878395,12.498499,Hovedgaden (Rungstedvej),6032
+Hørsholm Midtpunkt,55.881249,12.498692,Hørsholm Midtpunkt (Usserød Kongevej),6033
+Kongevejs Centret,55.886974,12.497176,Kongevejs Centret (Usserød Kongevej),6034
+Bolbrovej,55.890752,12.496188,Bolbrovej (Usserød Kongevej),6035
+Bloustrødvej,55.894792,12.491319,Bloustrødvej (Usserød Kongevej),6036
+Breelte Skov,55.898445,12.485535,Breelte Skov (Usserød Kongevej),6037
+Fredensborg Rådhus,55.905083,12.477808,Fredensborg Rådhus (Egedalsvej),3174
+Egedal Kirke,55.905747,12.486430,Egedal Kirke (Egedalsvej),6039
+Kokkedal Industripark,55.901402,12.487481,Kokkedal Industripark (Ådalsvej),28182

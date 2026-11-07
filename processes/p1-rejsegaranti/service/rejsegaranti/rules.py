@@ -16,7 +16,8 @@ Source: https://dinletbane.dk/da/kontakt-og-kundeservice/rejsegaranti/
 * Exclusions: planned changes announced in good time, i.e. at the latest the
   day before; force majeure (fire, unusual natural events, person collisions).
 
-All functions here are pure: they take plain dicts (as they travel through
+The rules are applied to whatever line REJSEGARANTI_LINE selects (see stations.py); on the server that
+is Movia bus 150S, standing in for Line L. All functions here are pure: they take plain dicts (as they travel through
 Camunda and the CEP) and return plain values, so they are easy to test.
 """
 from __future__ import annotations
@@ -25,10 +26,9 @@ import re
 from datetime import datetime, timedelta
 from typing import Iterable, Optional
 
-from .stations import STATION_BY_NAME, distance_m, nearest_station
+from .stations import LINE, nearest_station, station_distance_m
 from .timeutil import local_date, parse_ts
 
-LINE = "L"
 DELAY_THRESHOLD_MIN = 30
 PAYOUT_CAP_DKK = 300.0  # float, so a capped payout stays a Double in Camunda
 RADIUS_M = 250
@@ -198,11 +198,7 @@ def check_distance(claim: dict, delay: Optional[dict]) -> Optional[str]:
     affected = (delay or {}).get("stops") or []
     if affected:
         # distance to the closest *affected* station
-        s_dist = min(
-            distance_m(float(claim["startLat"]), float(claim["startLon"]), *STATION_BY_NAME[s])
-            for s in affected
-            if s in STATION_BY_NAME
-        )
+        s_dist = min(station_distance_m(float(claim["startLat"]), float(claim["startLon"]), s) for s in affected)
     if s_dist > RADIUS_M:
         return f"trip starts {s_dist:.0f} m from an affected station"
     e_name, e_dist = nearest_station(float(claim["endLat"]), float(claim["endLon"]))

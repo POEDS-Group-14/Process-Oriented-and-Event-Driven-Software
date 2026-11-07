@@ -71,7 +71,12 @@ def message_kind(xml: str) -> str:
     return "other"
 
 
-def parse_et(xml: str, received: datetime, delay_min: float = 20, early_min: float = 2) -> list:
+def parse_et(xml: str, received: datetime, delay_min: float = 20, early_min: float = 2,
+             names: dict | None = None) -> list:
+    """Incident rows. Movia sends StopPointName only when it sends a journey in full; updates carry just
+    StopPointRef. Pass the same `names` dict (stopRef -> name) every time: it learns from calls that
+    carry a name and fills in the ones that don't."""
+    names = {} if names is None else names
     root = _strip(ET.fromstring(xml))
     stamp = _t(root, ".//ResponseTimestamp")
     out = []
@@ -85,6 +90,10 @@ def parse_et(xml: str, received: datetime, delay_min: float = 20, early_min: flo
         calls = [(c, "actual") for c in vj.iter("RecordedCall")] + [(c, "expected") for c in vj.iter("EstimatedCall")]
         for call, kind in calls:
             stop, name = _t(call, "StopPointRef"), _t(call, "StopPointName")
+            if name:
+                names[stop] = name
+            else:
+                name = names.get(stop, "")
             base = {"operator": operator, "line": line, "journeyRef": journey, "stopRef": stop, "stopName": name,
                     "detectedAt": detected, "receivedAt": received.isoformat()}
             aimed_dep = _t(call, "AimedDepartureTime")

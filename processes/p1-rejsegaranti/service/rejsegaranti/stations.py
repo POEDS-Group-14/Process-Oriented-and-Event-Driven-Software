@@ -1,16 +1,26 @@
-"""Line L (Hovedstadens Letbane) stations, north to south.
+"""Stations of the line the process runs on, chosen with REJSEGARANTI_LINE (default L).
 
-COORDINATES ARE APPROXIMATE (entered by hand, roughly +/- 100 m).
+Line L (Hovedstadens Letbane) is the line the process is designed for, but no real-time data for it
+is published (see deploy/README.md), so the server runs it on Movia bus 150S. Its stops come from
+Rejseplanen's GTFS feed (data/stations-150S.csv, made by tools/build_stations.py). A station may
+have several stop points (one per side of the road); distances are measured to the closest one.
+
+LINE L COORDINATES ARE APPROXIMATE (entered by hand, roughly +/- 100 m).
 Verify them against OpenStreetMap or Rejseplanen stop data before the
 250 m rule is used on real claims. The simulator generates trips relative
 to these same coordinates, so simulated runs stay internally consistent.
 """
 from __future__ import annotations
 
+import csv
 import math
-from typing import Optional, Tuple
+import os
+from typing import List, Optional, Tuple
 
-STATIONS = [
+DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data")
+LINE = os.environ.get("REJSEGARANTI_LINE", "L").upper()
+
+LINE_L = [
     ("Lundtofte", 55.7930, 12.5120),
     ("Rævehøjvej (DTU)", 55.7870, 12.5170),
     ("Anker Engelunds Vej DTU", 55.7845, 12.5225),
@@ -42,7 +52,20 @@ STATIONS = [
     ("Ishøj", 55.6150, 12.3510),
 ]
 
-STATION_BY_NAME = {name: (lat, lon) for name, lat, lon in STATIONS}
+
+
+def load(line: str) -> List[Tuple[str, float, float]]:
+    """(station, lat, lon) per stop point, in route order."""
+    if line == "L":
+        return LINE_L
+    with open(os.path.join(DATA, f"stations-{line}.csv"), encoding="utf-8") as fh:
+        return [(r["station"], float(r["lat"]), float(r["lon"])) for r in csv.DictReader(fh)]
+
+
+STATIONS = load(LINE)
+STATION_BY_NAME = {}  # station -> its first stop point
+for _name, _lat, _lon in STATIONS:
+    STATION_BY_NAME.setdefault(_name, (_lat, _lon))
 
 EARTH_RADIUS_M = 6_371_000.0
 
@@ -56,8 +79,13 @@ def distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * EARTH_RADIUS_M * math.asin(math.sqrt(a))
 
 
+def station_distance_m(lat: float, lon: float, name: str) -> float:
+    """Distance in metres to the closest stop point of a station (inf if the line has no such station)."""
+    return min((distance_m(lat, lon, slat, slon) for n, slat, slon in STATIONS if n == name), default=math.inf)
+
+
 def nearest_station(lat: float, lon: float) -> Tuple[str, float]:
-    """Return (station name, distance in metres) of the closest Line L station."""
+    """Return (station name, distance in metres) of the closest station of the line."""
     best: Optional[Tuple[str, float]] = None
     for name, slat, slon in STATIONS:
         d = distance_m(lat, lon, slat, slon)

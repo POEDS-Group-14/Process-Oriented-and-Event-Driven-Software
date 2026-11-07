@@ -6,7 +6,7 @@ Logs three data sources to disk, around the clock, for process 1 (Movia travel g
 
 | Source | What is logged | How |
 |---|---|---|
-| Dataudveksleren, Movia real-time [1][2] | SIRI messages: delays, early departures, cancellations (SIRI-ET) and disruption messages incl. planned changes (SIRI-SX) | Pushed over Azure Service Bus (AMQP 1.0) |
+| Dataudveksleren real-time [1][6]: dataset 788 (Movia buses) and 801 (DSB S-tog) | SIRI-ET: delays, early departures, cancellations. SIRI-SX (disruption messages incl. planned changes) is parsed too, if a subscribed dataset sends it | Pushed over Azure Service Bus (AMQP 1.0) |
 | OpenWeatherMap [3] | Wind speed, wind gust, rain and snow in the last hour | Polled every 10 min |
 | DMI Open Data, metObs [4] | Observations from one DMI weather station | Polled every 10 min |
 
@@ -18,11 +18,12 @@ In `RECORDER_DATA_DIR` (`/var/lib/rejsegaranti-recorder` with the systemd servic
 
 | File | Contents |
 |---|---|
-| `raw/<source>/YYYY-MM-DD.jsonl.gz` | Every API response or feed message, unchanged, with the time it was received |
+| `raw/<source>/YYYY-MM-DD.jsonl.gz` | Every API response or feed message, unchanged, with the time it was received. Feed messages go to `raw/dataudveksleren/<topic>/`, one folder per dataset |
 | `movia-incidents.csv` | `delay` (≥ 20 min), `early_departure` (actual departure > 2 min early), `cancelled` |
 | `movia-situations.csv` | Disruption messages with `planned`, validity period, lines, stops and **`firstSeen`** |
 | `weather-owm.csv` | `wind_speed`, `wind_gust`, `rain_1h`, `snow_1h` (same names as the force-majeure thresholds in `service/rejsegaranti/rules.py`) |
 | `weather-dmi.csv` | `stationId`, `parameterId`, `value`, `observed` |
+| `stop-names.json` | Movia stop number (`StopPointRef`) to stop name. Movia sends names only when it sends a journey in full, so the recorder learns them from those messages and fills in the rest; the stops in `../data/stations-*.csv` are known from the start |
 | `recorder.sqlite` | The same rows as the four CSV files, in tables `movia_incidents`, `movia_situations`, `weather_owm` and `weather_dmi` |
 
 The SQLite database uses Python's built-in `sqlite3`, so nothing extra is installed. Each table has a unique key, so the same observation is never stored twice, even after a restart. You can query it while the recorder is running:
@@ -37,6 +38,8 @@ sudo -u rejsegaranti env RECORDER_DATA_DIR=/var/lib/rejsegaranti-recorder python
 ```
 
 Or copy `recorder.sqlite` home and open it in any SQLite tool, such as DB Browser for SQLite.
+
+**Sending to the process.** With `BRIDGE_URL` and `BRIDGE_LINES` set (the server sets them in the systemd unit), the recorder also acts as the CEP for process 1: every journey on those lines that runs 20+ minutes late becomes one delay situation on the bridge (`POST /cep/delay`), and every OpenWeatherMap observation a weather situation (`POST /cep/weather`). Stops are named by station (the stop name without the street in brackets). The bridge applies the rules; see `cep.py`.
 
 How this feeds the models:
 
@@ -54,7 +57,7 @@ The recorder is installed together with the rest of process 1, as the systemd se
 ../deploy/install.sh liam@pinklady.local
 ```
 
-On the first install, `deploy/recorder.env` is copied to `/etc/rejsegaranti-recorder.env` (mode 600), which the service reads. Edit that file on the server to change settings, then `sudo systemctl restart rejsegaranti-recorder`. It uses the system `python3` and needs no packages until Dataudveksleren is connected; then install `python3-azure-servicebus` or the `siri` extra.
+On the first install, `deploy/recorder.env` is copied to `/etc/rejsegaranti-recorder.env` (mode 600), which the service reads. Edit that file on the server to change settings, then `sudo systemctl restart rejsegaranti-recorder`. It uses the system `python3`; the Dataudveksleren feed needs the Azure SDK, which `setup-server.sh` installs from Debian (`python3-azure`). Elsewhere, install the package's `siri` extra.
 
 To test by hand before or after installing:
 
@@ -67,7 +70,16 @@ sudo journalctl -u rejsegaranti-recorder -f      # live log of the service
 
 `deploy/recorder.env` is listed in `.gitignore`, so the key is not committed to the group's repository. Settings already set in the environment override the file.
 
-**Dataudveksleren is not connected yet.** It needs sign-in details, and the portal does not load. Until it is set up, the recorder logs the weather only and prints a warning for the Movia feed. Vejdirektoratet runs Dataudveksleren; its listing gives vd@vd.dk, subject "Spørgsmål angående Dataudveksleren", for questions [1].
+**Connecting Dataudveksleren.** Log in to the portal, create a service account (profile, Service Accounts) and note its client ID and password; the password is shown only once. Then, for each dataset, associate the service account and subscribe ("Subscribe to events"). The popup gives the tenant ID and the dataset's AMQP url. Put them in the settings file:
+
+```
+SB_AMQP_URLS=amqps://sb-duvproddistribution.servicebus.windows.net/t-distribution-788/<subscription>,amqps://.../t-distribution-801/<subscription>
+AZURE_TENANT_ID=<tenant ID>
+AZURE_CLIENT_ID=<service account client ID>
+AZURE_CLIENT_SECRET=<service account password>
+```
+
+The recorder runs one receiver per url. Messages wait on the subscription while the recorder is down, and a message is only removed from it after it has been stored. Vejdirektoratet runs Dataudveksleren; its listing gives vd@vd.dk, subject "Spørgsmål angående Dataudveksleren", for questions [1].
 
 **Keep the Mac awake.** A laptop that suspends stops recording. On Ubuntu:
 
@@ -84,7 +96,7 @@ sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.ta
 python3 -m unittest -v tests.test_recorder
 ```
 
-The tests use **hand-written format examples, not real Movia data**. Once the feed runs, add a few real messages from `raw/dataudveksleren/` as test cases.
+The tests use **hand-written format examples, not real Movia data**. Add a few real messages from `raw/dataudveksleren/` as test cases.
 
 ## What is checked and what is not
 
@@ -92,15 +104,15 @@ Checked:
 
 - The OpenWeatherMap URL, parameters and field names against its API documentation [3].
 - The DMI base URL and rate limit against DMI's documentation [4]. DMI's documentation says a key is needed, but metObs answers without one, so the key is optional.
-- The Azure Service Bus calls against the installed `azure-servicebus` and `azure-identity` packages.
+- The Dataudveksleren connection, live, on 7 November 2026: both datasets connect, and their messages are SIRI-ET (`EstimatedTimetableDelivery`, subscription refs `movia-et` and `dsb-s-tog-et`), sent as `text/xml`. The parser turned them into delay and cancellation rows.
 - The SIRI parsing against SIRI's standard element names, with the format examples in the tests.
+- OpenWeatherMap and DMI, live, on the same day.
 
 **Not** checked, because it needs your accounts:
 
-- **Dataudveksleren connection details.** What is known about delivery (SIRI-ET pushed over AMQP 1.0 from Azure Service Bus, Entra ID authentication, Movia dataset #788) comes from a third-party write-up [2], not from Dataudveksleren's own documentation, which needs a login. Check the namespace, queue or topic, and authentication method in your subscription.
-- **Whether Movia's dataset carries SIRI-SX** (disruption messages) as well as SIRI-ET. If it doesn't, planned changes need another source.
+- **SIRI-SX.** In the first messages, neither dataset sent SIRI-SX (disruption messages). If none arrives, planned changes need another dataset or source.
+- **Whether every parsed field is right for real data.** For example, whether `timeKind` (expected vs actual) is filled the way the claim check assumes. Check real rows against the raw messages before relying on them.
 - **DMI weather warnings.** I could not confirm that DMI Open Data offers warnings through an API, so only station observations are logged. The force-majeure rule prefers DMI warnings, so this gap needs a decision: find a warnings source, or justify using observations and OpenWeatherMap.
-- **No live API calls were made.** The sandbox the code was written in could not reach OpenWeatherMap, DMI or Azure. Run `python -m recorder once` at home first.
 
 ## References
 
@@ -113,3 +125,5 @@ Checked:
 [4] DMI. *Open Data documentation: Basics.* https://opendatadocs.dmi.govcloud.dk/Basics, and *FAQ*, https://opendatadocs.dmi.govcloud.dk/FAQ (accessed 3 November 2026).
 
 [5] Movia travel guarantee terms, as quoted in `Project/1. Rejsegaranti claim.md`.
+
+[6] Vejdirektoratet. *AMQP - Receive messages* and *Use of services via the web portal*, Dataudveksler Confluence. https://vejdirektoratet.atlassian.net/wiki/spaces/DP/pages/3236430385/AMQP+-+Receive+messages (accessed 7 November 2026).

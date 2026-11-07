@@ -10,12 +10,16 @@ Group=rejsegaranti
 WorkingDirectory=/opt/rejsegaranti/recorder
 EnvironmentFile=-/etc/rejsegaranti-recorder.env
 Environment=PYTHONUNBUFFERED=1
+# send bus 150S delays and the weather to the process-1 bridge
+Environment=BRIDGE_URL=http://localhost:8090
+Environment=BRIDGE_LINES=150S
 ExecStart=/usr/bin/python3 -m recorder run
 Restart=always
 RestartSec=30
 StateDirectory=rejsegaranti-recorder
 NoNewPrivileges=true
 ProtectSystem=strict
+PrivateTmp=true
 ProtectHome=true
 ReadWritePaths=/var/lib/rejsegaranti-recorder
 

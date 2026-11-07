@@ -5,6 +5,7 @@
   uv run rejsegaranti simulate --post      send simulated situations and claims to the bridge
   uv run rejsegaranti simulate --offline   dry run without Camunda -> out/*.xes
   uv run rejsegaranti feed                 post simulated delays and claims every hour, forever
+  uv run rejsegaranti feed --real          simulate claims for the real delays the bridge received
   uv run rejsegaranti export               Camunda history -> out/*.xes and .csv
   uv run rejsegaranti check LOG.xes        replay a log against the DCR rules
   uv run rejsegaranti build-dcr            regenerate models/rejsegaranti-rules.*
@@ -85,7 +86,10 @@ def cmd_simulate(a):
 
 def cmd_feed(a):
     from . import simulate as S
-    S.feed(a.bridge, batch=a.batch, interval=a.interval)
+    if a.real:
+        S.feed_real(a.bridge, interval=a.interval)
+    else:
+        S.feed(a.bridge, batch=a.batch, interval=a.interval)
 
 
 def cmd_export(a):
@@ -156,6 +160,8 @@ def main(argv=None):
     s.add_argument("--bridge", default="http://localhost:8090")
     s.add_argument("--batch", type=int, default=5, help="delays per batch")
     s.add_argument("--interval", type=float, default=3600, help="seconds between batches")
+    s.add_argument("--real", action="store_true",
+                   help="don't make up delays: simulate claims for the real delays the bridge received")
     s.set_defaults(fn=cmd_feed)
     sub.add_parser("export").set_defaults(fn=cmd_export)
     s = sub.add_parser("check")

@@ -7,6 +7,7 @@ Endpoints (JSON bodies, see docs/cep-interface.md):
   POST /cep/notice    planned service change notice from process 6 (stored)
   POST /claims        passenger claim         -> starts rejsegaranti-claim
   GET  /state         registry contents (debugging)
+  GET  /results       read-only HTML summary of the outcomes (shared publicly, see deploy/README.md)
   GET  /health
 """
 from __future__ import annotations
@@ -17,7 +18,7 @@ import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional, Tuple
 
-from . import rules
+from . import results, rules
 from .camunda import Camunda
 from .store import Store
 
@@ -126,6 +127,13 @@ def make_server(bridge: Bridge, host: str = "0.0.0.0", port: int = 8090) -> Thre
                 return self._send(200, {"ok": True})
             if self.path == "/state":
                 return self._send(200, bridge.state())
+            if self.path.split("?")[0].rstrip("/") == "/results":
+                data = results.render(bridge.store).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                return self.wfile.write(data)
             self._send(404, {"error": "not found"})
 
         def do_POST(self):  # noqa: N802
