@@ -4,4 +4,4 @@ Light rail Line L passenger-rights processes (project board: POEDS-Group-14, pro
 
 | Process | Owner | Folder |
 |---|---|---|
-| 1 Rejsegaranti claim | Liam Palmqvist | `processes/p1-rejsegaranti/` |
+| 1 Rejsegaranti claim | Liam Palmqvist | `processes/p1/` |

@@ -79,7 +79,7 @@ To take it offline: `sudo tailscale funnel reset`. Running `install.sh` again tu
 Export straight from the laptop. The export only reads Camunda's REST API:
 
 ```bash
-cd processes/p1-rejsegaranti/service
+cd processes/p1/service
 CAMUNDA_URL=http://pinklady:8085/engine-rest uv run rejsegaranti export
 uv run rejsegaranti check ../out/claims-camunda.xes -v
 ```
@@ -92,7 +92,7 @@ rsync -av pinklady:/var/lib/rejsegaranti-recorder/ ./recorder-data/
 
 ## Installing and updating
 
-Run from the laptop, in `processes/p1-rejsegaranti`:
+Run from the laptop, in `processes/p1`:
 
 ```bash
 deploy/install.sh liam@pinklady.local
