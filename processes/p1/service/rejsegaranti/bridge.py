@@ -8,6 +8,7 @@ Endpoints (JSON bodies, see docs/cep-interface.md):
   POST /claims        passenger claim         -> starts rejsegaranti-claim
   GET  /state         registry contents (debugging)
   GET  /results       read-only HTML summary of the outcomes (shared publicly, see deploy/README.md)
+  GET  /results/<f>   its data as downloads: claims.csv, per-line.csv, claims.xes, delay-cases.xes
   GET  /health
 """
 from __future__ import annotations
@@ -135,6 +136,22 @@ def make_server(bridge: Bridge, host: str = "0.0.0.0", port: int = 8090) -> Thre
                 self.send_header("Content-Length", str(len(data)))
                 self.end_headers()
                 return self.wfile.write(data)
+            # downloads: /results/<file> publicly (Funnel maps "/" to /results), /<file> locally next to /results
+            name = self.path.split("?")[0].rsplit("/", 1)[-1]
+            if name in results.DOWNLOADS and self.path.split("?")[0] in ("/" + name, "/results/" + name):
+                try:
+                    file = results.download(name, bridge.store, bridge.camunda)
+                except Exception as e:  # Camunda down or restarting
+                    log.warning("download %s failed: %s", name, e)
+                    return self._send(503, {"error": f"{name} is not available right now"})
+                if file:
+                    data, media = file
+                    self.send_response(200)
+                    self.send_header("Content-Type", media)
+                    self.send_header("Content-Disposition", f'attachment; filename="rejsegaranti-{name}"')
+                    self.send_header("Content-Length", str(len(data)))
+                    self.end_headers()
+                    return self.wfile.write(data)
             self._send(404, {"error": "not found"})
 
         def do_POST(self):  # noqa: N802

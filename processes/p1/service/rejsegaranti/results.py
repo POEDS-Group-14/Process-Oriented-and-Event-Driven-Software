@@ -1,15 +1,21 @@
-"""Read-only results page (GET /results on the bridge): claim outcomes so far, as HTML.
+"""Read-only results page (GET /results on the bridge): claim outcomes so far, as HTML, and the data behind it
+as downloads (GET /results/<file>, see DOWNLOADS).
 
-This is the page shared publicly through Tailscale Funnel, so it only reads the registry
-and shows no passenger IDs or coordinates.
+This is the page shared publicly through Tailscale Funnel, so it only reads the registry and Camunda's history,
+and neither the page nor the downloads carry passenger IDs or coordinates.
 """
 from __future__ import annotations
 
+import csv
+import io
+import os
+import tempfile
 from collections import Counter
 from functools import lru_cache
 from html import escape
+from typing import Optional, Tuple
 
-from . import perline
+from . import perline, xes
 from .stations import LINES
 from .store import Store
 
@@ -43,7 +49,60 @@ td.num, th.num { text-align: right; }
 .paid { color: var(--paid); font-weight: 600; }
 .rejected { color: var(--rejected); font-weight: 600; }
 a { color: inherit; }
+.downloads { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.downloads a { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px;
+  text-decoration: none; font-weight: 600; }
+.downloads a:hover, .downloads a:focus-visible { border-color: var(--fg); }
 """
+
+
+DOWNLOADS = {  # file -> label on the page
+    "claims.csv": "Claims and outcomes (CSV)",
+    "per-line.csv": "Delays per line (CSV)",
+    "claims.xes": "Claim event log (XES)",
+    "delay-cases.xes": "Delay-case event log (XES)",
+}
+CLAIM_FIELDS = ["claimId", "delayId", "line", "tripStart", "transportType", "amountDkk", "outcome", "payoutDkk",
+                "reason"]
+
+
+def download(name: str, store: Store, camunda=None) -> Optional[Tuple[bytes, str]]:
+    """(content, media type) of one of DOWNLOADS, or None if there is no such file (or no Camunda for a log).
+    The event logs are exported from Camunda's history on each request, as `rejsegaranti export` does."""
+    if name == "claims.csv":
+        delays = {d["delayId"]: d for d in store.all("delays")}
+        outcomes = {o["claimId"]: o for o in store.all("outcomes")}
+        buf = io.StringIO()
+        w = csv.DictWriter(buf, CLAIM_FIELDS, lineterminator="\n")
+        w.writeheader()
+        for c in sorted(store.all("claims"), key=lambda c: c.get("tripStart", "")):
+            o = outcomes.get(c["claimId"], {})
+            r = c.get("receipt") or {}
+            w.writerow({"claimId": c["claimId"], "delayId": o.get("delayId"),
+                        "line": delays.get(o.get("delayId"), {}).get("line"), "tripStart": c.get("tripStart"),
+                        "transportType": r.get("transportType"), "amountDkk": r.get("amountDkk"),
+                        "outcome": o.get("outcome", "in progress"), "payoutDkk": o.get("payoutDkk"),
+                        "reason": o.get("reason")})
+        return buf.getvalue().encode(), "text/csv; charset=utf-8"
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, name)
+        if name == "per-line.csv":
+            state = {k: store.all(k) for k in ("delays", "weather", "outcomes")}
+            perline.write_csv(path, perline.per_line(state, _journeys()))
+            media = "text/csv; charset=utf-8"
+        elif name in ("claims.xes", "delay-cases.xes") and camunda is not None:
+            from .dcr import ROLES
+            from .export import CLAIM_KEY, DELAY_KEY, traces_from_camunda
+            if name == "claims.xes":
+                xes.write_xes(path, traces_from_camunda(camunda, CLAIM_KEY), f"{CLAIM_KEY} (Camunda history)",
+                              roles=ROLES)
+            else:
+                xes.write_xes(path, traces_from_camunda(camunda, DELAY_KEY), f"{DELAY_KEY} (Camunda history)")
+            media = "application/xml"
+        else:
+            return None
+        with open(path, "rb") as fh:
+            return fh.read(), media
 
 
 @lru_cache(maxsize=1)
@@ -103,6 +162,8 @@ can be compared. Ranked by the lower end of the 95% interval. Lines without a ca
 <div class="scroll"><table>
 <tr><th>Line</th><th class=num>Journeys</th><th class=num>Cases</th><th class=num>Per 1,000</th>
 <th class=num>95% interval</th><th class=num>Claims</th><th class=num>Paid</th></tr>{cells}</table></div>"""
+    # relative links: the page is "/" publicly and "/results" locally, and the bridge serves both paths
+    links = "".join(f'<a href="{f}" download>{escape(label)}</a>' for f, label in DOWNLOADS.items())
     reason_rows = "".join(f"<tr><td>{escape(k)}</td><td class=num>{n}</td></tr>" for k, n in reasons.most_common())
 
     return f"""<!doctype html>
@@ -125,6 +186,9 @@ Refreshes every minute.</p>
   <div class="tile"><b>{payout:,.0f}</b>DKK paid out</div>
 </div>
 {per_line}
+<h2>Download the data</h2>
+<p class="muted">The event logs are exported from Camunda when you click, so they can take a few seconds.</p>
+<nav class="downloads" aria-label="Downloads">{links}</nav>
 <h2>Why claims were rejected</h2>
 <div class="scroll"><table><tr><th>Reason</th><th class=num>Claims</th></tr>{reason_rows}</table></div>
 <h2>Latest decided claims</h2>

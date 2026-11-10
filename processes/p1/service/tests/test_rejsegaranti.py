@@ -374,6 +374,24 @@ class BridgeHttp(unittest.TestCase):
         self.assertIn("simulator", page)  # every banner says the claims are simulated
         self.assertIn("&lt;b&gt;no delay&lt;/b&gt;", page)  # escaped
         self.assertNotIn("P0042", page)  # no passenger IDs on the public page
+        self.assertIn('href="claims.csv"', page)
+        for path in ("/results/claims.csv", "/claims.csv"):
+            with urllib.request.urlopen(self.base + path) as resp:
+                self.assertIn("attachment", resp.headers["Content-Disposition"])
+                body = resp.read().decode()
+            self.assertTrue(body.startswith("claimId,delayId,line,"))
+            self.assertIn("C1", body)
+            self.assertNotIn("P0042", body)  # nor in the downloads
+        with urllib.request.urlopen(self.base + "/results/per-line.csv") as resp:
+            self.assertTrue(resp.read().decode().startswith("line,journeys,cases"))
+        with mock.patch("rejsegaranti.export.traces_from_camunda", return_value=[
+                {"id": "C1", "attrs": {}, "events": [{"name": "Claim received", "time": "2026-11-04T07:30:00+01:00"}]}]):
+            with urllib.request.urlopen(self.base + "/results/claims.xes") as resp:
+                self.assertIn(b"Claim received", resp.read())
+        for bad in ("/results/registry.json", "/results/../claims.csv", "/state.csv"):
+            with self.assertRaises(urllib.error.HTTPError) as e:
+                urllib.request.urlopen(self.base + bad)
+            self.assertEqual(e.exception.code, 404)
 
     def test_live_run_waits_before_reusing_a_receipt(self):
         refused = {**claim_near(receiptId="R9"), "claimId": "C2"}
