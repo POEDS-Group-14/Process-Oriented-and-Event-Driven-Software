@@ -5,8 +5,9 @@ can be compared (5C runs about 490 journeys a weekday, 142 about 64).
 
 Exposure is the line's scheduled journeys (data/journeys.csv, from GTFS by tools/build_stations.py) on the
 dates observed, times the share of each date the bridge was receiving data. That share comes from the weather
-situations: the recorder posts one every 10 minutes, valid for 10 minutes, so their union is the time the
-recorder and bridge were both up. Only time from SINCE counts: before it the bridge ran on bus 150S alone, and
+situations: the recorder posts one whenever OpenWeatherMap has a new observation, every 10 to 20 minutes, so the
+time from one post to the next is time the recorder and bridge were both up. A gap of more than MAX_GAP counts
+as down from the end of the earlier post's validity. Only time from SINCE counts: before it the bridge ran on bus 150S alone, and
 other lines' delays were not reported (docs/process-log.md, section 11).
 
 The 95% interval is Byar's approximation to the exact Poisson interval of the case count. A line with few
@@ -29,6 +30,7 @@ from .timeutil import local_date, parse_ts
 
 SINCE = parse_ts("2026-11-10T15:00:00+01:00")  # the bridge ran on every Copenhagen line from here
 SLOT = timedelta(minutes=10)
+MAX_GAP = timedelta(minutes=30)
 Z = 1.96
 
 
@@ -39,9 +41,11 @@ def load_journeys(path: str = os.path.join(DATA, "journeys.csv")) -> Dict[Tuple[
 
 def coverage(weather: List[dict], since: datetime = SINCE) -> Dict[date, float]:
     """Local date -> share of it (0..1) covered by weather situations, from `since`."""
+    spans = sorted((parse_ts(w["validFrom"]), parse_ts(w["validTo"])) for w in weather)
     slots = set()
-    for w in weather:
-        t, end = parse_ts(w["validFrom"]), parse_ts(w["validTo"])
+    for i, (t, end) in enumerate(spans):
+        if i + 1 < len(spans) and spans[i + 1][0] - t <= MAX_GAP:
+            end = max(end, spans[i + 1][0])  # up until the next post
         t = datetime.fromtimestamp(t.timestamp() // SLOT.total_seconds() * SLOT.total_seconds(), t.tzinfo)
         while t < end:
             if t >= since:

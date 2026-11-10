@@ -454,6 +454,15 @@ class PerLine(unittest.TestCase):
         self.assertAlmostEqual(low, 4.795, delta=0.02)  # exact: 4.795 - 18.39
         self.assertAlmostEqual(high, 18.39, delta=0.05)
 
+    def test_coverage_spans_the_gaps_between_weather_posts(self):
+        from rejsegaranti import perline
+        since = perline.parse_ts("2026-11-11T00:00:00+01:00")
+        # posts every 20 minutes for 6 hours, each valid for 10, then one more post after a 2-hour outage
+        posts = [since + perline.timedelta(minutes=20 * i) for i in range(18)] + [since + perline.timedelta(hours=8)]
+        weather = [{"validFrom": t.isoformat(), "validTo": (t + perline.SLOT).isoformat()} for t in posts]
+        (share,) = perline.coverage(weather, since).values()
+        self.assertAlmostEqual(share * 24, 5 + 50 / 60 + 10 / 60)  # 00:00-05:50 (last post valid 10 min), lone post
+
     def test_rates_are_per_scheduled_journey_while_recording(self):
         from datetime import date
         from rejsegaranti import perline

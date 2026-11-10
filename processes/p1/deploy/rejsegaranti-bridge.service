@@ -28,6 +28,8 @@ Restart=always
 RestartSec=30
 NoNewPrivileges=true
 ProtectSystem=strict
+# the downloads write a temporary file, and strict makes the shared /tmp read-only
+PrivateTmp=true
 ProtectHome=true
 
 [Install]
