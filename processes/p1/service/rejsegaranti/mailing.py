@@ -47,8 +47,10 @@ class MailingList:
         if not self.path:
             return
         tmp = self.path + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as fh:
+        # email addresses: readable by the service user only
+        with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as fh:
             json.dump(self.people, fh, indent=1)
+        os.chmod(tmp, 0o600)  # also when the .tmp file was left over from before
         os.replace(tmp, self.path)
 
     def request(self, email: str, t: Optional[float] = None) -> Optional[str]:

@@ -512,6 +512,7 @@ class Mailing(unittest.TestCase):
         from rejsegaranti import mailing
         t = self.people.request("A@Example.com", t=0)
         self.assertTrue(t)
+        self.assertEqual(os.stat(self.people.path).st_mode & 0o777, 0o600)
         self.assertIsNone(self.people.request("a@example.com", t=60))  # asked again within the hour
         self.assertEqual(self.people.confirmed(), {})  # not on the list before confirming
         self.assertTrue(self.people.confirm(t))
