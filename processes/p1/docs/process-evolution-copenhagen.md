@@ -42,10 +42,9 @@ Raw case counts favour busy lines: 5C runs about 490 journeys a weekday, line 14
 
 **Finding (method):** the first version counted each weather observation as 10 minutes of recording, but observations arrive every 15-20 minutes. That would have counted the system as down about 40% of the time and overstated every rate by about 1.7x. Correcting it gives 24 hours of recording for both 8 and 9 November, as expected.
 
-## Supporting features
+## Getting the data
 
-- **Downloads** on the public results page: claims with outcomes (CSV), per-line rates (CSV), and the claim and delay-case event logs (XES, exported from Camunda's history, readable by ProcessDoctor). No passenger IDs or coordinates are published.
-- **Claim emails:** visitors can join a mailing list and get one email per decided claim. Sign-up is double opt-in (an address joins only after its owner confirms by email), confirmation emails are rate-limited, and every email has an unsubscribe link. Because the page is public, this prevents it from being used to send mail to people who did not ask for it.
+The public results page offers the data as downloads: claims with outcomes (CSV), per-line rates (CSV), and the claim and delay-case event logs (XES, exported from Camunda's history, readable by ProcessDoctor). No passenger IDs or coordinates are published.
 
 ## Limitations
 
