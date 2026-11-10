@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 import threading
 import unittest
@@ -475,3 +476,91 @@ class PerLine(unittest.TestCase):
         self.assertAlmostEqual(rows["142"]["casesPer1000"], 1000 / 30)  # the delay before `since` is not counted
         self.assertEqual((rows["5C"]["claims"], rows["5C"]["paid"], rows["5C"]["payoutDkk"]), (1, 1, 200.0))
         self.assertEqual((rows["total"]["cases"], rows["total"]["journeys"]), (2, 280))
+
+
+class Mailing(unittest.TestCase):
+    def setUp(self):
+        from rejsegaranti.mailing import MailingList, Notifier
+        self.sent, self.got = [], threading.Event()
+
+        def send(batch):
+            self.sent += batch
+            self.got.set()
+        self.store = Store()
+        self.people = MailingList(os.path.join(tempfile.mkdtemp(), "subscribers.json"))
+        self.notifier = Notifier(self.people, self.store, env={"SMTP_HOST": "smtp.example", "SMTP_USER": "me@x.dk",
+                                                             "PUBLIC_URL": "https://example.dk/"}, send=send)
+
+    def wait(self, n):
+        for _ in range(50):
+            if len(self.sent) >= n:
+                return
+            self.got.wait(0.1)
+            self.got.clear()
+        self.fail(f"{len(self.sent)} of {n} emails sent")
+
+    def test_double_opt_in_and_rate_limits(self):
+        from rejsegaranti import mailing
+        t = self.people.request("A@Example.com", t=0)
+        self.assertTrue(t)
+        self.assertIsNone(self.people.request("a@example.com", t=60))  # asked again within the hour
+        self.assertEqual(self.people.confirmed(), {})  # not on the list before confirming
+        self.assertTrue(self.people.confirm(t))
+        self.assertEqual(list(self.people.confirmed()), ["a@example.com"])
+        self.assertIsNone(self.people.request("a@example.com", t=7200))  # already confirmed
+        self.assertFalse(self.people.confirm("nope"))
+        for i in range(mailing.CONFIRMATIONS_PER_HOUR):
+            self.people.request(f"p{i}@example.com", t=8000)
+        self.assertIsNone(self.people.request("late@example.com", t=8001))  # hourly cap
+        self.assertTrue(self.people.unsubscribe(t))
+        self.assertEqual(self.people.confirmed(), {})
+        self.assertFalse(mailing.valid_email("not an email"))
+        self.assertTrue(mailing.valid_email("liam@example.dk"))
+
+    def test_one_email_per_decided_claim_to_each_person(self):
+        for e in ("a@example.com", "b@example.com"):
+            self.people.confirm(self.people.request(e))
+        self.people.request("pending@example.com")
+        self.store.put("claims", "C1", claim_near())
+        self.store.put("delays", "D1", {**DELAY, "line": "5C"})
+        cep = CepSink(url="", listeners=[self.notifier.on_event])
+        cep.emit("DelayAssessed", {"delayId": "D1"})  # not a claim: no email
+        cep.emit("ClaimPaid", {"claimId": "C1", "delayId": "D1", "outcome": "paid", "payoutDkk": 180.0})
+        self.wait(2)
+        self.assertEqual(sorted(m["To"] for m in self.sent), ["a@example.com", "b@example.com"])
+        m = self.sent[0]
+        self.assertEqual(m["Subject"], "Claim C1 paid (line 5C)")
+        body = m.get_content()
+        self.assertIn("180.00 DKK", body)
+        self.assertIn("https://example.dk/unsubscribe?token=", body)
+        self.assertIn("https://example.dk/unsubscribe?token=", m["List-Unsubscribe"])
+
+    def test_sign_up_over_http(self):
+        srv = make_server(Bridge(self.store, None, self.notifier), host="127.0.0.1", port=0)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        base = f"http://127.0.0.1:{srv.server_address[1]}"
+        try:
+            with urllib.request.urlopen(base + "/results") as r:
+                self.assertIn('action="subscribe"', r.read().decode())
+            with urllib.request.urlopen(base + "/results/subscribe", data=b"email=me%40example.com") as r:
+                self.assertIn("Check your inbox", r.read().decode())
+            self.wait(1)
+            link = re.search(r"https://example.dk(/confirm\?token=\S+)", self.sent[0].get_content()).group(1)
+            token = link.split("=", 1)[1]
+            with urllib.request.urlopen(base + "/results" + link) as r:  # a mail scanner opening the link
+                self.assertIn('method="post"', r.read().decode())
+            self.assertEqual(self.people.confirmed(), {})
+            with urllib.request.urlopen(base + "/confirm", data=f"token={token}".encode()) as r:
+                self.assertIn("on the list", r.read().decode())
+            self.assertEqual(list(self.people.confirmed()), ["me@example.com"])
+            # one-click unsubscribe (RFC 8058): POST to the link itself
+            with urllib.request.urlopen(base + f"/results/unsubscribe?token={token}",
+                                        data=b"List-Unsubscribe=One-Click") as r:
+                self.assertIn("Unsubscribed", r.read().decode())
+            self.assertEqual(self.people.confirmed(), {})
+            with self.assertRaises(urllib.error.HTTPError) as e:
+                urllib.request.urlopen(base + "/results/subscribe", data=b"email=nope")
+            self.assertEqual(e.exception.code, 400)
+        finally:
+            srv.shutdown()
+            srv.server_close()

@@ -9,18 +9,23 @@ Endpoints (JSON bodies, see docs/cep-interface.md):
   GET  /state         registry contents (debugging)
   GET  /results       read-only HTML summary of the outcomes (shared publicly, see deploy/README.md)
   GET  /results/<f>   its data as downloads: claims.csv, per-line.csv, claims.xes, delay-cases.xes
+  POST /results/subscribe              join the claim mailing list (form field "email"; double opt-in)
+  GET|POST /results/confirm?token=     confirm it (GET shows a button, the POST confirms)
+  GET|POST /results/unsubscribe?token= leave it (likewise)
   GET  /health
 """
 from __future__ import annotations
 
 import json
 import logging
+import urllib.parse
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional, Tuple
 
 from . import results, rules, stations
 from .camunda import Camunda
+from .mailing import Notifier, valid_email
 from .store import Store
 
 log = logging.getLogger("rejsegaranti.bridge")
@@ -32,9 +37,10 @@ CLAIM_FIELDS = ("tripStart", "startLat", "startLon", "endLat", "endLon", "receip
 
 
 class Bridge:
-    def __init__(self, store: Store, camunda: Optional[Camunda]):
+    def __init__(self, store: Store, camunda: Optional[Camunda], notifier: Optional[Notifier] = None):
         self.store = store
         self.camunda = camunda
+        self.notifier = notifier  # None: no mailing list
 
     # Each handler returns (http status, response body)
     def delay(self, s: dict) -> Tuple[int, dict]:
@@ -103,6 +109,31 @@ class Bridge:
             })
         return 201, {"claimId": c["claimId"]}
 
+    def mailing(self, action: str, method: str, fields: dict) -> Tuple[int, str]:
+        """The mailing-list pages: (http status, HTML)."""
+        people = self.notifier.people
+        token = fields.get("token", "")
+        if action == "subscribe":
+            email = fields.get("email", "").strip()
+            if method != "POST" or not valid_email(email):
+                return 400, results.message("Not an email address", "Go back and check the address.")
+            t = people.request(email)
+            if t:
+                self.notifier.send_confirmation(email.lower(), t)
+            # the same answer whatever happened, so the page does not reveal who is on the list
+            return 200, results.message("Check your inbox", (
+                "If that address is not on the list yet, a confirmation email is on its way. You'll get claim "
+                "emails once you have clicked the link in it."))
+        verb = {"confirm": "Confirm", "unsubscribe": "Unsubscribe"}[action]
+        if method == "GET":
+            return 200, results.message(f"{verb}?", "", form=(action, token, verb))
+        done = people.confirm(token) if action == "confirm" else people.unsubscribe(token)
+        if not done:
+            return 404, results.message("Link not valid", "It has expired or was used to unsubscribe already.")
+        if action == "confirm":
+            return 200, results.message("You're on the list", "You'll get an email for every decided claim.")
+        return 200, results.message("Unsubscribed", "You won't get any more claim emails.")
+
     def state(self) -> dict:
         return {k: self.store.all(k) for k in Store.KINDS}
 
@@ -116,6 +147,26 @@ def make_server(bridge: Bridge, host: str = "0.0.0.0", port: int = 8090) -> Thre
     }
 
     class H(BaseHTTPRequestHandler):
+        def _mailing(self, method: str) -> bool:
+            """Serve /[results/](subscribe|confirm|unsubscribe) if the mailing list is on; True if handled."""
+            url = urllib.parse.urlsplit(self.path)
+            action = url.path.rsplit("/", 1)[-1]
+            if (not bridge.notifier or action not in ("subscribe", "confirm", "unsubscribe")
+                    or url.path not in ("/" + action, "/results/" + action)):
+                return False
+            fields = dict(urllib.parse.parse_qsl(url.query))
+            if method == "POST":
+                n = min(int(self.headers.get("Content-Length", 0)), 4096)
+                fields.update(urllib.parse.parse_qsl(self.rfile.read(n).decode("utf-8", "replace")))
+            status, html = bridge.mailing(action, method, fields)
+            data = html.encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            return True
+
         def _send(self, status: int, body: dict) -> None:
             data = json.dumps(body, ensure_ascii=False).encode()
             self.send_response(status)
@@ -125,12 +176,14 @@ def make_server(bridge: Bridge, host: str = "0.0.0.0", port: int = 8090) -> Thre
             self.wfile.write(data)
 
         def do_GET(self):  # noqa: N802
+            if self._mailing("GET"):
+                return
             if self.path == "/health":
                 return self._send(200, {"ok": True})
             if self.path == "/state":
                 return self._send(200, bridge.state())
             if self.path.split("?")[0].rstrip("/") == "/results":
-                data = results.render(bridge.store).encode()
+                data = results.render(bridge.store, signup=bridge.notifier is not None).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Content-Length", str(len(data)))
@@ -155,6 +208,8 @@ def make_server(bridge: Bridge, host: str = "0.0.0.0", port: int = 8090) -> Thre
             self._send(404, {"error": "not found"})
 
         def do_POST(self):  # noqa: N802
+            if self._mailing("POST"):
+                return
             fn = routes.get(self.path.rstrip("/"))
             if not fn:
                 return self._send(404, {"error": "not found"})

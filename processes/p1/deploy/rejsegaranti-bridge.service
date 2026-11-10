@@ -15,6 +15,9 @@ Environment=CAMUNDA_PORT=8085
 # Line L has no published real-time data; every Movia bus and S-tog line serving Copenhagen stands in
 # (data/stations.csv; also set in the feed unit, and BRIDGE_LINES in the recorder unit)
 Environment=REJSEGARANTI_LINES=*
+# claim emails (service/rejsegaranti/mailing.py): SMTP settings in a root-only file, see deploy/mail.env.example
+EnvironmentFile=-/etc/rejsegaranti/mail.env
+Environment=PUBLIC_URL=https://pinklady.tail3b2c97.ts.net
 StateDirectory=rejsegaranti
 # Camunda takes a minute or two to boot on this machine; deploy is a no-op when the BPMN is unchanged
 ExecStartPre=/bin/sh -c 'until curl -sf http://localhost:8085/engine-rest/engine >/dev/null; do sleep 5; done'

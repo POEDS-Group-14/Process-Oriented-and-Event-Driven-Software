@@ -49,6 +49,12 @@ td.num, th.num { text-align: right; }
 .paid { color: var(--paid); font-weight: 600; }
 .rejected { color: var(--rejected); font-weight: 600; }
 a { color: inherit; }
+.signup { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0; }
+.signup input { flex: 1 1 220px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--card); color: var(--fg); font: inherit; }
+.signup button { padding: 8px 14px; border: 1px solid var(--fg); border-radius: 8px; background: var(--fg);
+  color: var(--bg); font: inherit; font-weight: 600; cursor: pointer; }
+.signup label { width: 100%; font-weight: 600; }
 .downloads { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
 .downloads a { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px;
   text-decoration: none; font-weight: 600; }
@@ -110,7 +116,38 @@ def _journeys():
     return perline.load_journeys()
 
 
-def render(store: Store, limit: int = 100) -> str:
+# Reload every minute, but not while someone is typing an address into the sign-up form
+RELOAD = """<script>setInterval(() => { const e = document.getElementById("email");
+  if (!e || (!e.value && document.activeElement !== e)) location.reload(); }, 60000);</script>
+<noscript><meta http-equiv="refresh" content="60"></noscript>
+"""
+
+
+def _page(title: str, body: str, refresh: bool = False) -> str:
+    meta = RELOAD if refresh else ""
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{meta}<title>{escape(title)}</title><style>{STYLE}</style></head>
+<body><main>
+{body}
+</main></body></html>"""
+
+
+def message(title: str, text: str, form: Optional[Tuple[str, str, str]] = None) -> str:
+    """A small page for the mailing list. form: (action, token, button label) of a POST button."""
+    button = ""
+    if form:
+        action, token, label = form
+        button = (f'<form class="signup" method="post" action="{escape(action)}">'
+                  f'<input type="hidden" name="token" value="{escape(token)}">'
+                  f'<button type="submit">{escape(label)}</button></form>')
+    # relative link back: the page is "/" publicly and "/results" locally
+    return _page(title, f"<h1>{escape(title)}</h1><p>{escape(text)}</p>{button}"
+                        '<p><a href="./">Back to the results</a></p>')
+
+
+def render(store: Store, limit: int = 100, signup: bool = False) -> str:
     claims = {c["claimId"]: c for c in store.all("claims")}
     outcomes = store.all("outcomes")
     by_outcome = Counter(o["outcome"] for o in outcomes)
@@ -164,15 +201,17 @@ can be compared. Ranked by the lower end of the 95% interval. Lines without a ca
 <th class=num>95% interval</th><th class=num>Claims</th><th class=num>Paid</th></tr>{cells}</table></div>"""
     # relative links: the page is "/" publicly and "/results" locally, and the bridge serves both paths
     links = "".join(f'<a href="{f}" download>{escape(label)}</a>' for f, label in DOWNLOADS.items())
+    signup_form = "" if not signup else """<h2>Get an email for every claim</h2>
+<p class="muted">One email per decided claim, roughly 50 a day once delays come in. You confirm by email first,
+and every email has an unsubscribe link. Your address is not shown anywhere.</p>
+<form class="signup" method="post" action="subscribe">
+<label for="email">Email address</label>
+<input id="email" name="email" type="email" required maxlength="254" autocomplete="email" placeholder="you@example.com">
+<button type="submit">Sign up</button>
+</form>"""
     reason_rows = "".join(f"<tr><td>{escape(k)}</td><td class=num>{n}</td></tr>" for k, n in reasons.most_common())
 
-    return f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="60">
-<title>Rejsegaranti results</title><style>{STYLE}</style></head>
-<body><main>
-<header><h1>Rejsegaranti claims, {escape(line)}</h1>
+    return _page("Rejsegaranti results", f"""<header><h1>Rejsegaranti claims, {escape(line)}</h1>
 <a class="login" href="/camunda/app/cockpit/" title="Inspect the process instances (login required)">Camunda Cockpit login</a></header>
 <p class="muted">Process 1 of the Process-Oriented and Event-Driven Software project (DTU), running on Camunda 7.
 Refreshes every minute.</p>
@@ -186,6 +225,7 @@ Refreshes every minute.</p>
   <div class="tile"><b>{payout:,.0f}</b>DKK paid out</div>
 </div>
 {per_line}
+{signup_form}
 <h2>Download the data</h2>
 <p class="muted">The event logs are exported from Camunda when you click, so they can take a few seconds.</p>
 <nav class="downloads" aria-label="Downloads">{links}</nav>
@@ -199,4 +239,4 @@ Claims with an incomplete receipt are refused at the form and never reach the pr
 <th class=num>Paid DKK</th><th>Reason</th></tr>
 {"".join(trs)}
 </table></div>
-</main></body></html>"""
+""", refresh=True)

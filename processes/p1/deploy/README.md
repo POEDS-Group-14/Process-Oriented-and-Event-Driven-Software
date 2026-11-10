@@ -62,7 +62,7 @@ Tailscale Funnel publishes exactly two things on the public internet, over HTTPS
 | https://pinklady.tail3b2c97.ts.net/ | Results page: claim outcomes, rejection reasons, latest claims. Read-only, no passenger IDs, refreshes every minute | None |
 | https://pinklady.tail3b2c97.ts.net/camunda | Camunda Cockpit | `guest` (read-only) or `admin` |
 
-Everything else on that address (the REST API, `/state`, the POST endpoints) answers 404.
+Everything else on that address (the REST API, `/state`, the CEP and claim POST endpoints) answers 404. The page's own downloads and the mailing-list sign-up, confirm and unsubscribe pages are reachable, because they are under `/results` on the bridge.
 
 Give people the `guest` login. Its password is on the server:
 
@@ -73,6 +73,19 @@ ssh pinklady 'sudo cat /etc/rejsegaranti/camunda-guest'
 `guest` can open Cockpit and read the process definitions, running instances and history. It cannot deploy, suspend, cancel, change variables or open Tasklist and Admin. That holds because Camunda's authorization checks are switched on (`camunda.bpm.authorization.enabled` in `/opt/camunda/configuration/default.yml`). The bridge and workers are not affected, because they call the REST API without logging in, which skips the checks. Keep the `admin` password to yourself.
 
 To take it offline: `sudo tailscale funnel reset`. Running `install.sh` again turns it back on. `tailscale funnel status` shows what is published.
+
+## Claim emails
+
+The results page has a sign-up form: anyone can get one email per decided claim (`service/rejsegaranti/mailing.py`). Because the page is public, sign-up is double opt-in. An address only joins the list after its owner clicks the link in a confirmation email and presses the button there. Confirmation emails are limited to one per address per hour and 20 per hour in all. Every claim email has an unsubscribe link and a one-click `List-Unsubscribe` header. The list is kept in `/var/lib/rejsegaranti/subscribers.json` and is never shown on the page or in `/state`.
+
+The mail goes out through iCloud's SMTP server. The settings, including the app-specific password, are in `/etc/rejsegaranti/mail.env` (mode 600, root only), which the bridge unit reads. Set it up once:
+
+```bash
+ssh -t pinklady 'sudo install -m 600 -o root -g root rejsegaranti-src/deploy/mail.env.example /etc/rejsegaranti/mail.env \
+  && sudo nano /etc/rejsegaranti/mail.env && sudo systemctl restart rejsegaranti-bridge'
+```
+
+Without that file (or with `SMTP_HOST` empty) the mailing list is off and the form is not shown. Sending happens on its own thread, so a failing mail server only logs `could not send` in the bridge log; those emails are not retried.
 
 ## Getting the event log
 

@@ -12,7 +12,8 @@
   uv run rejsegaranti build-dcr            regenerate models/rejsegaranti-rules.*
 
 Settings (environment): CAMUNDA_PORT (default 8085) or CAMUNDA_URL (default http://localhost:8085/engine-rest),
-CEP_URL (Siddhi HTTP source; optional), BRIDGE_PORT (8090), DATA_DIR (./out).
+CEP_URL (Siddhi HTTP source; optional), BRIDGE_PORT (8090), DATA_DIR (./out),
+SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, MAIL_FROM, PUBLIC_URL (claim emails; see mailing.py).
 """
 from __future__ import annotations
 
@@ -43,15 +44,18 @@ def cmd_run(a):
     from .bridge import Bridge, make_server
     from .camunda import Camunda
     from .cep import CepSink
+    from .mailing import MailingList, Notifier
     from .store import Store
     from .workers import run_workers
 
     os.makedirs(DATA_DIR, exist_ok=True)
     store = Store(os.path.join(DATA_DIR, "registry.json"))
-    cep = CepSink(journal=os.path.join(DATA_DIR, "cep-events.jsonl"))
+    notifier = Notifier(MailingList(os.path.join(DATA_DIR, "subscribers.json")), store)
+    cep = CepSink(journal=os.path.join(DATA_DIR, "cep-events.jsonl"),
+                  listeners=[notifier.on_event] if notifier.enabled else [])
     cam = Camunda()
     port = int(os.environ.get("BRIDGE_PORT", a.port))
-    srv = make_server(Bridge(store, cam), port=port)
+    srv = make_server(Bridge(store, cam, notifier if notifier.enabled else None), port=port)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     logging.info("bridge listening on :%d, Camunda at %s, CEP %s", port, cam.base, cep.url or "(journal only)")
     try:

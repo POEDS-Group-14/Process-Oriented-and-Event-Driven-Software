@@ -3,7 +3,7 @@
 If CEP_URL is set (for example the Siddhi HTTP source
 http://localhost:8006/rejsegaranti), each event is POSTed there as JSON.
 Every event is also appended to <DATA_DIR>/cep-events.jsonl so runs can be
-inspected without a CEP.
+inspected without a CEP, and handed to each listener (the mailing list's notifier).
 """
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import logging
 import os
 import threading
 import urllib.request
-from typing import Optional
+from typing import Callable, List, Optional
 
 from .timeutil import iso, now
 
@@ -20,9 +20,11 @@ log = logging.getLogger("rejsegaranti.cep")
 
 
 class CepSink:
-    def __init__(self, url: Optional[str] = None, journal: Optional[str] = None):
+    def __init__(self, url: Optional[str] = None, journal: Optional[str] = None,
+                 listeners: Optional[List[Callable[[dict], None]]] = None):
         self.url = url if url is not None else os.environ.get("CEP_URL") or None
         self.journal = journal
+        self.listeners = listeners or []
         self._lock = threading.Lock()
 
     def emit(self, event_type: str, payload: dict) -> dict:
@@ -41,5 +43,10 @@ class CepSink:
                 urllib.request.urlopen(req, timeout=5).read()
             except Exception as e:  # the CEP being down must not block claims
                 log.warning("could not deliver %s to CEP at %s: %s", event_type, self.url, e)
+        for listen in self.listeners:
+            try:
+                listen(event)
+            except Exception:  # a listener failing must not block claims either
+                log.exception("listener failed on %s", event_type)
         log.debug("-> CEP %s %s", event_type, payload.get("claimId") or payload.get("delayId"))
         return event
