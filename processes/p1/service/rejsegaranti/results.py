@@ -6,8 +6,10 @@ and shows no passenger IDs or coordinates.
 from __future__ import annotations
 
 from collections import Counter
+from functools import lru_cache
 from html import escape
 
+from . import perline
 from .stations import LINES
 from .store import Store
 
@@ -42,6 +44,11 @@ td.num, th.num { text-align: right; }
 .rejected { color: var(--rejected); font-weight: 600; }
 a { color: inherit; }
 """
+
+
+@lru_cache(maxsize=1)
+def _journeys():
+    return perline.load_journeys()
 
 
 def render(store: Store, limit: int = 100) -> str:
@@ -82,6 +89,20 @@ def render(store: Store, limit: int = 100) -> str:
             f"<td class={escape(o['outcome'])}>{escape(o['outcome'])}</td>"
             f"<td class=num>{float(o.get('payoutDkk') or 0):.2f}</td>"
             f"<td>{escape(o.get('reason') or '')}</td></tr>")
+    per_line = ""
+    if LINES != {"L"}:
+        state = {k: store.all(k) for k in ("delays", "weather", "outcomes")}
+        lrows = [r for r in perline.per_line(state, _journeys()) if r["cases"] or r["line"] == "total"]
+        cells = "".join(
+            f"<tr><td>{escape(r['line'])}</td><td class=num>{r['journeys']:,}</td><td class=num>{r['cases']}</td>"
+            f"<td class=num>{r['casesPer1000']:.2f}</td><td class=num>{r['low']:.2f} - {r['high']:.2f}</td>"
+            f"<td class=num>{r['claims']}</td><td class=num>{r['paid']}</td></tr>" for r in lrows)
+        per_line = f"""<h2>Delays per line</h2>
+<p class="muted">Delay cases per 1,000 scheduled journeys while the bridge was receiving data, so busy and quiet lines
+can be compared. Ranked by the lower end of the 95% interval. Lines without a case are left out but count in the total.</p>
+<div class="scroll"><table>
+<tr><th>Line</th><th class=num>Journeys</th><th class=num>Cases</th><th class=num>Per 1,000</th>
+<th class=num>95% interval</th><th class=num>Claims</th><th class=num>Paid</th></tr>{cells}</table></div>"""
     reason_rows = "".join(f"<tr><td>{escape(k)}</td><td class=num>{n}</td></tr>" for k, n in reasons.most_common())
 
     return f"""<!doctype html>
@@ -103,6 +124,7 @@ Refreshes every minute.</p>
   <div class="tile"><b>{open_claims}</b>in progress</div>
   <div class="tile"><b>{payout:,.0f}</b>DKK paid out</div>
 </div>
+{per_line}
 <h2>Why claims were rejected</h2>
 <div class="scroll"><table><tr><th>Reason</th><th class=num>Claims</th></tr>{reason_rows}</table></div>
 <h2>Latest decided claims</h2>

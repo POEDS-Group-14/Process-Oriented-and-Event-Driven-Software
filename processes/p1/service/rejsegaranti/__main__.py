@@ -7,6 +7,7 @@
   uv run rejsegaranti feed                 post simulated delays and claims every hour, forever
   uv run rejsegaranti feed --real          simulate claims for the real delays the bridge received
   uv run rejsegaranti export               Camunda history -> out/*.xes and .csv
+  uv run rejsegaranti per-line             delay cases and claims per 1,000 journeys, per line -> out/per-line.csv
   uv run rejsegaranti check LOG.xes        replay a log against the DCR rules
   uv run rejsegaranti build-dcr            regenerate models/rejsegaranti-rules.*
 
@@ -108,6 +109,23 @@ def cmd_export(a):
         print(f"{key}: {len(tr)} traces -> {name}.xes")
 
 
+def cmd_per_line(a):
+    import urllib.request
+    from . import perline
+
+    with urllib.request.urlopen(a.bridge.rstrip("/") + "/state", timeout=60) as r:
+        state = json.loads(r.read())
+    rows = perline.per_line(state, perline.load_journeys())
+    os.makedirs(DATA_DIR, exist_ok=True)
+    path = os.path.join(DATA_DIR, "per-line.csv")
+    perline.write_csv(path, rows)
+    print(f"{'line':>6} {'journeys':>9} {'cases':>6} {'per 1000':>9}  95% interval   {'claims':>6} {'paid':>5}")
+    for r in rows:
+        print(f"{r['line']:>6} {r['journeys']:>9} {r['cases']:>6} {r['casesPer1000']:>9.2f}  "
+              f"{r['low']:5.2f} - {r['high']:5.2f}   {r['claims']:>6} {r['paid']:>5}")
+    print("wrote", path)
+
+
 def cmd_check(a):
     from .dcr import Graph, check_log
     from .xes import read_xes
@@ -164,6 +182,9 @@ def main(argv=None):
                    help="don't make up delays: simulate claims for the real delays the bridge received")
     s.set_defaults(fn=cmd_feed)
     sub.add_parser("export").set_defaults(fn=cmd_export)
+    s = sub.add_parser("per-line", help="delay cases and claims per 1,000 scheduled journeys, per line")
+    s.add_argument("--bridge", default="http://pinklady:8090")
+    s.set_defaults(fn=cmd_per_line)
     s = sub.add_parser("check")
     s.add_argument("log")
     s.add_argument("--rules", default=RULES_XML)

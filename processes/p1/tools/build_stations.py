@@ -1,5 +1,6 @@
 """Write data/stations.csv from Rejseplanen's GTFS feed: the stops, with coordinates, of every Movia bus and
-DSB S-tog line that serves Copenhagen.
+DSB S-tog line that serves Copenhagen. Also writes data/journeys.csv: each line's scheduled journeys (trips)
+per date of the feed, the denominator of the per-line rates (service/rejsegaranti/perline.py).
 
   curl -o GTFS.zip https://www.rejseplanen.info/labs/GTFS.zip
   python3 tools/build_stations.py GTFS.zip            # every line with a stop in the Copenhagen box
@@ -20,6 +21,7 @@ from __future__ import annotations
 
 import csv
 import io
+from datetime import date, timedelta
 import os
 import re
 import sys
@@ -49,7 +51,7 @@ def main(gtfs: str, only: list) -> None:
     agencies = {a["agency_id"] for a in rows("agency.txt") if a["agency_name"] in AGENCIES}
     line_of = {r["route_id"]: r["route_short_name"] for r in rows("routes.txt")
                if r["agency_id"] in agencies and r["route_short_name"] and (not only or r["route_short_name"] in only)}
-    trips = {t["trip_id"]: (line_of[t["route_id"]], t.get("direction_id") or "0")
+    trips = {t["trip_id"]: (line_of[t["route_id"]], t.get("direction_id") or "0", t["service_id"])
              for t in rows("trips.txt") if t["route_id"] in line_of}
     calls = {}
     for st in rows("stop_times.txt"):
@@ -59,7 +61,7 @@ def main(gtfs: str, only: list) -> None:
 
     by_line = {}  # line -> {"longest": {direction: calls}, "all": [calls]}
     for trip, c in calls.items():
-        line, d = trips[trip]
+        line, d, _ = trips[trip]
         c = sorted(c)
         entry = by_line.setdefault(line, {"longest": {}, "all": []})
         entry["all"].append(c)
@@ -85,12 +87,45 @@ def main(gtfs: str, only: list) -> None:
         sys.exit(f"no {' or '.join(AGENCIES)} lines found in {gtfs}")
     path = os.path.join(ROOT, "data", "stations.csv")
     with open(path, "w", newline="", encoding="utf-8") as fh:
-        w = csv.writer(fh)
+        w = csv.writer(fh, lineterminator="\n")
         w.writerow(["line", "station", "lat", "lon", "stopName", "stopRef"])
         for line, name, lat, lon, full, ref in out:
             w.writerow([line, name, f"{lat:.6f}", f"{lon:.6f}", full, ref])
     print(f"{path}: {len({o[0] for o in out})} lines, {len(out)} stop points, "
           f"{len({(o[0], o[1]) for o in out})} stations")
+    write_journeys(rows, trips, {o[0] for o in out})
+
+
+def _date(s: str) -> date:
+    return date(int(s[:4]), int(s[4:6]), int(s[6:]))
+
+
+def write_journeys(rows, trips: dict, lines: set) -> None:
+    """data/journeys.csv: line, date, scheduled journeys. A service runs on the weekdays calendar.txt gives
+    between its start and end date, plus the dates calendar_dates.txt adds (type 1), minus those it removes (2)."""
+    days = {}  # service_id -> set of dates
+    for c in rows("calendar.txt"):
+        d, end = _date(c["start_date"]), _date(c["end_date"])
+        flags = [c[k] == "1" for k in ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")]
+        while d <= end:
+            if flags[d.weekday()]:
+                days.setdefault(c["service_id"], set()).add(d)
+            d += timedelta(days=1)
+    for c in rows("calendar_dates.txt"):
+        dates = days.setdefault(c["service_id"], set())
+        (dates.add if c["exception_type"] == "1" else dates.discard)(_date(c["date"]))
+    count = {}  # (line, date) -> journeys
+    for line, _, service in trips.values():
+        if line in lines:
+            for d in days.get(service, ()):
+                count[(line, d)] = count.get((line, d), 0) + 1
+    path = os.path.join(ROOT, "data", "journeys.csv")
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh, lineterminator="\n")
+        w.writerow(["line", "date", "journeys"])
+        for (line, d), n in sorted(count.items()):
+            w.writerow([line, d.isoformat(), n])
+    print(f"{path}: {len(count)} line-days, {min(d for _, d in count)} to {max(d for _, d in count)}")
 
 
 if __name__ == "__main__":

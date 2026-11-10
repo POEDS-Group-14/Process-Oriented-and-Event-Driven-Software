@@ -423,3 +423,37 @@ class WorkerLoop(unittest.TestCase):
         self.assertEqual(cam.calls[0], ("complete", "t1", {"noticeExcluded": False, "noticeId": None}))
         self.assertEqual(cam.calls[1], ("failure", "t2", 4))  # not assessed yet -> retry
         self.assertEqual(cam.calls[2], ("failure", "t3", 0))  # bug/data error -> incident
+
+
+class PerLine(unittest.TestCase):
+    def test_poisson_interval(self):
+        from rejsegaranti.perline import poisson_interval
+        low, high = poisson_interval(0)
+        self.assertEqual(low, 0)
+        self.assertAlmostEqual(high, 3.689, delta=0.01)  # exact: 3.689
+        low, high = poisson_interval(10)
+        self.assertAlmostEqual(low, 4.795, delta=0.02)  # exact: 4.795 - 18.39
+        self.assertAlmostEqual(high, 18.39, delta=0.05)
+
+    def test_rates_are_per_scheduled_journey_while_recording(self):
+        from datetime import date
+        from rejsegaranti import perline
+        since = perline.parse_ts("2026-11-11T00:00:00+01:00")
+        # the recorder was up for the first 12 hours of 11 November only
+        weather = [{"validFrom": f"2026-11-11T{h:02d}:{m:02d}:00+01:00",
+                    "validTo": f"2026-11-11T{h:02d}:{m + 10:02d}:00+01:00" if m < 50 else
+                    f"2026-11-11T{h + 1:02d}:00:00+01:00"} for h in range(12) for m in range(0, 60, 10)]
+        journeys = {("5C", date(2026, 11, 11)): 500, ("142", date(2026, 11, 11)): 60,
+                    ("5C", date(2026, 11, 12)): 500}
+        delay = {**DELAY, "plannedDeparture": "2026-11-11T08:00:00+01:00"}
+        state = {"weather": weather,
+                 "delays": [{**delay, "delayId": "a", "line": "5C"}, {**delay, "delayId": "b", "line": "142"},
+                            {**delay, "delayId": "old", "line": "142", "plannedDeparture": "2026-11-10T08:00:00+01:00"}],
+                 "outcomes": [{"claimId": "C1", "delayId": "a", "outcome": "paid", "payoutDkk": 200.0}]}
+        with mock.patch.object(perline, "LINES", {"5C", "142"}), mock.patch.object(rules, "LINES", {"5C", "142"}):
+            rows = {r["line"]: r for r in perline.per_line(state, journeys, since)}
+        self.assertEqual(rows["5C"]["journeys"], 250)  # half of the day observed
+        self.assertAlmostEqual(rows["5C"]["casesPer1000"], 4.0)
+        self.assertAlmostEqual(rows["142"]["casesPer1000"], 1000 / 30)  # the delay before `since` is not counted
+        self.assertEqual((rows["5C"]["claims"], rows["5C"]["paid"], rows["5C"]["payoutDkk"]), (1, 1, 200.0))
+        self.assertEqual((rows["total"]["cases"], rows["total"]["journeys"]), (2, 280))
