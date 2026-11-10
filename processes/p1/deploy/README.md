@@ -81,7 +81,7 @@ The results page has a sign-up form: anyone can get one email per decided claim 
 The mail goes out through iCloud's SMTP server. The settings, including the app-specific password, are in `/etc/rejsegaranti/mail.env` (mode 600, root only), which the bridge unit reads. Set it up once:
 
 ```bash
-ssh -t pinklady 'sudo install -m 600 -o root -g root rejsegaranti-src/deploy/mail.env.example /etc/rejsegaranti/mail.env \
+ssh -t pinklady 'sudo install -m 600 -o root -g root /opt/rejsegaranti/deploy/mail.env.example /etc/rejsegaranti/mail.env \
   && sudo nano /etc/rejsegaranti/mail.env && sudo systemctl restart rejsegaranti-bridge'
 ```
 
