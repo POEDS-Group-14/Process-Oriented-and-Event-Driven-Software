@@ -50,7 +50,7 @@ class Recorder:
         except (OSError, ValueError):
             self._stop_names = {}
         # the stops of the lines the process runs on are known from GTFS (tools/build_stations.py)
-        for path in glob.glob(os.path.join(STATIONS_DIR, "stations-*.csv")):
+        for path in glob.glob(os.path.join(STATIONS_DIR, "stations*.csv")):
             with open(path, encoding="utf-8") as fh:
                 for r in csv.DictReader(fh):
                     if r.get("stopRef"):

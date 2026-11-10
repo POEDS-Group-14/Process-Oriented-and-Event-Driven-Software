@@ -1,9 +1,11 @@
-"""Stations of the line the process runs on, chosen with REJSEGARANTI_LINE (default L).
+"""Stations of the lines the process runs on, chosen with REJSEGARANTI_LINES (default L).
 
 Line L (Hovedstadens Letbane) is the line the process is designed for, but no real-time data for it
-is published (see deploy/README.md), so the server runs it on Movia bus 150S. Its stops come from
-Rejseplanen's GTFS feed (data/stations-150S.csv, made by tools/build_stations.py). A station may
-have several stop points (one per side of the road); distances are measured to the closest one.
+is published (see deploy/README.md), so the server runs it on every Movia bus and DSB S-tog line that serves
+Copenhagen (REJSEGARANTI_LINES=*). Their stops come from Rejseplanen's GTFS feed (data/stations.csv, made by
+tools/build_stations.py). REJSEGARANTI_LINES can also name some of those lines, comma-separated ("150S,5C").
+A station may have several stop points (one per side of the road); distances are measured to the closest one.
+Station names are only unique within a line, so every lookup takes the line.
 
 LINE L COORDINATES ARE APPROXIMATE (entered by hand, roughly +/- 100 m).
 Verify them against OpenStreetMap or Rejseplanen stop data before the
@@ -15,10 +17,9 @@ from __future__ import annotations
 import csv
 import math
 import os
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data")
-LINE = os.environ.get("REJSEGARANTI_LINE", "L").upper()
 
 LINE_L = [
     ("Lundtofte", 55.7930, 12.5120),
@@ -52,20 +53,29 @@ LINE_L = [
     ("Ishøj", 55.6150, 12.3510),
 ]
 
+Point = Tuple[str, float, float]  # (station, lat, lon) of one stop point
 
 
-def load(line: str) -> List[Tuple[str, float, float]]:
-    """(station, lat, lon) per stop point, in route order."""
-    if line == "L":
-        return LINE_L
-    with open(os.path.join(DATA, f"stations-{line}.csv"), encoding="utf-8") as fh:
-        return [(r["station"], float(r["lat"]), float(r["lon"])) for r in csv.DictReader(fh)]
+def load(selection: str) -> Dict[str, List[Point]]:
+    """line -> its stop points in route order. "L" is the built-in Line L; anything else is read from
+    data/stations.csv: "*" every line in it, otherwise a comma-separated list of lines."""
+    wanted = {x.strip().upper() for x in selection.split(",") if x.strip()}
+    if wanted == {"L"}:
+        return {"L": LINE_L}
+    out: Dict[str, List[Point]] = {}
+    with open(os.path.join(DATA, "stations.csv"), encoding="utf-8") as fh:
+        for r in csv.DictReader(fh):
+            line = r["line"].upper()
+            if "*" in wanted or line in wanted:
+                out.setdefault(line, []).append((r["station"], float(r["lat"]), float(r["lon"])))
+    missing = wanted - set(out) - {"*"}
+    if missing:
+        raise ValueError(f"REJSEGARANTI_LINES: no stations for {', '.join(sorted(missing))} in data/stations.csv")
+    return out
 
 
-STATIONS = load(LINE)
-STATION_BY_NAME = {}  # station -> its first stop point
-for _name, _lat, _lon in STATIONS:
-    STATION_BY_NAME.setdefault(_name, (_lat, _lon))
+STATIONS = load(os.environ.get("REJSEGARANTI_LINES", "L"))
+LINES = set(STATIONS)
 
 EARTH_RADIUS_M = 6_371_000.0
 
@@ -79,19 +89,32 @@ def distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * EARTH_RADIUS_M * math.asin(math.sqrt(a))
 
 
-def station_distance_m(lat: float, lon: float, name: str) -> float:
+def _points(line: Optional[str]) -> List[Point]:
+    if line is None:
+        return [p for pts in STATIONS.values() for p in pts]
+    return STATIONS.get(str(line).upper(), [])
+
+
+def station_point(line: str, name: str) -> Optional[Tuple[float, float]]:
+    """(lat, lon) of the first stop point of a station of the line, or None if the line has no such station."""
+    return next(((lat, lon) for n, lat, lon in _points(line) if n == name), None)
+
+
+def station_distance_m(lat: float, lon: float, name: str, line: str) -> float:
     """Distance in metres to the closest stop point of a station (inf if the line has no such station)."""
-    return min((distance_m(lat, lon, slat, slon) for n, slat, slon in STATIONS if n == name), default=math.inf)
+    return min((distance_m(lat, lon, slat, slon) for n, slat, slon in _points(line) if n == name),
+               default=math.inf)
 
 
-def nearest_station(lat: float, lon: float) -> Tuple[str, float]:
-    """Return (station name, distance in metres) of the closest station of the line."""
+def nearest_station(lat: float, lon: float, line: Optional[str] = None) -> Tuple[str, float]:
+    """Return (station name, distance in metres) of the closest station of the line (None: of any line)."""
     best: Optional[Tuple[str, float]] = None
-    for name, slat, slon in STATIONS:
+    for name, slat, slon in _points(line):
         d = distance_m(lat, lon, slat, slon)
         if best is None or d < best[1]:
             best = (name, d)
-    assert best is not None
+    if best is None:
+        return "", math.inf
     return best
 
 

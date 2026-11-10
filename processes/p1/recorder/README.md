@@ -23,7 +23,7 @@ In `RECORDER_DATA_DIR` (`/var/lib/rejsegaranti-recorder` with the systemd servic
 | `movia-situations.csv` | Disruption messages with `planned`, validity period, lines, stops and **`firstSeen`** |
 | `weather-owm.csv` | `wind_speed`, `wind_gust`, `rain_1h`, `snow_1h` (same names as the force-majeure thresholds in `service/rejsegaranti/rules.py`) |
 | `weather-dmi.csv` | `stationId`, `parameterId`, `value`, `observed` |
-| `stop-names.json` | Movia stop number (`StopPointRef`) to stop name. Movia sends names only when it sends a journey in full, so the recorder learns them from those messages and fills in the rest; the stops in `../data/stations-*.csv` are known from the start |
+| `stop-names.json` | Movia stop number (`StopPointRef`) to stop name. Movia sends names only when it sends a journey in full, so the recorder learns them from those messages and fills in the rest; the stops in `../data/stations.csv` are known from the start |
 | `recorder.sqlite` | The same rows as the four CSV files, in tables `movia_incidents`, `movia_situations`, `weather_owm` and `weather_dmi` |
 
 The SQLite database uses Python's built-in `sqlite3`, so nothing extra is installed. Each table has a unique key, so the same observation is never stored twice, even after a restart. You can query it while the recorder is running:
@@ -39,7 +39,7 @@ sudo -u rejsegaranti env RECORDER_DATA_DIR=/var/lib/rejsegaranti-recorder python
 
 Or copy `recorder.sqlite` home and open it in any SQLite tool, such as DB Browser for SQLite.
 
-**Sending to the process.** With `BRIDGE_URL` and `BRIDGE_LINES` set (the server sets them in the systemd unit), the recorder also acts as the CEP for process 1: every journey on those lines that runs 20+ minutes late becomes one delay situation on the bridge (`POST /cep/delay`), and every OpenWeatherMap observation a weather situation (`POST /cep/weather`). Stops are named by station (the stop name without the street in brackets). The bridge applies the rules; see `cep.py`.
+**Sending to the process.** With `BRIDGE_URL` and `BRIDGE_LINES` set (the server sets them in the systemd unit), the recorder also acts as the CEP for process 1: every journey on those lines (`*`: every line) that runs 20+ minutes late becomes one delay situation on the bridge (`POST /cep/delay`), and every OpenWeatherMap observation a weather situation (`POST /cep/weather`). Stops are named by station (the stop name without the street in brackets). The bridge applies the rules; see `cep.py`.
 
 How this feeds the models:
 

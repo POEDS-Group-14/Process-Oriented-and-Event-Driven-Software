@@ -110,6 +110,7 @@ The plan, including these trade-offs, was presented to Liam and approved before 
 - [ ] Agree the quality measures with the group (#39)
 - [ ] Confirm the AS-IS assumptions (order of the checks, the missing-details loop) with the TAs or the operator
 - [ ] Review and push the commit
+- [x] Enough real delay cases to analyse: run on every Copenhagen line, not only 150S. See section 11
 
 ## 10. First live run on Camunda
 
@@ -122,3 +123,21 @@ Done by Claude (Anthropic's AI assistant, in Claude Code in Liam's terminal) on 
 - **Local only:** in an iCloud-synced folder, iCloud hides everything in `.venv`, and Python then skips the editable install. The workaround is in the README.
 
 Result on simulated data: 111 claim traces, 0 violating, 0 incidents. All 110 simulated claims got the same outcome as in the dry run (`docs/conformance.md`).
+
+## 11. Process evolution: from bus 150S to every Copenhagen bus and S-tog line
+
+Decided by Liam on 10 November 2026; implemented by Claude (Anthropic's AI assistant, in Claude Code).
+
+**What changed.** The process now runs on every Movia bus and DSB S-tog line with a stop in Copenhagen (79 lines, 4,764 stop points, 2,808 stations), instead of on bus 150S alone. The rules are unchanged (30 minutes, 300 kr, 250 m, notices, force majeure). Only the set of lines a delay case can start on, and the stations a claim is measured against, grew.
+
+**Why.** In the first 2.6 days on the server (7 November 22:20 to 10 November 13:05 UTC) not one 150S journey ran 30+ minutes late; the worst was 25 minutes. So the bridge received no delay, Camunda started no case, the feed simulated no claim, and there was no event log to analyse. In the same period the recorder saw 42 journeys run 30+ minutes late on 22 of the Copenhagen lines (5 of them on the S-tog). With every Copenhagen line, about 16 delay cases a day would have started, each with its simulated claims. 150S was chosen as a stand-in for Line L because it shares Line L's DTU and Lundtofte stops (section "Why bus 150S" in `deploy/README.md`); a stand-in that never qualifies tells us nothing about the process.
+
+**How.**
+
+- `tools/build_stations.py` writes `data/stations.csv` (with a `line` column) for every Movia and DSB S-tog line with a stop inside a box around Copenhagen and Frederiksberg (55.60-55.76 N, 12.40-12.65 E). All of a line's stops are kept, also those outside the box. It replaces `data/stations-150S.csv`.
+- `REJSEGARANTI_LINES` (was `REJSEGARANTI_LINE`) selects the lines: `L` (the default, Line L's hand-entered stations), `*` (every line in `data/stations.csv`, set on the server) or a comma-separated list.
+- Station names are only unique within a line, so every lookup now takes the line. A claim is matched to a delay by the nearest station of *that delay's* line, and both 250 m checks measure to stations of the delayed line. A notice applies to the lines it lists; one without lines applies to every line.
+- The recorder sends every line's delays (`BRIDGE_LINES=*`). The bridge still decides which qualify, and ignores lines it has no stations for (HTTP 202).
+- When several lines are configured, a delay situation must name its line (HTTP 400 otherwise).
+
+**Consequences for the analysis.** Delay cases now mix lines with very different frequencies and stop spacing, so per-line results are not comparable without normalising by journeys. The BPMN, DCR and activity names still say Line L, as before. The claims are still simulated. Delays recorded before the change were not replayed into the bridge, so cases start from the deployment onwards.

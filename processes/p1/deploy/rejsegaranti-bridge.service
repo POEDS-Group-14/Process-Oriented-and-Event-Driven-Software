@@ -12,8 +12,9 @@ Environment=PYTHONPATH=/opt/rejsegaranti/service
 Environment=PYTHONUNBUFFERED=1
 Environment=DATA_DIR=/var/lib/rejsegaranti
 Environment=CAMUNDA_PORT=8085
-# Line L has no published real-time data; Movia bus 150S stands in (also set in the feed and recorder units)
-Environment=REJSEGARANTI_LINE=150S
+# Line L has no published real-time data; every Movia bus and S-tog line serving Copenhagen stands in
+# (data/stations.csv; also set in the feed unit, and BRIDGE_LINES in the recorder unit)
+Environment=REJSEGARANTI_LINES=*
 StateDirectory=rejsegaranti
 # Camunda takes a minute or two to boot on this machine; deploy is a no-op when the BPMN is unchanged
 ExecStartPre=/bin/sh -c 'until curl -sf http://localhost:8085/engine-rest/engine >/dev/null; do sleep 5; done'

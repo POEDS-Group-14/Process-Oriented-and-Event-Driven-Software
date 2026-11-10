@@ -6,7 +6,7 @@ The bridge (`uv run rejsegaranti run`) listens on `http://localhost:8090`. Bodie
 
 | Endpoint | Sent by | Effect |
 |---|---|---|
-| `POST /cep/delay` | delay agent: Line L delay ≥ 30 min | Starts `rejsegaranti-delay-case` once per `delayId`. Later re-emits update the stored situation but start nothing |
+| `POST /cep/delay` | delay agent: delay ≥ 30 min on one of the process's lines | Starts `rejsegaranti-delay-case` once per `delayId`. Later re-emits update the stored situation but start nothing |
 | `POST /cep/weather` | weather agent (#36) | Stored. Used by *Check force majeure* |
 | `POST /cep/notice` | notice recorder / process 6 | Stored, keeping the earliest `firstSeen`. Used by *Check planned service notice* |
 | `POST /claims` | claim form or simulator | Starts `rejsegaranti-claim`. Returns 422 with the missing fields if the receipt is incomplete |
@@ -22,7 +22,8 @@ The bridge (`uv run rejsegaranti run`) listens on `http://localhost:8090`. Bodie
 ```
 
 - `stops` can also be one comma-separated string.
-- Stop names must match `service/rejsegaranti/stations.py`.
+- `line` is required when the bridge runs on several lines (`REJSEGARANTI_LINES`).
+- Stop names must match the stations of that line in `service/rejsegaranti/stations.py` (Line L) or `data/stations.csv`.
 - `cause` is optional: `fire`, `person_collision` or `natural_event` count as force majeure.
 
 ### Weather situation

@@ -1,11 +1,11 @@
 """Send what the recorder sees to the process-1 bridge (service/rejsegaranti/bridge.py), in the CEP's place:
 
-- a delay situation (POST /cep/delay) per delayed journey on the configured lines, sent again whenever it
+- a delay situation (POST /cep/delay) per delayed journey on the configured lines ("*": every line), sent again whenever it
   reaches more stops or its delay moves 5+ minutes (the bridge starts one case per journey and keeps the
   latest stops and minutes);
 - every OpenWeatherMap observation as a weather situation (POST /cep/weather), valid until the next one.
 
-Stops are named by station, as in data/stations-<line>.csv: the stop name without the street in brackets.
+Stops are named by station, as in data/stations.csv: the stop name without the street in brackets.
 The bridge applies the rules (30+ minutes, force-majeure thresholds); this only reports.
 """
 from __future__ import annotations
@@ -42,8 +42,8 @@ class DelayTracker:
         """Situations that are new or changed enough to send."""
         touched = []
         for r in rows:
-            if (r["type"] != "delay" or str(r["line"]).upper() not in self.lines or r["minutes"] == ""
-                    or not r["aimedTime"]):
+            if (r["type"] != "delay" or not ("*" in self.lines or str(r["line"]).upper() in self.lines)
+                    or r["minutes"] == "" or not r["aimedTime"]):
                 continue
             key = f"{r['line']}|{r['journeyRef']}"
             s = self.journeys.setdefault(key, {

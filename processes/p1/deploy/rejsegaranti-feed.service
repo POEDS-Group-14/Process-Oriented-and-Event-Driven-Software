@@ -1,5 +1,5 @@
 [Unit]
-Description=Process 1 (rejsegaranti): simulated claims for the real bus 150S delays
+Description=Process 1 (rejsegaranti): simulated claims for the real Copenhagen bus and S-tog delays
 Wants=rejsegaranti-bridge.service
 After=rejsegaranti-bridge.service
 
@@ -10,7 +10,7 @@ Group=rejsegaranti
 WorkingDirectory=/opt/rejsegaranti/service
 Environment=PYTHONPATH=/opt/rejsegaranti/service
 Environment=PYTHONUNBUFFERED=1
-Environment=REJSEGARANTI_LINE=150S
+Environment=REJSEGARANTI_LINES=*
 ExecStartPre=/bin/sh -c 'until curl -sf http://localhost:8090/state >/dev/null; do sleep 5; done'
 ExecStart=/usr/bin/python3 -m rejsegaranti feed --real --interval 300
 TimeoutStartSec=600

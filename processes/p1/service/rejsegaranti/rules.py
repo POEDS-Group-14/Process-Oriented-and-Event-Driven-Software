@@ -16,8 +16,9 @@ Source: https://dinletbane.dk/da/kontakt-og-kundeservice/rejsegaranti/
 * Exclusions: planned changes announced in good time, i.e. at the latest the
   day before; force majeure (fire, unusual natural events, person collisions).
 
-The rules are applied to whatever line REJSEGARANTI_LINE selects (see stations.py); on the server that
-is Movia bus 150S, standing in for Line L. All functions here are pure: they take plain dicts (as they travel through
+The rules are applied to whatever lines REJSEGARANTI_LINES selects (see stations.py); on the server those
+are every Movia bus and S-tog line serving Copenhagen, standing in for Line L. A delay, a notice and the
+stations a claim is measured against all belong to one line. All functions here are pure: they take plain dicts (as they travel through
 Camunda and the CEP) and return plain values, so they are easy to test.
 """
 from __future__ import annotations
@@ -26,7 +27,7 @@ import re
 from datetime import datetime, timedelta
 from typing import Iterable, Optional
 
-from .stations import LINE, nearest_station, station_distance_m
+from .stations import LINES, nearest_station, station_distance_m
 from .timeutil import local_date, parse_ts
 
 DELAY_THRESHOLD_MIN = 30
@@ -76,9 +77,9 @@ FORCE_MAJEURE_CAUSES = {"fire", "person_collision", "natural_event"}
 
 
 def qualifies_as_delay(situation: dict) -> bool:
-    """CEP situation is a Line L delay of 30+ minutes."""
+    """CEP situation is a delay of 30+ minutes on one of the process's lines."""
     return (
-        str(situation.get("line", "")).upper() == LINE
+        str(situation.get("line", "")).upper() in LINES
         and float(situation.get("delayMinutes", 0)) >= DELAY_THRESHOLD_MIN
     )
 
@@ -99,15 +100,16 @@ def _covers(stops: Iterable[str], affected: Iterable[str]) -> bool:
 def notice_excludes(delay: dict, notices: Iterable[dict]) -> Optional[dict]:
     """Return the notice that excludes this delay, or None.
 
-    A notice excludes the delay when it covers Line L, covers the affected
+    A notice excludes the delay when it covers the delay's line (a notice without lines covers
+    every line), covers the affected
     stops and the delay time, and was first seen on a day before the change
     took effect (local Copenhagen date). We only know when our recorder
     first saw a notice, not when it was published (see issue #6).
     """
     t = delay_time(delay)
     for n in notices:
-        lines = [str(x).upper() for x in n.get("lines", [LINE])]
-        if LINE not in lines:
+        lines = [str(x).upper() for x in n.get("lines") or []]
+        if lines and str(delay.get("line", "")).upper() not in lines:
             continue
         if not _covers(n.get("stops", []), delay.get("stops", [])):
             continue
@@ -154,16 +156,18 @@ def force_majeure(delay: dict, weather: Iterable[dict]) -> Optional[str]:
 # ---- claim checks ----------------------------------------------------------
 
 def match_delay(claim: dict, delays: Iterable[dict]) -> Optional[dict]:
-    """Find the Line L delay situation the claim refers to."""
+    """Find the delay situation the claim refers to: the claim's trip starts nearest a stop of the delay."""
     t = parse_ts(claim["tripStart"])
-    station, _ = nearest_station(float(claim["startLat"]), float(claim["startLon"]))
     candidates = []
     for d in delays:
         if not qualifies_as_delay(d):
             continue
         start = delay_time(d)
         end = start + timedelta(minutes=float(d["delayMinutes"]) + MATCH_GRACE_MIN)
-        if start <= t <= end and _covers([station], d.get("stops", [])):
+        if not start <= t <= end:
+            continue
+        station, _ = nearest_station(float(claim["startLat"]), float(claim["startLon"]), d["line"])
+        if _covers([station], d.get("stops", [])):
             candidates.append(d)
     if not candidates:
         return None
@@ -193,15 +197,17 @@ def check_receipt(receipt: dict, already_paid: Iterable[str] = ()) -> Optional[s
 
 
 def check_distance(claim: dict, delay: Optional[dict]) -> Optional[str]:
-    """Return None if start and end are within 250 m of valid stations."""
-    s_name, s_dist = nearest_station(float(claim["startLat"]), float(claim["startLon"]))
+    """Return None if start and end are within 250 m of valid stations of the delayed line."""
+    line = (delay or {}).get("line")  # no delay: any line
+    s_name, s_dist = nearest_station(float(claim["startLat"]), float(claim["startLon"]), line)
     affected = (delay or {}).get("stops") or []
     if affected:
         # distance to the closest *affected* station
-        s_dist = min(station_distance_m(float(claim["startLat"]), float(claim["startLon"]), s) for s in affected)
+        s_dist = min(station_distance_m(float(claim["startLat"]), float(claim["startLon"]), s, line)
+                     for s in affected)
     if s_dist > RADIUS_M:
         return f"trip starts {s_dist:.0f} m from an affected station"
-    e_name, e_dist = nearest_station(float(claim["endLat"]), float(claim["endLon"]))
+    e_name, e_dist = nearest_station(float(claim["endLat"]), float(claim["endLon"]), line)
     if e_dist > RADIUS_M:
         return f"trip ends {e_dist:.0f} m from the nearest station ({e_name})"
     return None

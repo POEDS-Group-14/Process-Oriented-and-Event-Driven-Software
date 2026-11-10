@@ -14,7 +14,7 @@ from rejsegaranti import activities as A
 from rejsegaranti import dcr, rules, simulate, workers
 from rejsegaranti.bridge import Bridge, make_server
 from rejsegaranti.cep import CepSink
-from rejsegaranti.stations import STATION_BY_NAME, distance_m, offset
+from rejsegaranti.stations import distance_m, offset, station_point
 from rejsegaranti.store import Store
 from rejsegaranti.xes import write_xes
 
@@ -31,8 +31,8 @@ DELAY = {"delayId": "D1", "line": "L", "stops": ["Lyngby", "Gammelmosevej", "Bud
 
 
 def claim_near(start="Lyngby", end="Buddinge", start_m=100, end_m=100, trip="2026-11-04T07:20:00+01:00", **receipt):
-    s = offset(*STATION_BY_NAME[start], start_m, 0)
-    e = offset(*STATION_BY_NAME[end], 0, end_m)
+    s = offset(*station_point("L", start), start_m, 0)
+    e = offset(*station_point("L", end), 0, end_m)
     r = {"receiptId": "R1", "provider": "Dantaxi", "cvr": "12345678", "transportType": "taxi",
          "startAddress": "a", "endAddress": "b", "distanceKm": 3.2, "minutes": 9,
          "time": trip, "amountDkk": 180.0}
@@ -88,7 +88,7 @@ class Rules(unittest.TestCase):
         self.assertIsNotNone(rules.check_distance(claim_near(start="Ishøj"), DELAY))
 
     def test_haversine(self):
-        a, b = STATION_BY_NAME["Lyngby"], offset(*STATION_BY_NAME["Lyngby"], 250, 0)
+        a, b = station_point("L", "Lyngby"), offset(*station_point("L", "Lyngby"), 250, 0)
         self.assertAlmostEqual(distance_m(*a, *b), 250, delta=2)
 
     def test_receipt(self):
@@ -230,15 +230,37 @@ class RealDelays(unittest.TestCase):
         self.assertNotIn("Not a station", json.dumps(a))
         self.assertEqual(simulate.claims_for({**d, "stops": ["Not a station"]}), [])
 
-    def test_bus_150s_stations(self):
+    def test_copenhagen_stations(self):
         from rejsegaranti import stations
-        points = stations.load("150S")
+        network = stations.load("*")
+        self.assertIn("150S", network)
+        self.assertIn("5C", network)
+        self.assertIn("A", network)  # S-tog
+        points = stations.load("150S")["150S"]
         campus = [p for p in points if p[0] == "Nørre Campus"]
         self.assertEqual(len(campus), 2)  # one stop point per side of the road
         self.assertIn("Rævehøjvej, DTU", {p[0] for p in points})
-        with mock.patch.object(stations, "STATIONS", points):
+        with mock.patch.object(stations, "STATIONS", network):
             # the distance to a station is to its closer stop point
-            self.assertLess(stations.station_distance_m(campus[1][1], campus[1][2], "Nørre Campus"), 1)
+            self.assertLess(stations.station_distance_m(campus[1][1], campus[1][2], "Nørre Campus", "150S"), 1)
+            # station names are per line: 150S has no Hillerød St.
+            self.assertEqual(stations.station_distance_m(55.926923, 12.310928, "Hillerød St.", "150S"), float("inf"))
+        with self.assertRaises(ValueError):
+            stations.load("150S,NOPE")
+
+    def test_claim_is_measured_against_the_delayed_line(self):
+        from rejsegaranti import stations
+        network = stations.load("150S,5C")
+        base = claim_near()
+        with mock.patch.object(stations, "STATIONS", network), mock.patch.object(stations, "LINES", set(network)), \
+                mock.patch.object(rules, "LINES", set(network)):
+            names = list(dict.fromkeys(p[0] for p in network["5C"]))
+            d = {**DELAY, "line": "5C", "stops": names[3:6]}
+            s, e = stations.station_point("5C", names[4]), stations.station_point("5C", names[8])
+            c = {**base, "startLat": s[0], "startLon": s[1], "endLat": e[0], "endLon": e[1]}
+            self.assertEqual(rules.match_delay(c, [d, {**d, "delayId": "D2", "line": "150S"}])["delayId"], "D1")
+            self.assertIsNone(rules.check_distance(c, d))
+            self.assertIsNotNone(rules.check_distance(c, {**d, "line": "150S"}))
 
 
 class Dcr(unittest.TestCase):

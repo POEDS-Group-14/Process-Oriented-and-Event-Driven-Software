@@ -46,7 +46,7 @@ Without Camunda, run `uv run rejsegaranti simulate --offline [--noise 0.1]`. It 
 
 ## Always on: the pinklady server
 
-Liam's Mac mini (`pinklady`) runs Camunda, the bridge, the recorder and a feed of simulated claims as systemd services that start on boot. Cases start from **real** delays of Movia bus 150S, which stands in for Line L because no real-time data for Line L is published; the claims are simulated. Public results page: https://pinklady.tail3b2c97.ts.net (Cockpit at `/camunda`, read-only `guest` login). Setup, access, updating and troubleshooting: [`deploy/README.md`](deploy/README.md).
+Liam's Mac mini (`pinklady`) runs Camunda, the bridge, the recorder and a feed of simulated claims as systemd services that start on boot. Cases start from **real** delays on the 79 Movia bus and DSB S-tog lines serving Copenhagen, which stand in for Line L because no real-time data for Line L is published (bus 150S alone gave no case in 2.6 days, see `docs/process-log.md` section 11); the claims are simulated. Public results page: https://pinklady.tail3b2c97.ts.net (Cockpit at `/camunda`, read-only `guest` login). Setup, access, updating and troubleshooting: [`deploy/README.md`](deploy/README.md).
 
 ## Tests
 
@@ -71,7 +71,7 @@ The tests cover:
 
 ## Known gaps
 
-- **Real delay data for Line L:** none is published. We looked on Dataudveksleren (7 November 2026) and found no Letbane dataset, so the server uses real delays of Movia bus 150S instead (see `deploy/README.md`, "Why bus 150S"). Locally, delays are simulated unless you pass `--delays file.csv`.
-- **Line L station coordinates** in `service/rejsegaranti/stations.py` are approximate (about ±100 m); 150S's come from GTFS. Check them before using the 250 m rule on anything real.
+- **Real delay data for Line L:** none is published. We looked on Dataudveksleren (7 November 2026) and found no Letbane dataset, so the server uses real delays of Copenhagen's buses and S-trains instead (see `deploy/README.md`, "Why Copenhagen's buses and S-trains"). Locally, delays are simulated unless you pass `--delays file.csv`.
+- **Line L station coordinates** in `service/rejsegaranti/stations.py` are approximate (about ±100 m); the Copenhagen lines' come from GTFS (`data/stations.csv`). Check them before using the 250 m rule on anything real.
 - **processdoctor.dtu.dk** check: still to do by hand (upload the DCR XML and the exported XES).
 - **Fresh start:** the bridge keeps its state in `out/registry.json`. Delete it, and run `docker compose down` for Camunda, before re-sending the same simulated scenario. Otherwise delays are deduplicated and repeated claims get HTTP 409.

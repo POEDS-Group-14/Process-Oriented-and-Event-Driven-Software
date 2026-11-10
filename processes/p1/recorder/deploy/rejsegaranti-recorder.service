@@ -10,9 +10,9 @@ Group=rejsegaranti
 WorkingDirectory=/opt/rejsegaranti/recorder
 EnvironmentFile=-/etc/rejsegaranti-recorder.env
 Environment=PYTHONUNBUFFERED=1
-# send bus 150S delays and the weather to the process-1 bridge
+# send every line's delays and the weather to the process-1 bridge, which keeps the lines in data/stations.csv
 Environment=BRIDGE_URL=http://localhost:8090
-Environment=BRIDGE_LINES=150S
+Environment=BRIDGE_LINES=*
 ExecStart=/usr/bin/python3 -m recorder run
 Restart=always
 RestartSec=30

@@ -26,7 +26,7 @@ from typing import List, Optional
 from . import activities as A
 from . import rules, workers
 from .cep import CepSink
-from .stations import STATION_BY_NAME, STATIONS, offset
+from .stations import LINES, STATIONS, offset, station_point
 from .store import Store
 from .timeutil import CPH, iso, parse_ts
 
@@ -41,10 +41,16 @@ PROVIDERS = [
 # numbers are random 8-digit strings, not the companies' real numbers.
 
 
-def _segment(rng: random.Random) -> List[str]:
-    i = rng.randrange(0, len(STATIONS) - 3)
-    j = min(len(STATIONS), i + rng.randint(3, 8))
-    return [s[0] for s in STATIONS[i:j]]
+def _line(rng: random.Random) -> str:
+    # no draw for a single line, so Line L scenarios stay the same for a given seed
+    return sorted(LINES)[rng.randrange(len(LINES))] if len(LINES) > 1 else next(iter(LINES))
+
+
+def _segment(rng: random.Random, line: str) -> List[str]:
+    points = STATIONS[line]
+    i = rng.randrange(0, len(points) - 3)
+    j = min(len(points), i + rng.randint(3, 8))
+    return list(dict.fromkeys(s[0] for s in points[i:j]))  # two sides of the road are one station
 
 
 def generate(seed: int = 14, n_delays: int = 40, start: Optional[datetime] = None,
@@ -58,8 +64,9 @@ def generate(seed: int = 14, n_delays: int = 40, start: Optional[datetime] = Non
         for k in range(n_delays):
             t = start + timedelta(days=rng.randint(0, 27), minutes=rng.randint(0, 17 * 60))
             minutes = rng.choice([12, 20, 31, 35, 40, 45, 55, 70, 95]) if rng.random() < 0.2 else rng.randint(30, 90)
+            line = _line(rng)
             delays.append({
-                "delayId": f"D{k + 1:03d}", "line": rules.LINE, "stops": _segment(rng),
+                "delayId": f"D{k + 1:03d}", "line": line, "stops": _segment(rng, line),
                 "plannedDeparture": iso(t), "delayMinutes": float(minutes),
                 "detectedAt": iso(t + timedelta(minutes=min(minutes, 30))),
                 "cause": rng.choice([None] * 12 + ["fire", "person_collision"]),
@@ -70,12 +77,12 @@ def generate(seed: int = 14, n_delays: int = 40, start: Optional[datetime] = Non
         t = parse_ts(d["plannedDeparture"])
         r = rng.random()
         if r < 0.08:  # notice published two days before -> excluded
-            out["notices"].append({"noticeId": f"N-{d['delayId']}", "lines": [rules.LINE], "stops": d["stops"],
+            out["notices"].append({"noticeId": f"N-{d['delayId']}", "lines": [d["line"]], "stops": d["stops"],
                                    "effectiveFrom": iso(t - timedelta(hours=1)),
                                    "effectiveTo": iso(t + timedelta(hours=6)),
                                    "firstSeen": iso(t - timedelta(days=2)), "simulated": True})
         elif r < 0.14:  # late notice, same morning -> guarantee applies
-            out["notices"].append({"noticeId": f"N-{d['delayId']}", "lines": [rules.LINE], "stops": d["stops"],
+            out["notices"].append({"noticeId": f"N-{d['delayId']}", "lines": [d["line"]], "stops": d["stops"],
                                    "effectiveFrom": iso(t - timedelta(minutes=30)),
                                    "effectiveTo": iso(t + timedelta(hours=3)),
                                    "firstSeen": iso(t - timedelta(minutes=60)), "simulated": True})
@@ -123,9 +130,9 @@ def _claim(rng: random.Random, n: int, d: dict, t: datetime, id_prefix: str = ""
     stops = d["stops"]
     i = rng.randrange(len(stops))
     s_name = stops[i]
-    s_lat, s_lon = next((la, lo) for nm, la, lo in STATIONS if nm == s_name)
+    s_lat, s_lon = station_point(d["line"], s_name)
     e_name = stops[-1] if i < len(stops) - 1 else stops[0]
-    e_lat, e_lon = next((la, lo) for nm, la, lo in STATIONS if nm == e_name)
+    e_lat, e_lon = station_point(d["line"], e_name)
     scenario = "valid"
     near = lambda: rng.uniform(20, 200)  # noqa: E731
     sn, se = near(), near()
@@ -164,7 +171,7 @@ def read_delays_csv(path: str) -> List[dict]:
             if not r.get("delayId") or r["delayId"].startswith("#"):
                 continue
             rows.append({
-                "delayId": r["delayId"], "line": r.get("line") or rules.LINE,
+                "delayId": r["delayId"], "line": r.get("line") or "L",
                 "stops": [s.strip() for s in (r.get("stops") or "").split(";") if s.strip()],
                 "plannedDeparture": r["plannedDeparture"], "delayMinutes": float(r["delayMinutes"]),
                 "detectedAt": r.get("detectedAt") or r["plannedDeparture"],
@@ -230,8 +237,9 @@ def feed(base: str, batch: int = 5, interval: float = 3600.0, seed: Optional[int
             minutes = rng.choice([12, 20, 31, 35, 40, 45, 55, 70, 95]) if rng.random() < 0.2 else rng.randint(30, 90)
             # departed long enough ago that the detour trips in the claims are over by now
             t = now - timedelta(minutes=minutes + 40, seconds=rng.uniform(0, interval))
+            line = _line(rng)
             delays.append({
-                "delayId": f"{tag}D{k + 1:03d}", "line": rules.LINE, "stops": _segment(rng),
+                "delayId": f"{tag}D{k + 1:03d}", "line": line, "stops": _segment(rng, line),
                 "plannedDeparture": iso(t), "delayMinutes": float(minutes),
                 "detectedAt": iso(t + timedelta(minutes=min(minutes, 30))),
                 "cause": rng.choice([None] * 12 + ["fire", "person_collision"]),
@@ -254,7 +262,7 @@ def claims_for(delay: dict) -> List[dict]:
     """Simulated claims for one real delay. IDs and choices depend only on the delay, so the same delay
     always gets the same claims: posting them again after a restart only gets HTTP 409."""
     key = hashlib.sha1(delay["delayId"].encode()).hexdigest()[:10]
-    stops = [s for s in delay.get("stops", []) if s in STATION_BY_NAME]
+    stops = [s for s in delay.get("stops", []) if station_point(delay["line"], s)]
     if not stops:
         return []
     rng = random.Random(int(key, 16))

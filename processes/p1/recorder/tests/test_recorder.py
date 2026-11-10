@@ -112,6 +112,12 @@ class CepTest(unittest.TestCase):
         t.forget_before(datetime(2026, 11, 8, tzinfo=timezone.utc))
         self.assertEqual(t.journeys, {})
 
+    def test_every_line(self):
+        t = cep.DelayTracker(["*"])
+        sent = t.update([self.row("Nørreport St. (Frederiksborggade)", 31.0, line="5C"),
+                         self.row("Vesterport St.", 40.0, line="A", journey="J2")])
+        self.assertEqual([s["delayId"] for s in sent], ["5C|J1", "A|J2"])
+
     def test_weather_situation(self):
         w = cep.weather_situation({"observedAt": "2026-11-07T08:00:00+00:00", "wind_speed": 25.0, "wind_gust": "",
                                    "rain_1h": 0, "snow_1h": None}, 600)

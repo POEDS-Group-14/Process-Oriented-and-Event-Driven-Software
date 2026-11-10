@@ -2,7 +2,7 @@
 
 Endpoints (JSON bodies, see docs/cep-interface.md):
 
-  POST /cep/delay     Line L delay situation  -> starts rejsegaranti-delay-case
+  POST /cep/delay     delay situation         -> starts rejsegaranti-delay-case
   POST /cep/weather   DMI warning / OWM observation situation (stored)
   POST /cep/notice    planned service change notice from process 6 (stored)
   POST /claims        passenger claim         -> starts rejsegaranti-claim
@@ -18,7 +18,7 @@ import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional, Tuple
 
-from . import results, rules
+from . import results, rules, stations
 from .camunda import Camunda
 from .store import Store
 
@@ -38,15 +38,16 @@ class Bridge:
     # Each handler returns (http status, response body)
     def delay(self, s: dict) -> Tuple[int, dict]:
         s = dict(s)
-        s.setdefault("line", rules.LINE)
+        if len(stations.LINES) == 1:  # one line: the CEP may leave it out
+            s.setdefault("line", next(iter(stations.LINES)))
         s.setdefault("delayId", f"D-{uuid.uuid4().hex[:10]}")
         if isinstance(s.get("stops"), str):
             s["stops"] = [x.strip() for x in s["stops"].split(",") if x.strip()]
-        for f in ("delayMinutes", "detectedAt"):
+        for f in ("line", "delayMinutes", "detectedAt"):
             if f not in s:
                 return 400, {"error": f"missing {f}"}
         if not rules.qualifies_as_delay(s):
-            return 202, {"ignored": "not a Line L delay of 30+ minutes", "delayId": s["delayId"]}
+            return 202, {"ignored": "not a delay of 30+ minutes on one of the process's lines", "delayId": s["delayId"]}
         new = self.store.put("delays", s["delayId"], s)
         if not new:  # the CEP re-emits while the delay lasts; one case per delay
             return 200, {"delayId": s["delayId"], "started": False}
