@@ -1,0 +1,979 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1vk5fgq" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.52.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:collaboration id="Collaboration_0sj7poc">
+    <bpmn:participant id="Participant_1xnwp1y" name="Passenger" />
+    <bpmn:participant id="Participant_1ab93kx" name="Movia" processRef="Process_07ecq23" />
+    <bpmn:participant id="Participant_1xqxepe" name="Gældsstyrelsen" />
+    <bpmn:participant id="Participant_0wmk0u0" name="Fine dispute handling (Process 3, Movia, DCR)" />
+    <bpmn:messageFlow id="MsgFlow_IdShown" name="ID shown" sourceRef="Participant_1xnwp1y" targetRef="Activity_11xzb3l" />
+    <bpmn:messageFlow id="MsgFlow_FineSlip" name="Fine slip" sourceRef="Activity_0ml3ezc" targetRef="Participant_1xnwp1y" />
+    <bpmn:messageFlow id="MsgFlow_Receipt" name="Signature" sourceRef="Participant_1xnwp1y" targetRef="Activity_175whz0" />
+    <bpmn:messageFlow id="MF_Invoice" name="Invoice" sourceRef="T_Invoice" targetRef="Participant_1xnwp1y" />
+    <bpmn:messageFlow id="MF_Post" name="Postponement request" sourceRef="Participant_1xnwp1y" targetRef="S_Post" />
+    <bpmn:messageFlow id="MF_NewDeadline" name="New deadline (by phone)" sourceRef="S_NewDeadline" targetRef="Participant_1xnwp1y" />
+    <bpmn:messageFlow id="MF_Rem1" name="Reminder 1" sourceRef="S_Rem1" targetRef="Participant_1xnwp1y" />
+    <bpmn:messageFlow id="MF_Rem2" name="Reminder 2" sourceRef="S_Rem2" targetRef="Participant_1xnwp1y" />
+    <bpmn:messageFlow id="MF_Complaint" name="Complaint" sourceRef="Participant_1xnwp1y" targetRef="B_Complaint" />
+    <bpmn:messageFlow id="MF_Payment" name="Payment" sourceRef="Participant_1xnwp1y" targetRef="B_Payment" />
+    <bpmn:messageFlow id="MF_Decision" name="Decision with new deadline" sourceRef="T_Decision" targetRef="Participant_1xnwp1y" />
+    <bpmn:messageFlow id="MF_Forward" name="Complaint (case data)" sourceRef="T_Hold" targetRef="Participant_0wmk0u0" />
+    <bpmn:messageFlow id="MF_Outcome" name="Outcome" sourceRef="Participant_0wmk0u0" targetRef="E_Outcome" />
+    <bpmn:messageFlow id="MF_Transfer" name="Claim with CPR" sourceRef="S_Transfer" targetRef="Participant_1xqxepe" />
+  </bpmn:collaboration>
+  <bpmn:message id="Message_ReceiptSigned" name="ReceiptSigned" />
+  <bpmn:message id="Message_PostponementRequested" name="PostponementRequested" />
+  <bpmn:message id="Message_PaymentReceived" name="PaymentReceived" />
+  <bpmn:message id="Message_ComplaintReceived" name="ComplaintReceived" />
+  <bpmn:message id="Message_P3Outcome" name="P3Outcome" />
+  <bpmn:process id="Process_07ecq23" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_0adplqg">
+      <bpmn:lane id="Lane_0cms5b4" name="Fine Office">
+        <bpmn:flowNodeRef>T_Register</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T_Invoice</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>G_M0</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>SP_Collect</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>E_Collection</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_Complaint</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T_Hold</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>E_Outcome</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>G_Outcome</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>E_Cancelled</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T_Decision</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B_Payment</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T_RegPayment</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>E_Paid</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_0a4e7cd" name="Inspector">
+        <bpmn:flowNodeRef>Event_0hsgsuj</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_1kr6qnw</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_08r434n</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_0s0bp8u</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_11xzb3l</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>G_IdProvided</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>G_IdEstablished</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>G_PoliceMerge</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>E_HandedPolice</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_1n5vurl</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_059s3c6</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_02u767f</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_0io5juq</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_17rxljv</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_0k4vh2e</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_0ml3ezc</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_175whz0</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Event_0hsgsuj" name="Inspection starts">
+      <bpmn:outgoing>Flow_1drjxa7</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:businessRuleTask id="Activity_1kr6qnw" name="Check ticket" camunda:resultVariable="ticketResult" camunda:decisionRef="ticketValid" camunda:mapDecisionResult="singleEntry">
+      <bpmn:incoming>Flow_1drjxa7</bpmn:incoming>
+      <bpmn:outgoing>Flow_0vcg2md</bpmn:outgoing>
+    </bpmn:businessRuleTask>
+    <bpmn:exclusiveGateway id="Gateway_08r434n" name="Valid ticket?">
+      <bpmn:incoming>Flow_0vcg2md</bpmn:incoming>
+      <bpmn:outgoing>Flow_1tibn89</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0mlks6q</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="Event_0s0bp8u" name="Ticket valid">
+      <bpmn:incoming>Flow_1tibn89</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="Activity_11xzb3l" name="Ask for ID">
+      <bpmn:incoming>Flow_0mlks6q</bpmn:incoming>
+      <bpmn:outgoing>Flow_186chsv</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="G_IdProvided" name="ID provided?">
+      <bpmn:incoming>Flow_186chsv</bpmn:incoming>
+      <bpmn:outgoing>F_IdYes</bpmn:outgoing>
+      <bpmn:outgoing>F_IdNo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="G_IdEstablished" name="Identity established?">
+      <bpmn:incoming>F_PoliceToEst</bpmn:incoming>
+      <bpmn:outgoing>F_EstYes</bpmn:outgoing>
+      <bpmn:outgoing>F_EstNo</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="E_HandedPolice" name="Handed over to police">
+      <bpmn:incoming>F_EstNo</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="Activity_1n5vurl" name="Check in CPR register" camunda:type="external" camunda:topic="cprLookup">
+      <bpmn:incoming>F_IdYes</bpmn:incoming>
+      <bpmn:outgoing>Flow_0rv3ddc</bpmn:outgoing>
+      <bpmn:property id="Property_cpr" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="DataIn_CPR">
+        <bpmn:sourceRef>DataStore_CPR</bpmn:sourceRef>
+        <bpmn:targetRef>Property_cpr</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="DataIn_Alarms">
+        <bpmn:sourceRef>DataStore_Alarms</bpmn:sourceRef>
+        <bpmn:targetRef>Property_cpr</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_059s3c6" name="Name flagged?">
+      <bpmn:incoming>Flow_0rv3ddc</bpmn:incoming>
+      <bpmn:outgoing>Flow_0puaivk</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1wdlysu</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="G_PoliceMerge">
+      <bpmn:incoming>F_IdNo</bpmn:incoming>
+      <bpmn:incoming>Flow_0puaivk</bpmn:incoming>
+      <bpmn:outgoing>F_ToPolice</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="F_ToPolice" sourceRef="G_PoliceMerge" targetRef="Activity_02u767f" />
+    <bpmn:sequenceFlow id="F_PoliceToEst" sourceRef="Activity_02u767f" targetRef="G_IdEstablished" />
+    <bpmn:userTask id="Activity_02u767f" name="Call police">
+      <bpmn:incoming>F_ToPolice</bpmn:incoming>
+      <bpmn:outgoing>F_PoliceToEst</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_0io5juq">
+      <bpmn:incoming>Flow_1wdlysu</bpmn:incoming>
+      <bpmn:incoming>F_EstYes</bpmn:incoming>
+      <bpmn:outgoing>Flow_0u6vszj</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:businessRuleTask id="Activity_17rxljv" name="Determine fine recipient" camunda:resultVariable="fineRecipient" camunda:decisionRef="fineRecipient" camunda:mapDecisionResult="singleEntry">
+      <bpmn:incoming>Flow_0u6vszj</bpmn:incoming>
+      <bpmn:outgoing>Flow_0z95a09</bpmn:outgoing>
+    </bpmn:businessRuleTask>
+    <bpmn:businessRuleTask id="Activity_0k4vh2e" name="Set amount" camunda:resultVariable="fineAmount" camunda:decisionRef="fineAmount" camunda:mapDecisionResult="singleEntry">
+      <bpmn:incoming>Flow_0z95a09</bpmn:incoming>
+      <bpmn:outgoing>Flow_05o39cx</bpmn:outgoing>
+    </bpmn:businessRuleTask>
+    <bpmn:userTask id="Activity_0ml3ezc" name="Issue fine">
+      <bpmn:incoming>Flow_05o39cx</bpmn:incoming>
+      <bpmn:outgoing>Flow_0l476hi</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOut_FineSlip">
+        <bpmn:targetRef>DataObjectRef_FineSlip</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:multiInstanceLoopCharacteristics camunda:collection="${travellersWithoutTicket}" camunda:elementVariable="traveller" />
+    </bpmn:userTask>
+    <bpmn:receiveTask id="Activity_175whz0" name="Passenger signs receipt" messageRef="Message_ReceiptSigned">
+      <bpmn:incoming>Flow_0l476hi</bpmn:incoming>
+      <bpmn:outgoing>F_rcpt</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DataOut_Receipt">
+        <bpmn:targetRef>DataObjectRef_Receipt</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:receiveTask>
+    <bpmn:dataStoreReference id="DataStore_CPR" name="CPR register" />
+    <bpmn:dataStoreReference id="DataStore_Alarms" name="Identity alarms" />
+    <bpmn:dataObjectReference id="DataObjectRef_FineSlip" name="Fine slip" dataObjectRef="DataObject_FineSlip" />
+    <bpmn:dataObject id="DataObject_FineSlip" />
+    <bpmn:dataObjectReference id="DataObjectRef_Receipt" name="Signed receipt" dataObjectRef="DataObject_Receipt" />
+    <bpmn:dataObject id="DataObject_Receipt" />
+    <bpmn:sequenceFlow id="Flow_1drjxa7" sourceRef="Event_0hsgsuj" targetRef="Activity_1kr6qnw" />
+    <bpmn:sequenceFlow id="Flow_0vcg2md" sourceRef="Activity_1kr6qnw" targetRef="Gateway_08r434n" />
+    <bpmn:sequenceFlow id="Flow_1tibn89" name="Yes" sourceRef="Gateway_08r434n" targetRef="Event_0s0bp8u">
+      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${ticketResult == 'valid'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0mlks6q" name="No" sourceRef="Gateway_08r434n" targetRef="Activity_11xzb3l">
+      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${ticketResult != 'valid'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_186chsv" sourceRef="Activity_11xzb3l" targetRef="G_IdProvided" />
+    <bpmn:sequenceFlow id="F_IdYes" name="Yes" sourceRef="G_IdProvided" targetRef="Activity_1n5vurl">
+      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${idProvided}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F_IdNo" name="No" sourceRef="G_IdProvided" targetRef="G_PoliceMerge">
+      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${!idProvided}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F_EstYes" name="Yes" sourceRef="G_IdEstablished" targetRef="Gateway_0io5juq">
+      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${identityEstablished}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F_EstNo" name="No" sourceRef="G_IdEstablished" targetRef="E_HandedPolice">
+      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${!identityEstablished}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0rv3ddc" sourceRef="Activity_1n5vurl" targetRef="Gateway_059s3c6" />
+    <bpmn:sequenceFlow id="Flow_0puaivk" name="Yes, in doubt" sourceRef="Gateway_059s3c6" targetRef="G_PoliceMerge">
+      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${nameFlagged}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1wdlysu" name="No" sourceRef="Gateway_059s3c6" targetRef="Gateway_0io5juq">
+      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${!nameFlagged}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_0u6vszj" sourceRef="Gateway_0io5juq" targetRef="Activity_17rxljv" />
+    <bpmn:sequenceFlow id="Flow_0z95a09" sourceRef="Activity_17rxljv" targetRef="Activity_0k4vh2e" />
+    <bpmn:sequenceFlow id="Flow_05o39cx" sourceRef="Activity_0k4vh2e" targetRef="Activity_0ml3ezc" />
+    <bpmn:sequenceFlow id="Flow_0l476hi" sourceRef="Activity_0ml3ezc" targetRef="Activity_175whz0" />
+    <bpmn:task id="T_Register" name="Register fine">
+      <bpmn:extensionElements>
+        <camunda:executionListener expression="${execution.setVariable(&#39;paymentDeadline&#39;, dateTime().plusDays(14).toDate())}" event="end" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>F_rcpt</bpmn:incoming>
+      <bpmn:outgoing>F_reg</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DO_Register">
+        <bpmn:targetRef>DS_FineRegister</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataStoreReference id="DS_FineRegister" name="Fine register" />
+    <bpmn:sendTask id="T_Invoice" name="Send invoice" camunda:expression="${true}">
+      <bpmn:incoming>F_reg</bpmn:incoming>
+      <bpmn:outgoing>F_invM0</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DO_Invoice">
+        <bpmn:targetRef>DO_InvoiceRef</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:sendTask>
+    <bpmn:dataObjectReference id="DO_InvoiceRef" name="Invoice (FIK code)" dataObjectRef="DataObject_Invoice" />
+    <bpmn:dataObject id="DataObject_Invoice" />
+    <bpmn:exclusiveGateway id="G_M0">
+      <bpmn:incoming>F_invM0</bpmn:incoming>
+      <bpmn:incoming>F_decisionLoop</bpmn:incoming>
+      <bpmn:outgoing>F_toCollect</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:subProcess id="SP_Collect" name="Collect payment">
+      <bpmn:incoming>F_toCollect</bpmn:incoming>
+      <bpmn:outgoing>F_collectEnd</bpmn:outgoing>
+      <bpmn:startEvent id="S_Start" name="">
+        <bpmn:outgoing>SF1</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:exclusiveGateway id="S_M1">
+        <bpmn:incoming>SF1</bpmn:incoming>
+        <bpmn:incoming>SF_loopNew</bpmn:incoming>
+        <bpmn:incoming>SF_loopYes</bpmn:incoming>
+        <bpmn:outgoing>SF2</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:eventBasedGateway id="S_EBG" name="Wait for payment deadline">
+        <bpmn:incoming>SF2</bpmn:incoming>
+        <bpmn:outgoing>SF_toPost</bpmn:outgoing>
+        <bpmn:outgoing>SF_toDeadline</bpmn:outgoing>
+      </bpmn:eventBasedGateway>
+      <bpmn:intermediateCatchEvent id="S_Post" name="Postponement requested">
+        <bpmn:incoming>SF_toPost</bpmn:incoming>
+        <bpmn:outgoing>SF3</bpmn:outgoing>
+        <bpmn:messageEventDefinition messageRef="Message_PostponementRequested" />
+      </bpmn:intermediateCatchEvent>
+      <bpmn:exclusiveGateway id="S_Already" name="Already postponed?">
+        <bpmn:incoming>SF3</bpmn:incoming>
+        <bpmn:outgoing>SF_new</bpmn:outgoing>
+        <bpmn:outgoing>SF_loopYes</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:task id="S_NewDeadline" name="Set new deadline (max 30 days)">
+        <bpmn:extensionElements>
+          <camunda:executionListener expression="${execution.setVariable(&#39;paymentDeadline&#39;, dateTime().plusDays(30).toDate()); execution.setVariable(&#39;postponed&#39;, true)}" event="end" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>SF_new</bpmn:incoming>
+        <bpmn:outgoing>SF_loopNew</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:intermediateCatchEvent id="S_Deadline" name="Payment deadline passed (14 days from issue)">
+        <bpmn:incoming>SF_toDeadline</bpmn:incoming>
+        <bpmn:outgoing>SF4</bpmn:outgoing>
+        <bpmn:timerEventDefinition>
+          <bpmn:timeDate xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${paymentDeadline}</bpmn:timeDate>
+        </bpmn:timerEventDefinition>
+      </bpmn:intermediateCatchEvent>
+      <bpmn:sendTask id="S_Rem1" name="Send reminder 1" camunda:expression="${true}">
+        <bpmn:incoming>SF4</bpmn:incoming>
+        <bpmn:outgoing>SF5</bpmn:outgoing>
+      </bpmn:sendTask>
+      <bpmn:intermediateCatchEvent id="S_T10a" name="10 days">
+        <bpmn:incoming>SF5</bpmn:incoming>
+        <bpmn:outgoing>SF6</bpmn:outgoing>
+        <bpmn:timerEventDefinition>
+          <bpmn:timeDuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">P10D</bpmn:timeDuration>
+        </bpmn:timerEventDefinition>
+      </bpmn:intermediateCatchEvent>
+      <bpmn:sendTask id="S_Rem2" name="Send reminder 2" camunda:expression="${true}">
+        <bpmn:incoming>SF6</bpmn:incoming>
+        <bpmn:outgoing>SF7</bpmn:outgoing>
+      </bpmn:sendTask>
+      <bpmn:intermediateCatchEvent id="S_T10b" name="10 days">
+        <bpmn:incoming>SF7</bpmn:incoming>
+        <bpmn:outgoing>SF8</bpmn:outgoing>
+        <bpmn:timerEventDefinition>
+          <bpmn:timeDuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">P10D</bpmn:timeDuration>
+        </bpmn:timerEventDefinition>
+      </bpmn:intermediateCatchEvent>
+      <bpmn:sendTask id="S_Transfer" name="Transfer to Gældsstyrelsen" camunda:expression="${true}">
+        <bpmn:incoming>SF8</bpmn:incoming>
+        <bpmn:outgoing>SF9</bpmn:outgoing>
+      </bpmn:sendTask>
+      <bpmn:endEvent id="S_End" name="Transferred">
+        <bpmn:incoming>SF9</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="SF1" sourceRef="S_Start" targetRef="S_M1" />
+      <bpmn:sequenceFlow id="SF2" sourceRef="S_M1" targetRef="S_EBG" />
+      <bpmn:sequenceFlow id="SF_toPost" sourceRef="S_EBG" targetRef="S_Post" />
+      <bpmn:sequenceFlow id="SF3" sourceRef="S_Post" targetRef="S_Already" />
+      <bpmn:sequenceFlow id="SF_new" name="No" sourceRef="S_Already" targetRef="S_NewDeadline">
+        <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${execution.getVariable('postponed') != true}</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="SF_loopNew" sourceRef="S_NewDeadline" targetRef="S_M1" />
+      <bpmn:sequenceFlow id="SF_loopYes" name="Yes" sourceRef="S_Already" targetRef="S_M1">
+        <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${execution.getVariable('postponed') == true}</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="SF_toDeadline" sourceRef="S_EBG" targetRef="S_Deadline" />
+      <bpmn:sequenceFlow id="SF4" sourceRef="S_Deadline" targetRef="S_Rem1" />
+      <bpmn:sequenceFlow id="SF5" sourceRef="S_Rem1" targetRef="S_T10a" />
+      <bpmn:sequenceFlow id="SF6" sourceRef="S_T10a" targetRef="S_Rem2" />
+      <bpmn:sequenceFlow id="SF7" sourceRef="S_Rem2" targetRef="S_T10b" />
+      <bpmn:sequenceFlow id="SF8" sourceRef="S_T10b" targetRef="S_Transfer" />
+      <bpmn:sequenceFlow id="SF9" sourceRef="S_Transfer" targetRef="S_End" />
+    </bpmn:subProcess>
+    <bpmn:endEvent id="E_Collection" name="Sent to collection">
+      <bpmn:incoming>F_collectEnd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:boundaryEvent id="B_Payment" name="Payment received" attachedToRef="SP_Collect">
+      <bpmn:outgoing>F_pay1</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Message_PaymentReceived" />
+    </bpmn:boundaryEvent>
+    <bpmn:task id="T_RegPayment" name="Register payment (fees first)">
+      <bpmn:incoming>F_pay1</bpmn:incoming>
+      <bpmn:outgoing>F_pay2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="E_Paid" name="Paid">
+      <bpmn:incoming>F_pay2</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="F_pay1" sourceRef="B_Payment" targetRef="T_RegPayment" />
+    <bpmn:sequenceFlow id="F_pay2" sourceRef="T_RegPayment" targetRef="E_Paid" />
+    <bpmn:boundaryEvent id="B_Complaint" name="Complaint received" attachedToRef="SP_Collect">
+      <bpmn:outgoing>F_c1</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Message_ComplaintReceived" />
+    </bpmn:boundaryEvent>
+    <bpmn:sendTask id="T_Hold" name="Put payment on hold, forward complaint" camunda:expression="${true}">
+      <bpmn:incoming>F_c1</bpmn:incoming>
+      <bpmn:outgoing>F_c2</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:intermediateCatchEvent id="E_Outcome" name="Outcome received">
+      <bpmn:incoming>F_c2</bpmn:incoming>
+      <bpmn:outgoing>F_c3</bpmn:outgoing>
+      <bpmn:messageEventDefinition messageRef="Message_P3Outcome" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:exclusiveGateway id="G_Outcome" name="Outcome?">
+      <bpmn:incoming>F_c3</bpmn:incoming>
+      <bpmn:outgoing>F_cancel</bpmn:outgoing>
+      <bpmn:outgoing>F_upheld</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="E_Cancelled" name="Fine cancelled">
+      <bpmn:incoming>F_cancel</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sendTask id="T_Decision" name="Send decision with new deadline" camunda:expression="${true}">
+      <bpmn:documentation>Sets the new payment deadline (+14 days, assumed) and, if P3 reduced the fine, the new amount (newAmount from the P3 outcome).</bpmn:documentation>
+      <bpmn:extensionElements>
+        <camunda:executionListener expression="${execution.setVariable(&#39;paymentDeadline&#39;, dateTime().plusDays(14).toDate())}" event="end" />
+        <camunda:executionListener expression="${execution.setVariable(&#39;fineAmount&#39;, execution.getVariable(&#39;newAmount&#39;) != null ? execution.getVariable(&#39;newAmount&#39;) : execution.getVariable(&#39;fineAmount&#39;))}" event="end" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>F_upheld</bpmn:incoming>
+      <bpmn:outgoing>F_decisionLoop</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sequenceFlow id="F_rcpt" sourceRef="Activity_175whz0" targetRef="T_Register" />
+    <bpmn:sequenceFlow id="F_reg" sourceRef="T_Register" targetRef="T_Invoice" />
+    <bpmn:sequenceFlow id="F_invM0" sourceRef="T_Invoice" targetRef="G_M0" />
+    <bpmn:sequenceFlow id="F_toCollect" sourceRef="G_M0" targetRef="SP_Collect" />
+    <bpmn:sequenceFlow id="F_collectEnd" sourceRef="SP_Collect" targetRef="E_Collection" />
+    <bpmn:sequenceFlow id="F_c1" sourceRef="B_Complaint" targetRef="T_Hold" />
+    <bpmn:sequenceFlow id="F_c2" sourceRef="T_Hold" targetRef="E_Outcome" />
+    <bpmn:sequenceFlow id="F_c3" sourceRef="E_Outcome" targetRef="G_Outcome" />
+    <bpmn:sequenceFlow id="F_cancel" name="Cancelled" sourceRef="G_Outcome" targetRef="E_Cancelled">
+      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${outcome == 'cancelled'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F_upheld" name="Upheld or reduced" sourceRef="G_Outcome" targetRef="T_Decision">
+      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${outcome != 'cancelled'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F_decisionLoop" sourceRef="T_Decision" targetRef="G_M0" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_0sj7poc">
+      <bpmndi:BPMNShape id="Participant_1xnwp1y_di" bpmnElement="Participant_1xnwp1y" isHorizontal="true" isExpanded="false">
+        <dc:Bounds x="132" y="80" width="4108" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_1ab93kx_di" bpmnElement="Participant_1ab93kx" isHorizontal="true">
+        <dc:Bounds x="132" y="200" width="4108" height="870" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_0a4e7cd_di" bpmnElement="Lane_0a4e7cd" isHorizontal="true">
+        <dc:Bounds x="162" y="760" width="4078" height="310" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_0cms5b4_di" bpmnElement="Lane_0cms5b4" isHorizontal="true">
+        <dc:Bounds x="162" y="200" width="4078" height="560" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0hsgsuj_di" bpmnElement="Event_0hsgsuj">
+        <dc:Bounds x="212" y="912" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="189" y="955" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1kr6qnw_di" bpmnElement="Activity_1kr6qnw">
+        <dc:Bounds x="290" y="890" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_08r434n_di" bpmnElement="Gateway_08r434n" isMarkerVisible="true">
+        <dc:Bounds x="440" y="905" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="435" y="962" width="61" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0s0bp8u_di" bpmnElement="Event_0s0bp8u">
+        <dc:Bounds x="447" y="792" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="493" y="803" width="56" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_11xzb3l_di" bpmnElement="Activity_11xzb3l">
+        <dc:Bounds x="550" y="890" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_IdProvided_di" bpmnElement="G_IdProvided" isMarkerVisible="true">
+        <dc:Bounds x="690" y="905" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="684" y="880" width="62" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_IdEstablished_di" bpmnElement="G_IdEstablished" isMarkerVisible="true">
+        <dc:Bounds x="1450" y="990" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1432" y="1045" width="86" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="E_HandedPolice_di" bpmnElement="E_HandedPolice">
+        <dc:Bounds x="1532" y="997" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1580" y="1001" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1n5vurl_di" bpmnElement="Activity_1n5vurl">
+        <dc:Bounds x="1010" y="890" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_059s3c6_di" bpmnElement="Gateway_059s3c6" isMarkerVisible="true">
+        <dc:Bounds x="1170" y="905" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1158" y="962" width="75" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_PoliceMerge_di" bpmnElement="G_PoliceMerge" isMarkerVisible="true">
+        <dc:Bounds x="1255" y="990" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_02u767f_di" bpmnElement="Activity_02u767f">
+        <dc:Bounds x="1320" y="975" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0io5juq_di" bpmnElement="Gateway_0io5juq" isMarkerVisible="true">
+        <dc:Bounds x="1405" y="905" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_17rxljv_di" bpmnElement="Activity_17rxljv">
+        <dc:Bounds x="1500" y="890" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0k4vh2e_di" bpmnElement="Activity_0k4vh2e">
+        <dc:Bounds x="1650" y="890" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0ml3ezc_di" bpmnElement="Activity_0ml3ezc">
+        <dc:Bounds x="1800" y="890" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_175whz0_di" bpmnElement="Activity_175whz0">
+        <dc:Bounds x="1950" y="890" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStore_CPR_di" bpmnElement="DataStore_CPR">
+        <dc:Bounds x="990" y="995" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="924" y="1013" width="64" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStore_Alarms_di" bpmnElement="DataStore_Alarms">
+        <dc:Bounds x="1060" y="995" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1116" y="1013" width="72" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObjectRef_FineSlip_di" bpmnElement="DataObjectRef_FineSlip">
+        <dc:Bounds x="1832" y="995" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1876" y="1013" width="42" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObjectRef_Receipt_di" bpmnElement="DataObjectRef_Receipt">
+        <dc:Bounds x="1982" y="995" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2026" y="1013" width="72" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Register_di" bpmnElement="T_Register">
+        <dc:Bounds x="2100" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DS_FineRegister_di" bpmnElement="DS_FineRegister">
+        <dc:Bounds x="2125" y="500" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2110" y="557" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Invoice_di" bpmnElement="T_Invoice">
+        <dc:Bounds x="2260" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DO_InvoiceRef_di" bpmnElement="DO_InvoiceRef">
+        <dc:Bounds x="2292" y="500" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2265" y="557" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_M0_di" bpmnElement="G_M0" isMarkerVisible="true">
+        <dc:Bounds x="2370" y="395" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP_Collect_di" bpmnElement="SP_Collect" isExpanded="true">
+        <dc:Bounds x="2440" y="230" width="1250" height="330" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Start_di" bpmnElement="S_Start">
+        <dc:Bounds x="2462" y="402" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_M1_di" bpmnElement="S_M1" isMarkerVisible="true">
+        <dc:Bounds x="2520" y="395" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_EBG_di" bpmnElement="S_EBG">
+        <dc:Bounds x="2600" y="395" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2582" y="452" width="86" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Post_di" bpmnElement="S_Post">
+        <dc:Bounds x="2690" y="302" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2668" y="343" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Already_di" bpmnElement="S_Already" isMarkerVisible="true">
+        <dc:Bounds x="2770" y="295" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2750" y="352" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_NewDeadline_di" bpmnElement="S_NewDeadline">
+        <dc:Bounds x="2860" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Deadline_di" bpmnElement="S_Deadline">
+        <dc:Bounds x="2690" y="402" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2653" y="443" width="110" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Rem1_di" bpmnElement="S_Rem1">
+        <dc:Bounds x="3000" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_T10a_di" bpmnElement="S_T10a">
+        <dc:Bounds x="3142" y="402" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3142" y="443" width="38" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Rem2_di" bpmnElement="S_Rem2">
+        <dc:Bounds x="3220" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_T10b_di" bpmnElement="S_T10b">
+        <dc:Bounds x="3362" y="402" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3362" y="443" width="38" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Transfer_di" bpmnElement="S_Transfer">
+        <dc:Bounds x="3440" y="380" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_End_di" bpmnElement="S_End">
+        <dc:Bounds x="3602" y="402" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3590" y="443" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SF1_di" bpmnElement="SF1">
+        <di:waypoint x="2498" y="420" />
+        <di:waypoint x="2520" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF2_di" bpmnElement="SF2">
+        <di:waypoint x="2570" y="420" />
+        <di:waypoint x="2600" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_toPost_di" bpmnElement="SF_toPost">
+        <di:waypoint x="2625" y="395" />
+        <di:waypoint x="2625" y="320" />
+        <di:waypoint x="2690" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF3_di" bpmnElement="SF3">
+        <di:waypoint x="2726" y="320" />
+        <di:waypoint x="2770" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_new_di" bpmnElement="SF_new">
+        <di:waypoint x="2820" y="320" />
+        <di:waypoint x="2860" y="320" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2830" y="302" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_loopNew_di" bpmnElement="SF_loopNew">
+        <di:waypoint x="2910" y="280" />
+        <di:waypoint x="2910" y="250" />
+        <di:waypoint x="2545" y="250" />
+        <di:waypoint x="2545" y="395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_loopYes_di" bpmnElement="SF_loopYes">
+        <di:waypoint x="2795" y="295" />
+        <di:waypoint x="2795" y="250" />
+        <di:waypoint x="2545" y="250" />
+        <di:waypoint x="2545" y="395" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2801" y="262" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF_toDeadline_di" bpmnElement="SF_toDeadline">
+        <di:waypoint x="2650" y="420" />
+        <di:waypoint x="2690" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF4_di" bpmnElement="SF4">
+        <di:waypoint x="2726" y="420" />
+        <di:waypoint x="3000" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF5_di" bpmnElement="SF5">
+        <di:waypoint x="3100" y="420" />
+        <di:waypoint x="3142" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF6_di" bpmnElement="SF6">
+        <di:waypoint x="3178" y="420" />
+        <di:waypoint x="3220" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF7_di" bpmnElement="SF7">
+        <di:waypoint x="3320" y="420" />
+        <di:waypoint x="3362" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF8_di" bpmnElement="SF8">
+        <di:waypoint x="3398" y="420" />
+        <di:waypoint x="3440" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SF9_di" bpmnElement="SF9">
+        <di:waypoint x="3540" y="420" />
+        <di:waypoint x="3602" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="E_Collection_di" bpmnElement="E_Collection">
+        <dc:Bounds x="3732" y="377" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3706" y="418" width="88" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_RegPayment_di" bpmnElement="T_RegPayment">
+        <dc:Bounds x="3720" y="580" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="E_Paid_di" bpmnElement="E_Paid">
+        <dc:Bounds x="3862" y="602" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3869" y="642" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Hold_di" bpmnElement="T_Hold">
+        <dc:Bounds x="2810" y="610" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="E_Outcome_di" bpmnElement="E_Outcome">
+        <dc:Bounds x="2972" y="632" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2948" y="608" width="86" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Outcome_di" bpmnElement="G_Outcome" isMarkerVisible="true">
+        <dc:Bounds x="3055" y="625" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3056" y="605" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="E_Cancelled_di" bpmnElement="E_Cancelled">
+        <dc:Bounds x="3062" y="692" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3105" y="703" width="72" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Decision_di" bpmnElement="T_Decision">
+        <dc:Bounds x="3200" y="610" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_Complaint_di" bpmnElement="B_Complaint">
+        <dc:Bounds x="2842" y="542" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2765" y="566" width="50" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="B_Payment_di" bpmnElement="B_Payment">
+        <dc:Bounds x="3672" y="500" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3700" y="478" width="88" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="F_ToPolice_di" bpmnElement="F_ToPolice">
+        <di:waypoint x="1305" y="1015" />
+        <di:waypoint x="1320" y="1015" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_PoliceToEst_di" bpmnElement="F_PoliceToEst">
+        <di:waypoint x="1420" y="1015" />
+        <di:waypoint x="1450" y="1015" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1drjxa7_di" bpmnElement="Flow_1drjxa7">
+        <di:waypoint x="248" y="930" />
+        <di:waypoint x="290" y="930" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0vcg2md_di" bpmnElement="Flow_0vcg2md">
+        <di:waypoint x="390" y="930" />
+        <di:waypoint x="440" y="930" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1tibn89_di" bpmnElement="Flow_1tibn89">
+        <di:waypoint x="465" y="905" />
+        <di:waypoint x="465" y="828" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="471" y="860" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0mlks6q_di" bpmnElement="Flow_0mlks6q">
+        <di:waypoint x="490" y="930" />
+        <di:waypoint x="550" y="930" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="510" y="912" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_186chsv_di" bpmnElement="Flow_186chsv">
+        <di:waypoint x="650" y="930" />
+        <di:waypoint x="690" y="930" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_IdYes_di" bpmnElement="F_IdYes">
+        <di:waypoint x="740" y="930" />
+        <di:waypoint x="1010" y="930" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="860" y="912" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_IdNo_di" bpmnElement="F_IdNo">
+        <di:waypoint x="715" y="955" />
+        <di:waypoint x="715" y="1060" />
+        <di:waypoint x="1280" y="1060" />
+        <di:waypoint x="1280" y="1040" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="721" y="1040" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_EstYes_di" bpmnElement="F_EstYes">
+        <di:waypoint x="1475" y="990" />
+        <di:waypoint x="1475" y="965" />
+        <di:waypoint x="1430" y="965" />
+        <di:waypoint x="1430" y="955" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1480" y="968" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_EstNo_di" bpmnElement="F_EstNo">
+        <di:waypoint x="1500" y="1015" />
+        <di:waypoint x="1532" y="1015" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1508" y="997" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0rv3ddc_di" bpmnElement="Flow_0rv3ddc">
+        <di:waypoint x="1110" y="930" />
+        <di:waypoint x="1170" y="930" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0puaivk_di" bpmnElement="Flow_0puaivk">
+        <di:waypoint x="1195" y="955" />
+        <di:waypoint x="1195" y="1015" />
+        <di:waypoint x="1255" y="1015" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1200" y="1020" width="66" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1wdlysu_di" bpmnElement="Flow_1wdlysu">
+        <di:waypoint x="1220" y="930" />
+        <di:waypoint x="1405" y="930" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1305" y="912" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0u6vszj_di" bpmnElement="Flow_0u6vszj">
+        <di:waypoint x="1455" y="930" />
+        <di:waypoint x="1500" y="930" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0z95a09_di" bpmnElement="Flow_0z95a09">
+        <di:waypoint x="1600" y="930" />
+        <di:waypoint x="1650" y="930" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_05o39cx_di" bpmnElement="Flow_05o39cx">
+        <di:waypoint x="1750" y="930" />
+        <di:waypoint x="1800" y="930" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0l476hi_di" bpmnElement="Flow_0l476hi">
+        <di:waypoint x="1900" y="930" />
+        <di:waypoint x="1950" y="930" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_pay1_di" bpmnElement="F_pay1">
+        <di:waypoint x="3690" y="536" />
+        <di:waypoint x="3690" y="620" />
+        <di:waypoint x="3720" y="620" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_pay2_di" bpmnElement="F_pay2">
+        <di:waypoint x="3820" y="620" />
+        <di:waypoint x="3862" y="620" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_rcpt_di" bpmnElement="F_rcpt">
+        <di:waypoint x="2050" y="930" />
+        <di:waypoint x="2075" y="930" />
+        <di:waypoint x="2075" y="420" />
+        <di:waypoint x="2100" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_reg_di" bpmnElement="F_reg">
+        <di:waypoint x="2200" y="420" />
+        <di:waypoint x="2260" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_invM0_di" bpmnElement="F_invM0">
+        <di:waypoint x="2360" y="420" />
+        <di:waypoint x="2370" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_toCollect_di" bpmnElement="F_toCollect">
+        <di:waypoint x="2420" y="420" />
+        <di:waypoint x="2440" y="420" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_collectEnd_di" bpmnElement="F_collectEnd">
+        <di:waypoint x="3690" y="395" />
+        <di:waypoint x="3732" y="395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_c1_di" bpmnElement="F_c1">
+        <di:waypoint x="2860" y="578" />
+        <di:waypoint x="2860" y="610" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_c2_di" bpmnElement="F_c2">
+        <di:waypoint x="2910" y="650" />
+        <di:waypoint x="2972" y="650" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_c3_di" bpmnElement="F_c3">
+        <di:waypoint x="3008" y="650" />
+        <di:waypoint x="3055" y="650" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_cancel_di" bpmnElement="F_cancel">
+        <di:waypoint x="3080" y="675" />
+        <di:waypoint x="3080" y="692" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3010" y="676" width="50" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_upheld_di" bpmnElement="F_upheld">
+        <di:waypoint x="3105" y="650" />
+        <di:waypoint x="3200" y="650" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3112" y="624" width="80" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_decisionLoop_di" bpmnElement="F_decisionLoop">
+        <di:waypoint x="3250" y="690" />
+        <di:waypoint x="3250" y="745" />
+        <di:waypoint x="2395" y="745" />
+        <di:waypoint x="2395" y="445" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Participant_1xqxepe_di" bpmnElement="Participant_1xqxepe" isHorizontal="true" isExpanded="false">
+        <dc:Bounds x="3360" y="1130" width="780" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_0wmk0u0_di" bpmnElement="Participant_0wmk0u0" isHorizontal="true" isExpanded="false">
+        <dc:Bounds x="2560" y="1130" width="700" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataIn_CPR_di" bpmnElement="DataIn_CPR">
+        <di:waypoint x="1020" y="995" />
+        <di:waypoint x="1040" y="970" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataIn_Alarms_di" bpmnElement="DataIn_Alarms">
+        <di:waypoint x="1080" y="995" />
+        <di:waypoint x="1075" y="970" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataOut_FineSlip_di" bpmnElement="DataOut_FineSlip">
+        <di:waypoint x="1850" y="970" />
+        <di:waypoint x="1850" y="995" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataOut_Receipt_di" bpmnElement="DataOut_Receipt">
+        <di:waypoint x="2000" y="970" />
+        <di:waypoint x="2000" y="995" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DO_Register_di" bpmnElement="DO_Register">
+        <di:waypoint x="2150" y="460" />
+        <di:waypoint x="2150" y="500" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DO_Invoice_di" bpmnElement="DO_Invoice">
+        <di:waypoint x="2310" y="460" />
+        <di:waypoint x="2310" y="500" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_IdShown_di" bpmnElement="MsgFlow_IdShown">
+        <di:waypoint x="600" y="140" />
+        <di:waypoint x="600" y="890" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="607" y="470" width="46" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_FineSlip_di" bpmnElement="MsgFlow_FineSlip">
+        <di:waypoint x="1850" y="890" />
+        <di:waypoint x="1850" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1857" y="470" width="42" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_Receipt_di" bpmnElement="MsgFlow_Receipt">
+        <di:waypoint x="2000" y="140" />
+        <di:waypoint x="2000" y="890" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2007" y="470" width="48" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Invoice_di" bpmnElement="MF_Invoice">
+        <di:waypoint x="2310" y="380" />
+        <di:waypoint x="2310" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2316" y="160" width="38" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Post_di" bpmnElement="MF_Post">
+        <di:waypoint x="2708" y="140" />
+        <di:waypoint x="2708" y="302" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2714" y="160" width="108" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_NewDeadline_di" bpmnElement="MF_NewDeadline">
+        <di:waypoint x="2940" y="280" />
+        <di:waypoint x="2940" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2818" y="160" width="118" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Rem1_di" bpmnElement="MF_Rem1">
+        <di:waypoint x="3050" y="380" />
+        <di:waypoint x="3050" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3056" y="160" width="55" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Rem2_di" bpmnElement="MF_Rem2">
+        <di:waypoint x="3270" y="380" />
+        <di:waypoint x="3270" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3276" y="160" width="55" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Complaint_di" bpmnElement="MF_Complaint">
+        <di:waypoint x="2430" y="140" />
+        <di:waypoint x="2430" y="592" />
+        <di:waypoint x="2847" y="592" />
+        <di:waypoint x="2847" y="574" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2436" y="160" width="52" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Payment_di" bpmnElement="MF_Payment">
+        <di:waypoint x="3830" y="140" />
+        <di:waypoint x="3830" y="518" />
+        <di:waypoint x="3708" y="518" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3836" y="160" width="42" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Decision_di" bpmnElement="MF_Decision">
+        <di:waypoint x="3300" y="670" />
+        <di:waypoint x="3990" y="670" />
+        <di:waypoint x="3990" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="4005" y="153" width="89" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Forward_di" bpmnElement="MF_Forward">
+        <di:waypoint x="2860" y="690" />
+        <di:waypoint x="2860" y="1130" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2866" y="1100" width="110" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Outcome_di" bpmnElement="MF_Outcome">
+        <di:waypoint x="2990" y="1130" />
+        <di:waypoint x="2990" y="668" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2996" y="1100" width="42" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MF_Transfer_di" bpmnElement="MF_Transfer">
+        <di:waypoint x="3490" y="460" />
+        <di:waypoint x="3490" y="1130" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3495" y="1100" width="78" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
