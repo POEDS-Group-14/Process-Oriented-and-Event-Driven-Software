@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_ticketValid" name="Check ticket" namespace="http://camunda.org/schema/1.0/dmn" exporter="Camunda Modeler" exporterVersion="5.52.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <decision id="ticketValid" name="Check ticket">
+    <decisionTable id="DecisionTable_ticketValid" hitPolicy="FIRST">
+      <input id="Input_ticketShown" label="Ticket shown?">
+        <inputExpression id="InputExpression_ticketShown" typeRef="boolean">
+          <text>ticketShown</text>
+        </inputExpression>
+      </input>
+      <input id="Input_validAtBoarding" label="Valid at boarding?">
+        <inputExpression id="InputExpression_validAtBoarding" typeRef="boolean">
+          <text>validAtBoarding</text>
+        </inputExpression>
+      </input>
+      <input id="Input_validForDateAndZones" label="Valid for date and zones?">
+        <inputExpression id="InputExpression_validForDateAndZones" typeRef="boolean">
+          <text>validForDateAndZones</text>
+        </inputExpression>
+      </input>
+      <input id="Input_customerTypeOk" label="Customer type correct ?">
+        <inputExpression id="InputExpression_customerTypeOk" typeRef="boolean">
+          <text>customerTypeOk</text>
+        </inputExpression>
+      </input>
+      <input id="Input_allCheckedIn" label="All travellers, dogs and bikes checked in?">
+        <inputExpression id="InputExpression_allCheckedIn" typeRef="boolean">
+          <text>allCheckedIn</text>
+        </inputExpression>
+      </input>
+      <input id="Input_bikeRestricted" label="Bike on restricted line and time?">
+        <inputExpression id="InputExpression_bikeRestricted" typeRef="boolean">
+          <text>bikeRestricted</text>
+        </inputExpression>
+      </input>
+      <output id="Output_ticketResult" label="Ticket result" name="ticketResult" typeRef="string">
+        <outputValues id="OutputValues_ticketResult">
+          <text>"valid","fee"</text>
+        </outputValues>
+      </output>
+      <rule id="Rule_noTicket">
+        <description>P2-25, P2-40, P2-41: no ticket shown (missing/forgotten/phone ran out of battery)</description>
+        <inputEntry id="IE_1_1">
+          <text>false</text>
+        </inputEntry>
+        <inputEntry id="IE_1_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_1_3">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_1_4">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_1_5">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_1_6">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="OE_1">
+          <text>"fee"</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_lateCheckIn">
+        <description>P2-05, P2-06, P2-08: app check-in, Basiskort check-in or Rejsebillet ticket was done after boarding</description>
+        <inputEntry id="IE_2_1">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_2_2">
+          <text>false</text>
+        </inputEntry>
+        <inputEntry id="IE_2_3">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_2_4">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_2_5">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_2_6">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="OE_2">
+          <text>"fee"</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_dateZones">
+        <description>P2-11, P2-12, P2-47: ticket expired, has missing zone, or single ticket was not bought from the start zone</description>
+        <inputEntry id="IE_3_1">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_3_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_3_3">
+          <text>false</text>
+        </inputEntry>
+        <inputEntry id="IE_3_4">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_3_5">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_3_6">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="OE_3">
+          <text>"fee"</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_customerType">
+        <description>P2-07, P2-48: wrong customer type, or no proof for a discounted type</description>
+        <inputEntry id="IE_4_1">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_4_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_4_3">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_4_4">
+          <text>false</text>
+        </inputEntry>
+        <inputEntry id="IE_4_5">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_4_6">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="OE_4">
+          <text>"fee"</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_count">
+        <description>P2-07: less travellers, dogs or bikes checked in than travelling</description>
+        <inputEntry id="IE_5_1">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_5_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_5_3">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_5_4">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_5_5">
+          <text>false</text>
+        </inputEntry>
+        <inputEntry id="IE_5_6">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="OE_5">
+          <text>"fee"</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_bike">
+        <description>P2-49: bike on a restricted line at a restricted time</description>
+        <inputEntry id="IE_6_1">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_6_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_6_3">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_6_4">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_6_5">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_6_6">
+          <text>true</text>
+        </inputEntry>
+        <outputEntry id="OE_6">
+          <text>"fee"</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_valid">
+        <description>No fee condition met: ticket valid</description>
+        <inputEntry id="IE_7_1">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_7_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_7_3">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_7_4">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_7_5">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_7_6">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="OE_7">
+          <text>"valid"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="DMNDiagram_ticketValid">
+      <dmndi:DMNShape id="DMNShape_ticketValid" dmnElementRef="ticketValid">
+        <dc:Bounds height="80" width="180" x="160" y="100" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>
