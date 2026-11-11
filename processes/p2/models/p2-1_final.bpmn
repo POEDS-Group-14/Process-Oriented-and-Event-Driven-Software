@@ -145,7 +145,7 @@
       </bpmn:dataOutputAssociation>
       <bpmn:multiInstanceLoopCharacteristics camunda:collection="${travellersWithoutTicket}" camunda:elementVariable="traveller" />
     </bpmn:userTask>
-    <bpmn:receiveTask id="Activity_175whz0" name="Passenger signs receipt" messageRef="Message_ReceiptSigned">
+    <bpmn:receiveTask id="Activity_175whz0" name="Get passenger signature" messageRef="Message_ReceiptSigned">
       <bpmn:incoming>Flow_0l476hi</bpmn:incoming>
       <bpmn:outgoing>F_rcpt</bpmn:outgoing>
       <bpmn:dataOutputAssociation id="DataOut_Receipt">
@@ -324,7 +324,7 @@
       <bpmn:outgoing>F_c1</bpmn:outgoing>
       <bpmn:messageEventDefinition messageRef="Message_ComplaintReceived" />
     </bpmn:boundaryEvent>
-    <bpmn:sendTask id="T_Hold" name="Put payment on hold, forward complaint" camunda:expression="${true}">
+    <bpmn:sendTask id="T_Hold" name="Forward complaint to P3" camunda:expression="${true}">
       <bpmn:incoming>F_c1</bpmn:incoming>
       <bpmn:outgoing>F_c2</bpmn:outgoing>
     </bpmn:sendTask>
@@ -669,7 +669,7 @@
       <bpmndi:BPMNShape id="B_Complaint_di" bpmnElement="B_Complaint">
         <dc:Bounds x="2842" y="542" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="2765" y="566" width="50" height="27" />
+          <dc:Bounds x="2775" y="566" width="50" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="B_Payment_di" bpmnElement="B_Payment">
@@ -950,7 +950,7 @@
         <di:waypoint x="3990" y="670" />
         <di:waypoint x="3990" y="140" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="4005" y="153" width="89" height="27" />
+          <dc:Bounds x="3996" y="190" width="130" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="MF_Forward_di" bpmnElement="MF_Forward">
