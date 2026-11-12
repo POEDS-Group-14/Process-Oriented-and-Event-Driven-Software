@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_travel_guarantee_process" targetNamespace="http://poeds-group-14.dtu.dk/rejsegaranti" exporter="tools/build_bpmn.py" exporterVersion="1.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:documentation>Travel guarantee claim process, author Liam Palmqvist</bpmn:documentation>
+    <bpmn:participant id="Participant_travel-guarantee-process" name="Movia customer service: travel guarantee claim" processRef="travel-guarantee-process" />
+    <bpmn:textAnnotation id="Annotation_Author"><bpmn:text>Both business rule tasks call decisions in travel-guarantee.dmn. Author: Liam Palmqvist. Sources: see References in '1. Rejsegaranti claim.md'.</bpmn:text></bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Cap"><bpmn:text>Max 300 kr per taxi [2], however many people share it [3].</bpmn:text></bpmn:textAnnotation>
+    <bpmn:association id="Assoc_Cap" sourceRef="Annotation_Cap" targetRef="Calc" />
+  </bpmn:collaboration>
+  <bpmn:process id="travel-guarantee-process" name="Movia customer service: travel guarantee claim" isExecutable="false">
+    <bpmn:startEvent id="Start" name="Claim form received">
+      <bpmn:outgoing>Flow_Start_Check</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="StartDef" />
+    </bpmn:startEvent>
+    <bpmn:businessRuleTask id="Check" name="Check claim validity" camunda:decisionRef="Decision_ClaimValid" camunda:resultVariable="claim" camunda:mapDecisionResult="singleResult">
+      <bpmn:incoming>Flow_Start_Check</bpmn:incoming>
+      <bpmn:outgoing>Flow_Check_GwValid</bpmn:outgoing>
+      <bpmn:property id="Property_Check" name="__targetRef_placeholder" /><bpmn:dataInputAssociation id="DIA_DO_Claim_Check"><bpmn:sourceRef>DO_Claim</bpmn:sourceRef><bpmn:targetRef>Property_Check</bpmn:targetRef></bpmn:dataInputAssociation><bpmn:dataInputAssociation id="DIA_DO_Receipt_Check"><bpmn:sourceRef>DO_Receipt</bpmn:sourceRef><bpmn:targetRef>Property_Check</bpmn:targetRef></bpmn:dataInputAssociation>
+    </bpmn:businessRuleTask>
+    <bpmn:exclusiveGateway id="GwValid" name="Claim valid?" default="f_valid_yes">
+      <bpmn:incoming>Flow_Check_GwValid</bpmn:incoming>
+      <bpmn:outgoing>f_valid_yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_GwValid_EndInvalid</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndInvalid" name="Rejected: no receipt or too late">
+      <bpmn:incoming>Flow_GwValid_EndInvalid</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:businessRuleTask id="Decide" name="Decide travel guarantee for each leg" camunda:decisionRef="Decision_TravelGuarantee" camunda:resultVariable="decision" camunda:mapDecisionResult="singleResult">
+      <bpmn:incoming>f_valid_yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_Decide_GwCovered</bpmn:outgoing>
+      <bpmn:property id="Property_Decide" name="__targetRef_placeholder" /><bpmn:dataInputAssociation id="DIA_DO_Claim_Decide"><bpmn:sourceRef>DO_Claim</bpmn:sourceRef><bpmn:targetRef>Property_Decide</bpmn:targetRef></bpmn:dataInputAssociation><bpmn:dataInputAssociation id="DIA_DS_Disruption_Decide"><bpmn:sourceRef>DS_Disruption</bpmn:sourceRef><bpmn:targetRef>Property_Decide</bpmn:targetRef></bpmn:dataInputAssociation><bpmn:multiInstanceLoopCharacteristics isSequential="true" camunda:collection="${legs}" camunda:elementVariable="leg" />
+    </bpmn:businessRuleTask>
+    <bpmn:exclusiveGateway id="GwCovered" name="Any leg covered?" default="f_no">
+      <bpmn:incoming>Flow_Decide_GwCovered</bpmn:incoming>
+      <bpmn:outgoing>Flow_GwCovered_Calc</bpmn:outgoing>
+      <bpmn:outgoing>f_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndNo" name="Rejected: not covered">
+      <bpmn:incoming>f_no</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Calc" name="Calculate refund: taxi fare, max 300 kr per taxi">
+      <bpmn:incoming>Flow_GwCovered_Calc</bpmn:incoming>
+      <bpmn:outgoing>Flow_Calc_Pay</bpmn:outgoing>
+      <bpmn:property id="Property_Calc" name="__targetRef_placeholder" /><bpmn:dataInputAssociation id="DIA_DO_Receipt_Calc"><bpmn:sourceRef>DO_Receipt</bpmn:sourceRef><bpmn:targetRef>Property_Calc</bpmn:targetRef></bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Pay" name="Pay refund">
+      <bpmn:incoming>Flow_Calc_Pay</bpmn:incoming>
+      <bpmn:outgoing>Flow_Pay_EndPaid</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndPaid" name="Refund paid">
+      <bpmn:incoming>Flow_Pay_EndPaid</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_Check" sourceRef="Start" targetRef="Check" />
+    <bpmn:sequenceFlow id="Flow_Check_GwValid" sourceRef="Check" targetRef="GwValid" />
+    <bpmn:sequenceFlow id="f_valid_yes" name="yes" sourceRef="GwValid" targetRef="Decide" />
+    <bpmn:sequenceFlow id="Flow_GwValid_EndInvalid" name="no" sourceRef="GwValid" targetRef="EndInvalid">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${!claim.claimValid}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Decide_GwCovered" sourceRef="Decide" targetRef="GwCovered" />
+    <bpmn:sequenceFlow id="Flow_GwCovered_Calc" name="yes" sourceRef="GwCovered" targetRef="Calc">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${anyLegCovered}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f_no" name="no" sourceRef="GwCovered" targetRef="EndNo" />
+    <bpmn:sequenceFlow id="Flow_Calc_Pay" sourceRef="Calc" targetRef="Pay" />
+    <bpmn:sequenceFlow id="Flow_Pay_EndPaid" sourceRef="Pay" targetRef="EndPaid" />
+    <bpmn:dataObjectReference id="DO_Receipt" name="Taxi receipt" dataObjectRef="DataObject_DO_Receipt" />
+    <bpmn:dataObject id="DataObject_DO_Receipt" />
+    <bpmn:dataObjectReference id="DO_Claim" name="Claim form (incident date, trip legs)" dataObjectRef="DataObject_DO_Claim" />
+    <bpmn:dataObject id="DataObject_DO_Claim" />
+    <bpmn:dataStoreReference id="DS_Disruption" name="Disruption data (cause, planned changes)" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_travel-guarantee-process_di" bpmnElement="Participant_travel-guarantee-process" isHorizontal="true"><dc:Bounds x="100" y="20" width="1340" height="470" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_di" bpmnElement="Start"><dc:Bounds x="162" y="232" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="125" y="272" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Check_di" bpmnElement="Check"><dc:Bounds x="250" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwValid_di" bpmnElement="GwValid" isMarkerVisible="true"><dc:Bounds x="405" y="225" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="375" y="279" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndInvalid_di" bpmnElement="EndInvalid"><dc:Bounds x="412" y="112" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="375" y="68" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Decide_di" bpmnElement="Decide"><dc:Bounds x="510" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwCovered_di" bpmnElement="GwCovered" isMarkerVisible="true"><dc:Bounds x="665" y="225" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="635" y="279" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndNo_di" bpmnElement="EndNo"><dc:Bounds x="672" y="112" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="635" y="68" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Calc_di" bpmnElement="Calc"><dc:Bounds x="770" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Pay_di" bpmnElement="Pay"><dc:Bounds x="900" y="210" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndPaid_di" bpmnElement="EndPaid"><dc:Bounds x="1042" y="232" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1005" y="272" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_Start_Check_di" bpmnElement="Flow_Start_Check">
+        <di:waypoint x="198" y="250" />
+        <di:waypoint x="250" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Check_GwValid_di" bpmnElement="Flow_Check_GwValid">
+        <di:waypoint x="350" y="250" />
+        <di:waypoint x="405" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_valid_yes_di" bpmnElement="f_valid_yes">
+        <di:waypoint x="455" y="250" />
+        <di:waypoint x="510" y="250" />
+        <bpmndi:BPMNLabel><dc:Bounds x="457" y="233" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GwValid_EndInvalid_di" bpmnElement="Flow_GwValid_EndInvalid">
+        <di:waypoint x="430" y="225" />
+        <di:waypoint x="430" y="148" />
+        <bpmndi:BPMNLabel><dc:Bounds x="434" y="178" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Decide_GwCovered_di" bpmnElement="Flow_Decide_GwCovered">
+        <di:waypoint x="610" y="250" />
+        <di:waypoint x="665" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GwCovered_Calc_di" bpmnElement="Flow_GwCovered_Calc">
+        <di:waypoint x="715" y="250" />
+        <di:waypoint x="770" y="250" />
+        <bpmndi:BPMNLabel><dc:Bounds x="717" y="233" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_no_di" bpmnElement="f_no">
+        <di:waypoint x="690" y="225" />
+        <di:waypoint x="690" y="148" />
+        <bpmndi:BPMNLabel><dc:Bounds x="694" y="178" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Calc_Pay_di" bpmnElement="Flow_Calc_Pay">
+        <di:waypoint x="870" y="250" />
+        <di:waypoint x="900" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Pay_EndPaid_di" bpmnElement="Flow_Pay_EndPaid">
+        <di:waypoint x="1000" y="250" />
+        <di:waypoint x="1042" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Annotation_Author_di" bpmnElement="Annotation_Author"><dc:Bounds x="1100" y="340" width="320" height="64" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Annotation_Cap_di" bpmnElement="Annotation_Cap"><dc:Bounds x="880" y="110" width="260" height="45" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DO_Receipt_di" bpmnElement="DO_Receipt"><dc:Bounds x="282" y="375" width="36" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="240" y="428" width="120" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DO_Claim_di" bpmnElement="DO_Claim"><dc:Bounds x="542" y="375" width="36" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="500" y="428" width="120" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DIA_DO_Receipt_Check_di" bpmnElement="DIA_DO_Receipt_Check"><di:waypoint x="300" y="375" /><di:waypoint x="300" y="290" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DIA_DO_Claim_Check_di" bpmnElement="DIA_DO_Claim_Check"><di:waypoint x="542" y="390" /><di:waypoint x="340" y="290" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DIA_DO_Claim_Decide_di" bpmnElement="DIA_DO_Claim_Decide"><di:waypoint x="560" y="375" /><di:waypoint x="560" y="290" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DIA_DO_Receipt_Calc_di" bpmnElement="DIA_DO_Receipt_Calc"><di:waypoint x="318" y="405" /><di:waypoint x="330" y="405" /><di:waypoint x="330" y="472" /><di:waypoint x="820" y="472" /><di:waypoint x="820" y="290" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DIA_DS_Disruption_Decide_di" bpmnElement="DIA_DS_Disruption_Decide"><di:waypoint x="670" y="390" /><di:waypoint x="600" y="290" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_Cap_di" bpmnElement="Assoc_Cap"><di:waypoint x="880" y="155" /><di:waypoint x="850" y="210" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DS_Disruption_di" bpmnElement="DS_Disruption"><dc:Bounds x="670" y="375" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="635" y="428" width="120" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/" xmlns:di="http://www.omg.org/spec/DMN/20180521/DI/" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_travel_guarantee" name="Travel guarantee" namespace="http://poeds.dtu.dk/travel-guarantee" exporter="build_dmn.py" exporterVersion="1.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <decision id="Decision_TravelGuarantee" name="Travel guarantee applies">
+    <informationRequirement id="IR_Decision_TravelGuarantee_Decision_Exclusion"><requiredDecision href="#Decision_Exclusion" /></informationRequirement>
+    <informationRequirement id="IR_Decision_TravelGuarantee_Decision_Incident"><requiredDecision href="#Decision_Incident" /></informationRequirement>
+    <authorityRequirement id="AR_Decision_TravelGuarantee"><requiredAuthority href="#KS_Terms" /></authorityRequirement>
+    <decisionTable id="DT_Decision_TravelGuarantee" hitPolicy="UNIQUE">
+      <input id="In_Decision_TravelGuarantee_0" label="Exclusion"><inputExpression id="IE_Decision_TravelGuarantee_0" typeRef="string"><text>exclusion</text></inputExpression><inputValues id="IV_Decision_TravelGuarantee_0"><text>&quot;none&quot;,&quot;Flextrafik&quot;,&quot;Strike, weather or force majeure&quot;,&quot;Planned change&quot;</text></inputValues></input>
+      <input id="In_Decision_TravelGuarantee_1" label="Incident assessment"><inputExpression id="IE_Decision_TravelGuarantee_1" typeRef="string"><text>incidentAssessment</text></inputExpression><inputValues id="IV_Decision_TravelGuarantee_1"><text>&quot;Qualifies&quot;,&quot;Not visible to driver&quot;,&quot;Bus full&quot;,&quot;Next bus within 20 min&quot;,&quot;Stop not requested in time&quot;,&quot;Next departure within 20 min&quot;,&quot;Missed connection&quot;</text></inputValues></input>
+      <output id="Out_Decision_TravelGuarantee_0" label="Covered" name="covered" typeRef="boolean"></output>
+      <output id="Out_Decision_TravelGuarantee_1" label="Reason" name="reason" typeRef="string"></output>
+      <rule id="R_Decision_TravelGuarantee_1">
+        <description>An exclusion always wins</description>
+        <inputEntry id="IE_Decision_TravelGuarantee_1_0"><text>not(&quot;none&quot;)</text></inputEntry>
+        <inputEntry id="IE_Decision_TravelGuarantee_1_1"><text>-</text></inputEntry>
+        <outputEntry id="OE_Decision_TravelGuarantee_1_0"><text>false</text></outputEntry>
+        <outputEntry id="OE_Decision_TravelGuarantee_1_1"><text>exclusion</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_TravelGuarantee_2">
+        <description>Only the part of the trip the bus or local train should have covered</description>
+        <inputEntry id="IE_Decision_TravelGuarantee_2_0"><text>&quot;none&quot;</text></inputEntry>
+        <inputEntry id="IE_Decision_TravelGuarantee_2_1"><text>&quot;Qualifies&quot;</text></inputEntry>
+        <outputEntry id="OE_Decision_TravelGuarantee_2_0"><text>true</text></outputEntry>
+        <outputEntry id="OE_Decision_TravelGuarantee_2_1"><text>&quot;Covered&quot;</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_TravelGuarantee_3">
+        <inputEntry id="IE_Decision_TravelGuarantee_3_0"><text>&quot;none&quot;</text></inputEntry>
+        <inputEntry id="IE_Decision_TravelGuarantee_3_1"><text>not(&quot;Qualifies&quot;)</text></inputEntry>
+        <outputEntry id="OE_Decision_TravelGuarantee_3_0"><text>false</text></outputEntry>
+        <outputEntry id="OE_Decision_TravelGuarantee_3_1"><text>incidentAssessment</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <decision id="Decision_Exclusion" name="Excluded by cause">
+    <informationRequirement id="IR_Decision_Exclusion_Input_service"><requiredInput href="#Input_service" /></informationRequirement>
+    <informationRequirement id="IR_Decision_Exclusion_Input_cause"><requiredInput href="#Input_cause" /></informationRequirement>
+    <informationRequirement id="IR_Decision_Exclusion_Input_plannedChange"><requiredInput href="#Input_plannedChange" /></informationRequirement>
+    <authorityRequirement id="AR_Decision_Exclusion"><requiredAuthority href="#KS_Terms" /></authorityRequirement>
+    <decisionTable id="DT_Decision_Exclusion" hitPolicy="UNIQUE">
+      <input id="In_Decision_Exclusion_0" label="Service"><inputExpression id="IE_Decision_Exclusion_0" typeRef="string"><text>service</text></inputExpression><inputValues id="IV_Decision_Exclusion_0"><text>&quot;bus&quot;,&quot;local train&quot;,&quot;Flextrafik&quot;</text></inputValues></input>
+      <input id="In_Decision_Exclusion_1" label="Cause of disruption"><inputExpression id="IE_Decision_Exclusion_1" typeRef="string"><text>cause</text></inputExpression><inputValues id="IV_Decision_Exclusion_1"><text>&quot;none&quot;,&quot;strike&quot;,&quot;weather&quot;,&quot;force majeure&quot;</text></inputValues></input>
+      <input id="In_Decision_Exclusion_2" label="Planned change announced 24 h before"><inputExpression id="IE_Decision_Exclusion_2" typeRef="boolean"><text>plannedChange</text></inputExpression></input>
+      <output id="Out_Decision_Exclusion_0" label="Exclusion" name="exclusion" typeRef="string"><outputValues id="OV_Decision_Exclusion_0"><text>&quot;none&quot;,&quot;Flextrafik&quot;,&quot;Strike, weather or force majeure&quot;,&quot;Planned change&quot;</text></outputValues></output>
+      <rule id="R_Decision_Exclusion_1">
+        <description>Flextrafik is not covered</description>
+        <inputEntry id="IE_Decision_Exclusion_1_0"><text>&quot;Flextrafik&quot;</text></inputEntry>
+        <inputEntry id="IE_Decision_Exclusion_1_1"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Exclusion_1_2"><text>-</text></inputEntry>
+        <outputEntry id="OE_Decision_Exclusion_1_0"><text>&quot;Flextrafik&quot;</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_Exclusion_2">
+        <description>Bus strikes, weather that makes the timetable impossible, force majeure</description>
+        <inputEntry id="IE_Decision_Exclusion_2_0"><text>not(&quot;Flextrafik&quot;)</text></inputEntry>
+        <inputEntry id="IE_Decision_Exclusion_2_1"><text>not(&quot;none&quot;)</text></inputEntry>
+        <inputEntry id="IE_Decision_Exclusion_2_2"><text>-</text></inputEntry>
+        <outputEntry id="OE_Decision_Exclusion_2_0"><text>&quot;Strike, weather or force majeure&quot;</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_Exclusion_3">
+        <description>Announced on dinoffentligetransport.dk 24 h before departure</description>
+        <inputEntry id="IE_Decision_Exclusion_3_0"><text>not(&quot;Flextrafik&quot;)</text></inputEntry>
+        <inputEntry id="IE_Decision_Exclusion_3_1"><text>&quot;none&quot;</text></inputEntry>
+        <inputEntry id="IE_Decision_Exclusion_3_2"><text>true</text></inputEntry>
+        <outputEntry id="OE_Decision_Exclusion_3_0"><text>&quot;Planned change&quot;</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_Exclusion_4">
+        <inputEntry id="IE_Decision_Exclusion_4_0"><text>not(&quot;Flextrafik&quot;)</text></inputEntry>
+        <inputEntry id="IE_Decision_Exclusion_4_1"><text>&quot;none&quot;</text></inputEntry>
+        <inputEntry id="IE_Decision_Exclusion_4_2"><text>false</text></inputEntry>
+        <outputEntry id="OE_Decision_Exclusion_4_0"><text>&quot;none&quot;</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <decision id="Decision_Incident" name="Incident qualifies">
+    <informationRequirement id="IR_Decision_Incident_Input_incident"><requiredInput href="#Input_incident" /></informationRequirement>
+    <informationRequirement id="IR_Decision_Incident_Input_visibleToDriver"><requiredInput href="#Input_visibleToDriver" /></informationRequirement>
+    <informationRequirement id="IR_Decision_Incident_Input_busFull"><requiredInput href="#Input_busFull" /></informationRequirement>
+    <informationRequirement id="IR_Decision_Incident_Input_stopRequested"><requiredInput href="#Input_stopRequested" /></informationRequirement>
+    <informationRequirement id="IR_Decision_Incident_Input_nextWithin20"><requiredInput href="#Input_nextWithin20" /></informationRequirement>
+    <authorityRequirement id="AR_Decision_Incident"><requiredAuthority href="#KS_Terms" /></authorityRequirement>
+    <decisionTable id="DT_Decision_Incident" hitPolicy="UNIQUE">
+      <input id="In_Decision_Incident_0" label="Incident"><inputExpression id="IE_Decision_Incident_0" typeRef="string"><text>incident</text></inputExpression><inputValues id="IV_Decision_Incident_0"><text>&quot;delay over 20 min&quot;,&quot;bus passed stop&quot;,&quot;train did not stop&quot;,&quot;left over 2 min early&quot;,&quot;missed connection&quot;</text></inputValues></input>
+      <input id="In_Decision_Incident_1" label="Visible to driver"><inputExpression id="IE_Decision_Incident_1" typeRef="boolean"><text>visibleToDriver</text></inputExpression></input>
+      <input id="In_Decision_Incident_2" label="Bus full"><inputExpression id="IE_Decision_Incident_2" typeRef="boolean"><text>busFull</text></inputExpression></input>
+      <input id="In_Decision_Incident_3" label="Stop requested in time"><inputExpression id="IE_Decision_Incident_3" typeRef="boolean"><text>stopRequested</text></inputExpression></input>
+      <input id="In_Decision_Incident_4" label="Next departure within 20 min"><inputExpression id="IE_Decision_Incident_4" typeRef="boolean"><text>nextWithin20</text></inputExpression></input>
+      <output id="Out_Decision_Incident_0" label="Incident assessment" name="incidentAssessment" typeRef="string"><outputValues id="OV_Decision_Incident_0"><text>&quot;Qualifies&quot;,&quot;Not visible to driver&quot;,&quot;Bus full&quot;,&quot;Next bus within 20 min&quot;,&quot;Stop not requested in time&quot;,&quot;Next departure within 20 min&quot;,&quot;Missed connection&quot;</text></outputValues></output>
+      <rule id="R_Decision_Incident_1">
+        <description>Actual delay, not a projected one</description>
+        <inputEntry id="IE_Decision_Incident_1_0"><text>&quot;delay over 20 min&quot;</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_1_1"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_1_2"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_1_3"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_1_4"><text>-</text></inputEntry>
+        <outputEntry id="OE_Decision_Incident_1_0"><text>&quot;Qualifies&quot;</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_Incident_2">
+        <inputEntry id="IE_Decision_Incident_2_0"><text>&quot;bus passed stop&quot;</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_2_1"><text>false</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_2_2"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_2_3"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_2_4"><text>-</text></inputEntry>
+        <outputEntry id="OE_Decision_Incident_2_0"><text>&quot;Not visible to driver&quot;</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_Incident_3">
+        <inputEntry id="IE_Decision_Incident_3_0"><text>&quot;bus passed stop&quot;</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_3_1"><text>true</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_3_2"><text>true</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_3_3"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_3_4"><text>-</text></inputEntry>
+        <outputEntry id="OE_Decision_Incident_3_0"><text>&quot;Bus full&quot;</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_Incident_4">
+        <inputEntry id="IE_Decision_Incident_4_0"><text>&quot;bus passed stop&quot;</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_4_1"><text>true</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_4_2"><text>false</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_4_3"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_4_4"><text>true</text></inputEntry>
+        <outputEntry id="OE_Decision_Incident_4_0"><text>&quot;Next bus within 20 min&quot;</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_Incident_5">
+        <inputEntry id="IE_Decision_Incident_5_0"><text>&quot;bus passed stop&quot;</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_5_1"><text>true</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_5_2"><text>false</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_5_3"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_5_4"><text>false</text></inputEntry>
+        <outputEntry id="OE_Decision_Incident_5_0"><text>&quot;Qualifies&quot;</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_Incident_6">
+        <inputEntry id="IE_Decision_Incident_6_0"><text>&quot;train did not stop&quot;</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_6_1"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_6_2"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_6_3"><text>false</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_6_4"><text>-</text></inputEntry>
+        <outputEntry id="OE_Decision_Incident_6_0"><text>&quot;Stop not requested in time&quot;</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_Incident_7">
+        <inputEntry id="IE_Decision_Incident_7_0"><text>&quot;train did not stop&quot;</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_7_1"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_7_2"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_7_3"><text>true</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_7_4"><text>-</text></inputEntry>
+        <outputEntry id="OE_Decision_Incident_7_0"><text>&quot;Qualifies&quot;</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_Incident_8">
+        <inputEntry id="IE_Decision_Incident_8_0"><text>&quot;left over 2 min early&quot;</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_8_1"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_8_2"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_8_3"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_8_4"><text>true</text></inputEntry>
+        <outputEntry id="OE_Decision_Incident_8_0"><text>&quot;Next departure within 20 min&quot;</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_Incident_9">
+        <inputEntry id="IE_Decision_Incident_9_0"><text>&quot;left over 2 min early&quot;</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_9_1"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_9_2"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_9_3"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_9_4"><text>false</text></inputEntry>
+        <outputEntry id="OE_Decision_Incident_9_0"><text>&quot;Qualifies&quot;</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_Incident_10">
+        <description>Lost connections after a delay</description>
+        <inputEntry id="IE_Decision_Incident_10_0"><text>&quot;missed connection&quot;</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_10_1"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_10_2"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_10_3"><text>-</text></inputEntry>
+        <inputEntry id="IE_Decision_Incident_10_4"><text>-</text></inputEntry>
+        <outputEntry id="OE_Decision_Incident_10_0"><text>&quot;Missed connection&quot;</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <decision id="Decision_ClaimValid" name="Claim valid">
+    <informationRequirement id="IR_Decision_ClaimValid_Input_receiptAttached"><requiredInput href="#Input_receiptAttached" /></informationRequirement>
+    <informationRequirement id="IR_Decision_ClaimValid_Input_daysToClaim"><requiredInput href="#Input_daysToClaim" /></informationRequirement>
+    <authorityRequirement id="AR_Decision_ClaimValid"><requiredAuthority href="#KS_Claim" /></authorityRequirement>
+    <decisionTable id="DT_Decision_ClaimValid" hitPolicy="UNIQUE">
+      <input id="In_Decision_ClaimValid_0" label="Taxi receipt attached"><inputExpression id="IE_Decision_ClaimValid_0" typeRef="boolean"><text>receiptAttached</text></inputExpression></input>
+      <input id="In_Decision_ClaimValid_1" label="Days from incident to claim received"><inputExpression id="IE_Decision_ClaimValid_1" typeRef="number"><text>daysToClaim</text></inputExpression></input>
+      <output id="Out_Decision_ClaimValid_0" label="Claim valid" name="claimValid" typeRef="boolean"></output>
+      <output id="Out_Decision_ClaimValid_1" label="Claim reason" name="claimReason" typeRef="string"><outputValues id="OV_Decision_ClaimValid_1"><text>&quot;Valid&quot;,&quot;No receipt&quot;,&quot;Claim too late&quot;</text></outputValues></output>
+      <rule id="R_Decision_ClaimValid_1">
+        <description>Receipt must be attached [2][3]</description>
+        <inputEntry id="IE_Decision_ClaimValid_1_0"><text>false</text></inputEntry>
+        <inputEntry id="IE_Decision_ClaimValid_1_1"><text>-</text></inputEntry>
+        <outputEntry id="OE_Decision_ClaimValid_1_0"><text>false</text></outputEntry>
+        <outputEntry id="OE_Decision_ClaimValid_1_1"><text>&quot;No receipt&quot;</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_ClaimValid_2">
+        <inputEntry id="IE_Decision_ClaimValid_2_0"><text>true</text></inputEntry>
+        <inputEntry id="IE_Decision_ClaimValid_2_1"><text>&lt;= 14</text></inputEntry>
+        <outputEntry id="OE_Decision_ClaimValid_2_0"><text>true</text></outputEntry>
+        <outputEntry id="OE_Decision_ClaimValid_2_1"><text>&quot;Valid&quot;</text></outputEntry>
+      </rule>
+      <rule id="R_Decision_ClaimValid_3">
+        <description>Claim must reach Movia within 14 days [3]</description>
+        <inputEntry id="IE_Decision_ClaimValid_3_0"><text>true</text></inputEntry>
+        <inputEntry id="IE_Decision_ClaimValid_3_1"><text>&gt; 14</text></inputEntry>
+        <outputEntry id="OE_Decision_ClaimValid_3_0"><text>false</text></outputEntry>
+        <outputEntry id="OE_Decision_ClaimValid_3_1"><text>&quot;Claim too late&quot;</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <inputData id="Input_service" name="Service"><variable id="Var_service" name="service" typeRef="string" /></inputData>
+  <inputData id="Input_cause" name="Cause of disruption"><variable id="Var_cause" name="cause" typeRef="string" /></inputData>
+  <inputData id="Input_plannedChange" name="Planned change announced 24 h before"><variable id="Var_plannedChange" name="plannedChange" typeRef="boolean" /></inputData>
+  <inputData id="Input_incident" name="Incident"><variable id="Var_incident" name="incident" typeRef="string" /></inputData>
+  <inputData id="Input_visibleToDriver" name="Visible to driver"><variable id="Var_visibleToDriver" name="visibleToDriver" typeRef="boolean" /></inputData>
+  <inputData id="Input_busFull" name="Bus full"><variable id="Var_busFull" name="busFull" typeRef="boolean" /></inputData>
+  <inputData id="Input_stopRequested" name="Stop requested in time"><variable id="Var_stopRequested" name="stopRequested" typeRef="boolean" /></inputData>
+  <inputData id="Input_nextWithin20" name="Next departure within 20 min"><variable id="Var_nextWithin20" name="nextWithin20" typeRef="boolean" /></inputData>
+  <inputData id="Input_receiptAttached" name="Taxi receipt attached"><variable id="Var_receiptAttached" name="receiptAttached" typeRef="boolean" /></inputData>
+  <inputData id="Input_daysToClaim" name="Days from incident to claim received"><variable id="Var_daysToClaim" name="daysToClaim" typeRef="number" /></inputData>
+  <knowledgeSource id="KS_Terms" name="Travel guarantee terms (Movia) [1]" />
+  <knowledgeSource id="KS_Claim" name="Movia claim rules [2][3]" />
+  <textAnnotation id="Annotation_Author"><text>Travel guarantee, Movia bus and local train. Author: Liam Palmqvist. Hit policy Unique in all four tables. Sources: References in '1. Rejsegaranti claim.md'.</text></textAnnotation>
+  <textAnnotation id="Annotation_Scope"><text>Covers only the part of the trip the bus or local train should have covered. No other costs (e.g. flight or show tickets, lost earnings).</text></textAnnotation>
+  <textAnnotation id="Annotation_Delay"><text>Actual delay: a +20 min estimate on Rejseplan or a stop screen is not enough, the bus or train may catch up.</text></textAnnotation>
+  <textAnnotation id="Annotation_Deadline"><text>14 days: quoted from Movia in ABTM decision 2022-0042 [3]. Not confirmed on a current Movia page.</text></textAnnotation>
+  <association id="Assoc_Annotation_Scope"><sourceRef href="#Annotation_Scope" /><targetRef href="#Decision_TravelGuarantee" /></association>
+  <association id="Assoc_Annotation_Delay"><sourceRef href="#Annotation_Delay" /><targetRef href="#Input_incident" /></association>
+  <association id="Assoc_Annotation_Deadline"><sourceRef href="#Annotation_Deadline" /><targetRef href="#Input_daysToClaim" /></association>
+  <dmndi:DMNDI><dmndi:DMNDiagram id="DMNDiagram_1">
+    <dmndi:DMNShape id="Decision_TravelGuarantee_di" dmnElementRef="Decision_TravelGuarantee"><dc:Bounds x="560" y="80" width="180" height="80" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Decision_Exclusion_di" dmnElementRef="Decision_Exclusion"><dc:Bounds x="260" y="260" width="180" height="80" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Decision_Incident_di" dmnElementRef="Decision_Incident"><dc:Bounds x="860" y="260" width="180" height="80" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="KS_Terms_di" dmnElementRef="KS_Terms"><dc:Bounds x="1180" y="80" width="170" height="63" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Decision_ClaimValid_di" dmnElementRef="Decision_ClaimValid"><dc:Bounds x="1590" y="260" width="180" height="80" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="KS_Claim_di" dmnElementRef="KS_Claim"><dc:Bounds x="1595" y="80" width="170" height="63" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_service_di" dmnElementRef="Input_service"><dc:Bounds x="60" y="460" width="150" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_cause_di" dmnElementRef="Input_cause"><dc:Bounds x="230" y="460" width="150" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_plannedChange_di" dmnElementRef="Input_plannedChange"><dc:Bounds x="400" y="460" width="150" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_incident_di" dmnElementRef="Input_incident"><dc:Bounds x="620" y="460" width="150" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_visibleToDriver_di" dmnElementRef="Input_visibleToDriver"><dc:Bounds x="790" y="460" width="150" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_busFull_di" dmnElementRef="Input_busFull"><dc:Bounds x="960" y="460" width="150" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_stopRequested_di" dmnElementRef="Input_stopRequested"><dc:Bounds x="1130" y="460" width="150" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_nextWithin20_di" dmnElementRef="Input_nextWithin20"><dc:Bounds x="1300" y="460" width="150" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_receiptAttached_di" dmnElementRef="Input_receiptAttached"><dc:Bounds x="1520" y="460" width="150" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_daysToClaim_di" dmnElementRef="Input_daysToClaim"><dc:Bounds x="1690" y="460" width="150" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNEdge id="IR_Decision_TravelGuarantee_Decision_Exclusion_di" dmnElementRef="IR_Decision_TravelGuarantee_Decision_Exclusion"><di:waypoint x="350" y="260" /><di:waypoint x="650" y="160" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_Decision_TravelGuarantee_Decision_Incident_di" dmnElementRef="IR_Decision_TravelGuarantee_Decision_Incident"><di:waypoint x="950" y="260" /><di:waypoint x="650" y="160" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="AR_Decision_TravelGuarantee_di" dmnElementRef="AR_Decision_TravelGuarantee"><di:waypoint x="1265" y="143" /><di:waypoint x="1265" y="120" /><di:waypoint x="740" y="120" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_Decision_Exclusion_Input_service_di" dmnElementRef="IR_Decision_Exclusion_Input_service"><di:waypoint x="135" y="460" /><di:waypoint x="350" y="340" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_Decision_Exclusion_Input_cause_di" dmnElementRef="IR_Decision_Exclusion_Input_cause"><di:waypoint x="305" y="460" /><di:waypoint x="350" y="340" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_Decision_Exclusion_Input_plannedChange_di" dmnElementRef="IR_Decision_Exclusion_Input_plannedChange"><di:waypoint x="475" y="460" /><di:waypoint x="350" y="340" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="AR_Decision_Exclusion_di" dmnElementRef="AR_Decision_Exclusion"><di:waypoint x="1265" y="143" /><di:waypoint x="1265" y="210" /><di:waypoint x="350" y="210" /><di:waypoint x="350" y="260" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_Decision_Incident_Input_incident_di" dmnElementRef="IR_Decision_Incident_Input_incident"><di:waypoint x="695" y="460" /><di:waypoint x="950" y="340" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_Decision_Incident_Input_visibleToDriver_di" dmnElementRef="IR_Decision_Incident_Input_visibleToDriver"><di:waypoint x="865" y="460" /><di:waypoint x="950" y="340" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_Decision_Incident_Input_busFull_di" dmnElementRef="IR_Decision_Incident_Input_busFull"><di:waypoint x="1035" y="460" /><di:waypoint x="950" y="340" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_Decision_Incident_Input_stopRequested_di" dmnElementRef="IR_Decision_Incident_Input_stopRequested"><di:waypoint x="1205" y="460" /><di:waypoint x="950" y="340" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_Decision_Incident_Input_nextWithin20_di" dmnElementRef="IR_Decision_Incident_Input_nextWithin20"><di:waypoint x="1375" y="460" /><di:waypoint x="950" y="340" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="AR_Decision_Incident_di" dmnElementRef="AR_Decision_Incident"><di:waypoint x="1265" y="143" /><di:waypoint x="1265" y="300" /><di:waypoint x="1040" y="300" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_Decision_ClaimValid_Input_receiptAttached_di" dmnElementRef="IR_Decision_ClaimValid_Input_receiptAttached"><di:waypoint x="1595" y="460" /><di:waypoint x="1680" y="340" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_Decision_ClaimValid_Input_daysToClaim_di" dmnElementRef="IR_Decision_ClaimValid_Input_daysToClaim"><di:waypoint x="1765" y="460" /><di:waypoint x="1680" y="340" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="AR_Decision_ClaimValid_di" dmnElementRef="AR_Decision_ClaimValid"><di:waypoint x="1680" y="143" /><di:waypoint x="1680" y="260" /></dmndi:DMNEdge>
+    <dmndi:DMNShape id="Annotation_Author_di" dmnElementRef="Annotation_Author"><dc:Bounds x="60" y="560" width="330" height="50" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Annotation_Scope_di" dmnElementRef="Annotation_Scope"><dc:Bounds x="230" y="60" width="290" height="50" /></dmndi:DMNShape>
+    <dmndi:DMNEdge id="Assoc_Annotation_Scope_di" dmnElementRef="Assoc_Annotation_Scope"><di:waypoint x="520" y="85" /><di:waypoint x="560" y="85" /></dmndi:DMNEdge>
+    <dmndi:DMNShape id="Annotation_Delay_di" dmnElementRef="Annotation_Delay"><dc:Bounds x="520" y="560" width="290" height="50" /></dmndi:DMNShape>
+    <dmndi:DMNEdge id="Assoc_Annotation_Delay_di" dmnElementRef="Assoc_Annotation_Delay"><di:waypoint x="620" y="560" /><di:waypoint x="620" y="505" /></dmndi:DMNEdge>
+    <dmndi:DMNShape id="Annotation_Deadline_di" dmnElementRef="Annotation_Deadline"><dc:Bounds x="1640" y="560" width="280" height="50" /></dmndi:DMNShape>
+    <dmndi:DMNEdge id="Assoc_Annotation_Deadline_di" dmnElementRef="Assoc_Annotation_Deadline"><di:waypoint x="1740" y="560" /><di:waypoint x="1740" y="505" /></dmndi:DMNEdge>
+  </dmndi:DMNDiagram></dmndi:DMNDI>
+</definitions>

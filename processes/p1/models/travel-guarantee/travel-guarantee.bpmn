@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_travel_guarantee" targetNamespace="http://poeds-group-14.dtu.dk/rejsegaranti" exporter="tools/build_bpmn.py" exporterVersion="1.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:documentation>Travel guarantee decision, author Liam Palmqvist</bpmn:documentation>
+    <bpmn:participant id="Participant_travel-guarantee" name="Travel guarantee assessment (Movia)" processRef="travel-guarantee" />
+    <bpmn:textAnnotation id="Annotation_Author"><bpmn:text>Travel guarantee, Movia bus and local train: when it applies. Author: Liam Palmqvist. Rules: the travel guarantee terms only.</bpmn:text></bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Delay"><bpmn:text>Actual delay. A +20 min estimate on Rejseplan or a stop screen is not enough: the bus or train may catch up.</bpmn:text></bpmn:textAnnotation>
+    <bpmn:textAnnotation id="Annotation_Scope"><bpmn:text>Covers only the part of the trip the bus or local train should have covered. No other costs (e.g. flight or show tickets, lost earnings).</bpmn:text></bpmn:textAnnotation>
+    <bpmn:association id="Assoc_Delay" sourceRef="Annotation_Delay" targetRef="f_late" />
+    <bpmn:association id="Assoc_Scope" sourceRef="Annotation_Scope" targetRef="EndCovered" />
+  </bpmn:collaboration>
+  <bpmn:process id="travel-guarantee" name="Travel guarantee assessment (Movia)" isExecutable="false">
+    <bpmn:startEvent id="Start" name="Bus or local train trip disrupted">
+      <bpmn:outgoing>Flow_Start_GwFlex</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="GwFlex" name="Flextrafik trip?" default="f_flex_no">
+      <bpmn:incoming>Flow_Start_GwFlex</bpmn:incoming>
+      <bpmn:outgoing>Flow_GwFlex_EndFlex</bpmn:outgoing>
+      <bpmn:outgoing>f_flex_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndFlex" name="Not covered: Flextrafik">
+      <bpmn:incoming>Flow_GwFlex_EndFlex</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="GwFM" name="Strike, force majeure, or weather made the timetable impossible?" default="f_fm_no">
+      <bpmn:incoming>f_flex_no</bpmn:incoming>
+      <bpmn:outgoing>Flow_GwFM_EndFM</bpmn:outgoing>
+      <bpmn:outgoing>f_fm_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndFM" name="Not covered: strike, weather or force majeure">
+      <bpmn:incoming>Flow_GwFM_EndFM</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="GwPlan" name="Planned change announced 24 h before?" default="f_plan_no">
+      <bpmn:incoming>f_fm_no</bpmn:incoming>
+      <bpmn:outgoing>Flow_GwPlan_EndPlan</bpmn:outgoing>
+      <bpmn:outgoing>f_plan_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndPlan" name="Not covered: planned change">
+      <bpmn:incoming>Flow_GwPlan_EndPlan</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="GwWhat" name="What happened?">
+      <bpmn:incoming>f_plan_no</bpmn:incoming>
+      <bpmn:outgoing>f_late</bpmn:outgoing>
+      <bpmn:outgoing>f_passed</bpmn:outgoing>
+      <bpmn:outgoing>f_nostop</bpmn:outgoing>
+      <bpmn:outgoing>f_early</bpmn:outgoing>
+      <bpmn:outgoing>f_conn</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="GwVisible" name="Clearly visible to the driver?" default="f_vis_yes">
+      <bpmn:incoming>f_passed</bpmn:incoming>
+      <bpmn:outgoing>Flow_GwVisible_EndVisible</bpmn:outgoing>
+      <bpmn:outgoing>f_vis_yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndVisible" name="Not covered: not visible">
+      <bpmn:incoming>Flow_GwVisible_EndVisible</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="GwFull" name="Bus full?" default="f_full_no">
+      <bpmn:incoming>f_vis_yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_GwFull_EndFull</bpmn:outgoing>
+      <bpmn:outgoing>f_full_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndFull" name="Not covered: bus full">
+      <bpmn:incoming>Flow_GwFull_EndFull</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="GwNextB" name="Next bus due within 20 min?" default="f_nextb_no">
+      <bpmn:incoming>f_full_no</bpmn:incoming>
+      <bpmn:outgoing>Flow_GwNextB_EndNextB</bpmn:outgoing>
+      <bpmn:outgoing>f_nextb_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndNextB" name="Not covered: next bus within 20 min">
+      <bpmn:incoming>Flow_GwNextB_EndNextB</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="GwReq" name="Stop requested in due time?" default="f_req_yes">
+      <bpmn:incoming>f_nostop</bpmn:incoming>
+      <bpmn:outgoing>Flow_GwReq_EndReq</bpmn:outgoing>
+      <bpmn:outgoing>f_req_yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndReq" name="Not covered: stop not requested in time">
+      <bpmn:incoming>Flow_GwReq_EndReq</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="GwNextD" name="Next bus/train due within 20 min?" default="f_nextd_no">
+      <bpmn:incoming>f_early</bpmn:incoming>
+      <bpmn:outgoing>Flow_GwNextD_EndNextD</bpmn:outgoing>
+      <bpmn:outgoing>f_nextd_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndNextD" name="Not covered: next departure within 20 min">
+      <bpmn:incoming>Flow_GwNextD_EndNextD</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndConn" name="Not covered: missed connection">
+      <bpmn:incoming>f_conn</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="GwCovered">
+      <bpmn:incoming>f_late</bpmn:incoming>
+      <bpmn:incoming>f_nextb_no</bpmn:incoming>
+      <bpmn:incoming>f_req_yes</bpmn:incoming>
+      <bpmn:incoming>f_nextd_no</bpmn:incoming>
+      <bpmn:outgoing>Flow_GwCovered_EndCovered</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndCovered" name="Travel guarantee applies">
+      <bpmn:incoming>Flow_GwCovered_EndCovered</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_GwFlex" sourceRef="Start" targetRef="GwFlex" />
+    <bpmn:sequenceFlow id="Flow_GwFlex_EndFlex" name="yes" sourceRef="GwFlex" targetRef="EndFlex" />
+    <bpmn:sequenceFlow id="f_flex_no" name="no" sourceRef="GwFlex" targetRef="GwFM" />
+    <bpmn:sequenceFlow id="Flow_GwFM_EndFM" name="yes" sourceRef="GwFM" targetRef="EndFM" />
+    <bpmn:sequenceFlow id="f_fm_no" name="no" sourceRef="GwFM" targetRef="GwPlan" />
+    <bpmn:sequenceFlow id="Flow_GwPlan_EndPlan" name="yes" sourceRef="GwPlan" targetRef="EndPlan" />
+    <bpmn:sequenceFlow id="f_plan_no" name="no" sourceRef="GwPlan" targetRef="GwWhat" />
+    <bpmn:sequenceFlow id="f_late" name="More than 20 min late" sourceRef="GwWhat" targetRef="GwCovered" />
+    <bpmn:sequenceFlow id="f_passed" name="Bus drove past the stop" sourceRef="GwWhat" targetRef="GwVisible" />
+    <bpmn:sequenceFlow id="f_nostop" name="Local train did not stop" sourceRef="GwWhat" targetRef="GwReq" />
+    <bpmn:sequenceFlow id="f_early" name="Left over 2 min early" sourceRef="GwWhat" targetRef="GwNextD" />
+    <bpmn:sequenceFlow id="f_conn" name="Missed connection after a delay" sourceRef="GwWhat" targetRef="EndConn" />
+    <bpmn:sequenceFlow id="Flow_GwVisible_EndVisible" name="no" sourceRef="GwVisible" targetRef="EndVisible" />
+    <bpmn:sequenceFlow id="f_vis_yes" name="yes" sourceRef="GwVisible" targetRef="GwFull" />
+    <bpmn:sequenceFlow id="Flow_GwFull_EndFull" name="yes" sourceRef="GwFull" targetRef="EndFull" />
+    <bpmn:sequenceFlow id="f_full_no" name="no" sourceRef="GwFull" targetRef="GwNextB" />
+    <bpmn:sequenceFlow id="Flow_GwNextB_EndNextB" name="yes" sourceRef="GwNextB" targetRef="EndNextB" />
+    <bpmn:sequenceFlow id="f_nextb_no" name="no" sourceRef="GwNextB" targetRef="GwCovered" />
+    <bpmn:sequenceFlow id="Flow_GwReq_EndReq" name="no" sourceRef="GwReq" targetRef="EndReq" />
+    <bpmn:sequenceFlow id="f_req_yes" name="yes" sourceRef="GwReq" targetRef="GwCovered" />
+    <bpmn:sequenceFlow id="Flow_GwNextD_EndNextD" name="yes" sourceRef="GwNextD" targetRef="EndNextD" />
+    <bpmn:sequenceFlow id="f_nextd_no" name="no" sourceRef="GwNextD" targetRef="GwCovered" />
+    <bpmn:sequenceFlow id="Flow_GwCovered_EndCovered" sourceRef="GwCovered" targetRef="EndCovered" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_travel-guarantee_di" bpmnElement="Participant_travel-guarantee" isHorizontal="true"><dc:Bounds x="100" y="20" width="1500" height="850" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_di" bpmnElement="Start"><dc:Bounds x="162" y="432" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="125" y="472" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwFlex_di" bpmnElement="GwFlex" isMarkerVisible="true"><dc:Bounds x="255" y="425" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="225" y="479" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndFlex_di" bpmnElement="EndFlex"><dc:Bounds x="262" y="302" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="225" y="258" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwFM_di" bpmnElement="GwFM" isMarkerVisible="true"><dc:Bounds x="375" y="425" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="345" y="479" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndFM_di" bpmnElement="EndFM"><dc:Bounds x="382" y="302" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="345" y="258" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwPlan_di" bpmnElement="GwPlan" isMarkerVisible="true"><dc:Bounds x="495" y="425" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="465" y="479" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndPlan_di" bpmnElement="EndPlan"><dc:Bounds x="502" y="302" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="465" y="258" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwWhat_di" bpmnElement="GwWhat" isMarkerVisible="true"><dc:Bounds x="615" y="425" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="585" y="479" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwVisible_di" bpmnElement="GwVisible" isMarkerVisible="true"><dc:Bounds x="805" y="245" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="775" y="299" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndVisible_di" bpmnElement="EndVisible"><dc:Bounds x="812" y="157" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="720" y="155" width="88" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwFull_di" bpmnElement="GwFull" isMarkerVisible="true"><dc:Bounds x="935" y="245" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="905" y="299" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndFull_di" bpmnElement="EndFull"><dc:Bounds x="942" y="157" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="850" y="155" width="88" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwNextB_di" bpmnElement="GwNextB" isMarkerVisible="true"><dc:Bounds x="1065" y="245" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1035" y="299" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndNextB_di" bpmnElement="EndNextB"><dc:Bounds x="1072" y="157" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="980" y="155" width="88" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwReq_di" bpmnElement="GwReq" isMarkerVisible="true"><dc:Bounds x="805" y="425" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="775" y="479" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndReq_di" bpmnElement="EndReq"><dc:Bounds x="812" y="337" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="720" y="335" width="88" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwNextD_di" bpmnElement="GwNextD" isMarkerVisible="true"><dc:Bounds x="805" y="605" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="775" y="659" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndNextD_di" bpmnElement="EndNextD"><dc:Bounds x="812" y="517" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="720" y="515" width="88" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndConn_di" bpmnElement="EndConn"><dc:Bounds x="812" y="772" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="775" y="812" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GwCovered_di" bpmnElement="GwCovered" isMarkerVisible="true"><dc:Bounds x="1225" y="425" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1195" y="479" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndCovered_di" bpmnElement="EndCovered"><dc:Bounds x="1332" y="432" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1295" y="472" width="110" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_Start_GwFlex_di" bpmnElement="Flow_Start_GwFlex">
+        <di:waypoint x="198" y="450" />
+        <di:waypoint x="255" y="450" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GwFlex_EndFlex_di" bpmnElement="Flow_GwFlex_EndFlex">
+        <di:waypoint x="280" y="425" />
+        <di:waypoint x="280" y="338" />
+        <bpmndi:BPMNLabel><dc:Bounds x="284" y="374" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_flex_no_di" bpmnElement="f_flex_no">
+        <di:waypoint x="305" y="450" />
+        <di:waypoint x="375" y="450" />
+        <bpmndi:BPMNLabel><dc:Bounds x="307" y="433" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GwFM_EndFM_di" bpmnElement="Flow_GwFM_EndFM">
+        <di:waypoint x="400" y="425" />
+        <di:waypoint x="400" y="338" />
+        <bpmndi:BPMNLabel><dc:Bounds x="404" y="374" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_fm_no_di" bpmnElement="f_fm_no">
+        <di:waypoint x="425" y="450" />
+        <di:waypoint x="495" y="450" />
+        <bpmndi:BPMNLabel><dc:Bounds x="427" y="433" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GwPlan_EndPlan_di" bpmnElement="Flow_GwPlan_EndPlan">
+        <di:waypoint x="520" y="425" />
+        <di:waypoint x="520" y="338" />
+        <bpmndi:BPMNLabel><dc:Bounds x="524" y="374" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_plan_no_di" bpmnElement="f_plan_no">
+        <di:waypoint x="545" y="450" />
+        <di:waypoint x="615" y="450" />
+        <bpmndi:BPMNLabel><dc:Bounds x="547" y="433" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_late_di" bpmnElement="f_late">
+        <di:waypoint x="665" y="450" />
+        <di:waypoint x="700" y="450" />
+        <di:waypoint x="700" y="120" />
+        <di:waypoint x="1250" y="120" />
+        <di:waypoint x="1250" y="425" />
+        <bpmndi:BPMNLabel><dc:Bounds x="706" y="88" width="100" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_passed_di" bpmnElement="f_passed">
+        <di:waypoint x="665" y="450" />
+        <di:waypoint x="700" y="450" />
+        <di:waypoint x="700" y="270" />
+        <di:waypoint x="805" y="270" />
+        <bpmndi:BPMNLabel><dc:Bounds x="706" y="238" width="100" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_nostop_di" bpmnElement="f_nostop">
+        <di:waypoint x="665" y="450" />
+        <di:waypoint x="805" y="450" />
+        <bpmndi:BPMNLabel><dc:Bounds x="706" y="418" width="100" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_early_di" bpmnElement="f_early">
+        <di:waypoint x="665" y="450" />
+        <di:waypoint x="700" y="450" />
+        <di:waypoint x="700" y="630" />
+        <di:waypoint x="805" y="630" />
+        <bpmndi:BPMNLabel><dc:Bounds x="706" y="598" width="100" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_conn_di" bpmnElement="f_conn">
+        <di:waypoint x="665" y="450" />
+        <di:waypoint x="700" y="450" />
+        <di:waypoint x="700" y="790" />
+        <di:waypoint x="812" y="790" />
+        <bpmndi:BPMNLabel><dc:Bounds x="706" y="744" width="100" height="28" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GwVisible_EndVisible_di" bpmnElement="Flow_GwVisible_EndVisible">
+        <di:waypoint x="830" y="245" />
+        <di:waypoint x="830" y="193" />
+        <bpmndi:BPMNLabel><dc:Bounds x="834" y="211" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_vis_yes_di" bpmnElement="f_vis_yes">
+        <di:waypoint x="855" y="270" />
+        <di:waypoint x="935" y="270" />
+        <bpmndi:BPMNLabel><dc:Bounds x="857" y="253" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GwFull_EndFull_di" bpmnElement="Flow_GwFull_EndFull">
+        <di:waypoint x="960" y="245" />
+        <di:waypoint x="960" y="193" />
+        <bpmndi:BPMNLabel><dc:Bounds x="964" y="211" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_full_no_di" bpmnElement="f_full_no">
+        <di:waypoint x="985" y="270" />
+        <di:waypoint x="1065" y="270" />
+        <bpmndi:BPMNLabel><dc:Bounds x="987" y="253" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GwNextB_EndNextB_di" bpmnElement="Flow_GwNextB_EndNextB">
+        <di:waypoint x="1090" y="245" />
+        <di:waypoint x="1090" y="193" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1094" y="211" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_nextb_no_di" bpmnElement="f_nextb_no">
+        <di:waypoint x="1115" y="270" />
+        <di:waypoint x="1250" y="270" />
+        <di:waypoint x="1250" y="425" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1117" y="253" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GwReq_EndReq_di" bpmnElement="Flow_GwReq_EndReq">
+        <di:waypoint x="830" y="425" />
+        <di:waypoint x="830" y="373" />
+        <bpmndi:BPMNLabel><dc:Bounds x="834" y="391" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_req_yes_di" bpmnElement="f_req_yes">
+        <di:waypoint x="855" y="450" />
+        <di:waypoint x="1225" y="450" />
+        <bpmndi:BPMNLabel><dc:Bounds x="857" y="433" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GwNextD_EndNextD_di" bpmnElement="Flow_GwNextD_EndNextD">
+        <di:waypoint x="830" y="605" />
+        <di:waypoint x="830" y="553" />
+        <bpmndi:BPMNLabel><dc:Bounds x="834" y="571" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f_nextd_no_di" bpmnElement="f_nextd_no">
+        <di:waypoint x="855" y="630" />
+        <di:waypoint x="1250" y="630" />
+        <di:waypoint x="1250" y="475" />
+        <bpmndi:BPMNLabel><dc:Bounds x="857" y="613" width="26" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GwCovered_EndCovered_di" bpmnElement="Flow_GwCovered_EndCovered">
+        <di:waypoint x="1275" y="450" />
+        <di:waypoint x="1332" y="450" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Annotation_Author_di" bpmnElement="Annotation_Author"><dc:Bounds x="180" y="40" width="400" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Annotation_Delay_di" bpmnElement="Annotation_Delay"><dc:Bounds x="880" y="40" width="330" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Annotation_Scope_di" bpmnElement="Annotation_Scope"><dc:Bounds x="1400" y="330" width="190" height="92" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Assoc_Delay_di" bpmnElement="Assoc_Delay"><di:waypoint x="1000" y="90" /><di:waypoint x="1000" y="120" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_Scope_di" bpmnElement="Assoc_Scope"><di:waypoint x="1366" y="440" /><di:waypoint x="1400" y="410" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
