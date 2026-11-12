@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/" xmlns:di="http://www.omg.org/spec/DMN/20180521/DI/" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_travel_guarantee" name="Travel guarantee" namespace="http://poeds.dtu.dk/travel-guarantee" exporter="build_dmn.py" exporterVersion="1.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
-  <decision id="Decision_TravelGuarantee" name="Travel guarantee applies">
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/" xmlns:di="http://www.omg.org/spec/DMN/20180521/DI/" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:camunda="http://camunda.org/schema/1.0/dmn" id="Definitions_travel_guarantee" name="Travel guarantee" namespace="http://poeds.dtu.dk/travel-guarantee" exporter="build_dmn.py" exporterVersion="1.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <decision id="Decision_TravelGuarantee" name="Travel guarantee applies" camunda:historyTimeToLive="180">
     <informationRequirement id="IR_Decision_TravelGuarantee_Decision_Exclusion"><requiredDecision href="#Decision_Exclusion" /></informationRequirement>
     <informationRequirement id="IR_Decision_TravelGuarantee_Decision_Incident"><requiredDecision href="#Decision_Incident" /></informationRequirement>
     <authorityRequirement id="AR_Decision_TravelGuarantee"><requiredAuthority href="#KS_Terms" /></authorityRequirement>
@@ -31,7 +31,7 @@
       </rule>
     </decisionTable>
   </decision>
-  <decision id="Decision_Exclusion" name="Excluded by cause">
+  <decision id="Decision_Exclusion" name="Excluded by cause" camunda:historyTimeToLive="180">
     <informationRequirement id="IR_Decision_Exclusion_Input_service"><requiredInput href="#Input_service" /></informationRequirement>
     <informationRequirement id="IR_Decision_Exclusion_Input_cause"><requiredInput href="#Input_cause" /></informationRequirement>
     <informationRequirement id="IR_Decision_Exclusion_Input_plannedChange"><requiredInput href="#Input_plannedChange" /></informationRequirement>
@@ -70,7 +70,7 @@
       </rule>
     </decisionTable>
   </decision>
-  <decision id="Decision_Incident" name="Incident qualifies">
+  <decision id="Decision_Incident" name="Incident qualifies" camunda:historyTimeToLive="180">
     <informationRequirement id="IR_Decision_Incident_Input_incident"><requiredInput href="#Input_incident" /></informationRequirement>
     <informationRequirement id="IR_Decision_Incident_Input_visibleToDriver"><requiredInput href="#Input_visibleToDriver" /></informationRequirement>
     <informationRequirement id="IR_Decision_Incident_Input_busFull"><requiredInput href="#Input_busFull" /></informationRequirement>
@@ -168,7 +168,7 @@
       </rule>
     </decisionTable>
   </decision>
-  <decision id="Decision_ClaimValid" name="Claim valid">
+  <decision id="Decision_ClaimValid" name="Claim valid" camunda:historyTimeToLive="180">
     <informationRequirement id="IR_Decision_ClaimValid_Input_receiptAttached"><requiredInput href="#Input_receiptAttached" /></informationRequirement>
     <informationRequirement id="IR_Decision_ClaimValid_Input_daysToClaim"><requiredInput href="#Input_daysToClaim" /></informationRequirement>
     <authorityRequirement id="AR_Decision_ClaimValid"><requiredAuthority href="#KS_Claim" /></authorityRequirement>
