@@ -1,0 +1,805 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_P5" targetNamespace="http://example.org/p5" exporter="P5 generator" exporterVersion="1.0">
+  <bpmn:collaboration id="Collab_P5">
+    <bpmn:participant id="P_OP" name="Operating railway company and train staff (DSB, GoCollective, NT/NJ, MT/MJ, Lokaltog, Skånetrafiken)" />
+    <bpmn:participant id="P_PAX" name="Passenger with reduced mobility" processRef="Proc_Pax" />
+    <bpmn:participant id="P_DSB" name="DSB Kundecenter - Handicapservice" processRef="Proc_DSB" />
+    <bpmn:participant id="P_PRV" name="Assistance provider at station" processRef="Proc_Prv" />
+    <bpmn:messageFlow id="m_01" name="Booking request" sourceRef="t_book" targetRef="s_req" />
+    <bpmn:messageFlow id="m_02" name="Confirmation" sourceRef="t_reg" targetRef="c_conf" />
+    <bpmn:messageFlow id="m_03" name="Decline" sourceRef="e_no" targetRef="c_decl" />
+    <bpmn:messageFlow id="m_04" name="Travel plan" sourceRef="t_send" targetRef="c_plan" />
+    <bpmn:messageFlow id="m_05" name="Booking details [R13]" sourceRef="t_ord" targetRef="P_OP" />
+    <bpmn:messageFlow id="m_06" name="Assistance order" sourceRef="t_ord" targetRef="s_ord" />
+    <bpmn:messageFlow id="m_07" name="Ramp request" sourceRef="t_spont" targetRef="P_OP" />
+    <bpmn:messageFlow id="m_08" name="Passenger reports [R24]" sourceRef="t_report" targetRef="t_meet" />
+    <bpmn:messageFlow id="m_09" name="Help call" sourceRef="t_call" targetRef="s_help" />
+    <bpmn:messageFlow id="m_10" name="Disruption notice [R13]" sourceRef="P_OP" targetRef="s_help" />
+    <bpmn:messageFlow id="m_11" name="New arrangement" sourceRef="t_inf" targetRef="c_new" />
+    <bpmn:messageFlow id="m_12" name="Changed order" sourceRef="t_inf" targetRef="s_ord" />
+    <bpmn:messageFlow id="m_13" name="Assistance [R03]" sourceRef="t_lift" targetRef="t_board" />
+    <bpmn:messageFlow id="m_14" name="Assistance report [R33]" sourceRef="t_rep" targetRef="s_rep" />
+    <bpmn:messageFlow id="m_15" name="Help request to train staff" sourceRef="t_staff" targetRef="P_OP" />
+  </bpmn:collaboration>
+  <bpmn:process id="Proc_Pax" name="P5 AS-IS: passenger" isExecutable="false">
+    <bpmn:startEvent id="s_need" name="Needs help boarding or alighting [R01]">
+      <bpmn:outgoing>f_01</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="g_book" name="Advance booking needed? [R06]">
+      <bpmn:incoming>f_01</bpmn:incoming>
+      <bpmn:outgoing>f_02</bpmn:outgoing>
+      <bpmn:outgoing>f_04</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_spont" name="Travel spontaneously: signal driver or train staff for ramp [R07]">
+      <bpmn:incoming>f_02</bpmn:incoming>
+      <bpmn:outgoing>f_03</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="e_spont" name="Journey completed without booking">
+      <bpmn:incoming>f_03</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="t_book" name="Book Handicapservice by phone or web form [R08]">
+      <bpmn:incoming>f_04</bpmn:incoming>
+      <bpmn:outgoing>f_05</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="c_conf" name="Confirmation received [R14]">
+      <bpmn:incoming>f_05</bpmn:incoming>
+      <bpmn:outgoing>f_06</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="c_conf_def" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:eventBasedGateway id="g_evt">
+      <bpmn:incoming>f_06</bpmn:incoming>
+      <bpmn:outgoing>f_07</bpmn:outgoing>
+      <bpmn:outgoing>f_09</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+    <bpmn:intermediateCatchEvent id="c_decl" name="Decline received">
+      <bpmn:incoming>f_07</bpmn:incoming>
+      <bpmn:outgoing>f_08</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="c_decl_def" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:endEvent id="e_decl" name="Journey not assisted">
+      <bpmn:incoming>f_08</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateCatchEvent id="c_plan" name="Travel plan with meeting point received [R14]">
+      <bpmn:incoming>f_09</bpmn:incoming>
+      <bpmn:outgoing>f_10</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="c_plan_def" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:exclusiveGateway id="g_m">
+      <bpmn:incoming>f_10</bpmn:incoming>
+      <bpmn:incoming>f_17</bpmn:incoming>
+      <bpmn:outgoing>f_11</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_report" name="Report at Meeting Point 15 min before departure [R22-R24]">
+      <bpmn:incoming>f_11</bpmn:incoming>
+      <bpmn:outgoing>f_12</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_ok" name="Helper present and train running?">
+      <bpmn:incoming>f_12</bpmn:incoming>
+      <bpmn:outgoing>f_13</bpmn:outgoing>
+      <bpmn:outgoing>f_15</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_call" name="Call 70 13 14 19 or ask train staff [R30]">
+      <bpmn:incoming>f_15</bpmn:incoming>
+      <bpmn:outgoing>f_16</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:intermediateCatchEvent id="c_new" name="New arrangement received">
+      <bpmn:incoming>f_16</bpmn:incoming>
+      <bpmn:outgoing>f_17</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="c_new_def" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:exclusiveGateway id="g_mb">
+      <bpmn:incoming>f_13</bpmn:incoming>
+      <bpmn:incoming>f_26</bpmn:incoming>
+      <bpmn:outgoing>f_14</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_board" name="Board train with assistance [R03]">
+      <bpmn:incoming>f_14</bpmn:incoming>
+      <bpmn:outgoing>f_18</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_travel" name="Travel; companion gives any help on board [R04]">
+      <bpmn:incoming>f_18</bpmn:incoming>
+      <bpmn:outgoing>f_19</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_h" name="Helper at the train? [R25]">
+      <bpmn:incoming>f_19</bpmn:incoming>
+      <bpmn:outgoing>f_20</bpmn:outgoing>
+      <bpmn:outgoing>f_21</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_staff" name="Ask train staff for help off the train [R30]">
+      <bpmn:incoming>f_21</bpmn:incoming>
+      <bpmn:outgoing>f_22</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_mh">
+      <bpmn:incoming>f_20</bpmn:incoming>
+      <bpmn:incoming>f_22</bpmn:incoming>
+      <bpmn:outgoing>f_23</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_alight" name="Alight with assistance [R25, R26]">
+      <bpmn:incoming>f_23</bpmn:incoming>
+      <bpmn:outgoing>f_24</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_chg" name="Change of train? [R25]">
+      <bpmn:incoming>f_24</bpmn:incoming>
+      <bpmn:outgoing>f_25</bpmn:outgoing>
+      <bpmn:outgoing>f_26</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="e_done" name="Journey completed">
+      <bpmn:incoming>f_25</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f_01" sourceRef="s_need" targetRef="g_book" />
+    <bpmn:sequenceFlow id="f_02" name="No" sourceRef="g_book" targetRef="t_spont" />
+    <bpmn:sequenceFlow id="f_03" sourceRef="t_spont" targetRef="e_spont" />
+    <bpmn:sequenceFlow id="f_04" name="Yes" sourceRef="g_book" targetRef="t_book" />
+    <bpmn:sequenceFlow id="f_05" sourceRef="t_book" targetRef="c_conf" />
+    <bpmn:sequenceFlow id="f_06" sourceRef="c_conf" targetRef="g_evt" />
+    <bpmn:sequenceFlow id="f_07" sourceRef="g_evt" targetRef="c_decl" />
+    <bpmn:sequenceFlow id="f_08" sourceRef="c_decl" targetRef="e_decl" />
+    <bpmn:sequenceFlow id="f_09" sourceRef="g_evt" targetRef="c_plan" />
+    <bpmn:sequenceFlow id="f_10" sourceRef="c_plan" targetRef="g_m" />
+    <bpmn:sequenceFlow id="f_11" sourceRef="g_m" targetRef="t_report" />
+    <bpmn:sequenceFlow id="f_12" sourceRef="t_report" targetRef="g_ok" />
+    <bpmn:sequenceFlow id="f_13" name="Yes" sourceRef="g_ok" targetRef="g_mb" />
+    <bpmn:sequenceFlow id="f_14" sourceRef="g_mb" targetRef="t_board" />
+    <bpmn:sequenceFlow id="f_15" name="No" sourceRef="g_ok" targetRef="t_call" />
+    <bpmn:sequenceFlow id="f_16" sourceRef="t_call" targetRef="c_new" />
+    <bpmn:sequenceFlow id="f_17" sourceRef="c_new" targetRef="g_m" />
+    <bpmn:sequenceFlow id="f_18" sourceRef="t_board" targetRef="t_travel" />
+    <bpmn:sequenceFlow id="f_19" sourceRef="t_travel" targetRef="g_h" />
+    <bpmn:sequenceFlow id="f_20" name="Yes" sourceRef="g_h" targetRef="g_mh" />
+    <bpmn:sequenceFlow id="f_21" name="No" sourceRef="g_h" targetRef="t_staff" />
+    <bpmn:sequenceFlow id="f_22" sourceRef="t_staff" targetRef="g_mh" />
+    <bpmn:sequenceFlow id="f_23" sourceRef="g_mh" targetRef="t_alight" />
+    <bpmn:sequenceFlow id="f_24" sourceRef="t_alight" targetRef="g_chg" />
+    <bpmn:sequenceFlow id="f_25" name="No" sourceRef="g_chg" targetRef="e_done" />
+    <bpmn:sequenceFlow id="f_26" name="Yes" sourceRef="g_chg" targetRef="g_mb" />
+    <bpmn:textAnnotation id="a1"><bpmn:text>Not modelled: free wheelchair seat ticket on InterCity/Lyn [R15]; changes or cancellation until 12 h before [R16]; extended help to taxi rank at 6 stations [R27]; airport hand-over to Falck [R28]; ID card only for ticket discount [R38, assumption].</bpmn:text></bpmn:textAnnotation>
+  </bpmn:process>
+  <bpmn:process id="Proc_DSB" name="P5 AS-IS: DSB Handicapservice booking" isExecutable="false">
+    <bpmn:startEvent id="s_req" name="Booking request received [R12]">
+      <bpmn:outgoing>f_27</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="s_req_def" />
+    </bpmn:startEvent>
+    <bpmn:task id="t_reg" name="Register request; send confirmation [R14]">
+      <bpmn:incoming>f_27</bpmn:incoming>
+      <bpmn:outgoing>f_28</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_12" name="At least 12 h before departure? [R09, R10]">
+      <bpmn:incoming>f_28</bpmn:incoming>
+      <bpmn:outgoing>f_29</bpmn:outgoing>
+      <bpmn:outgoing>f_30</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_late" name="Make reasonable efforts to arrange help [R29]">
+      <bpmn:incoming>f_30</bpmn:incoming>
+      <bpmn:outgoing>f_31</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_poss" name="Help possible?">
+      <bpmn:incoming>f_31</bpmn:incoming>
+      <bpmn:outgoing>f_32</bpmn:outgoing>
+      <bpmn:outgoing>f_33</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="e_no" name="Decline sent">
+      <bpmn:incoming>f_33</bpmn:incoming>
+      <bpmn:messageEventDefinition id="e_no_def" />
+    </bpmn:endEvent>
+    <bpmn:exclusiveGateway id="g_m1">
+      <bpmn:incoming>f_29</bpmn:incoming>
+      <bpmn:incoming>f_32</bpmn:incoming>
+      <bpmn:outgoing>f_34</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_chk" name="Check aid size and stations on route [R17, R18, R39]">
+      <bpmn:incoming>f_34</bpmn:incoming>
+      <bpmn:outgoing>f_35</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_lift" name="Lift or ramp at station? [R19]">
+      <bpmn:incoming>f_35</bpmn:incoming>
+      <bpmn:outgoing>f_36</bpmn:outgoing>
+      <bpmn:outgoing>f_37</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_pl" name="Plan lift or ramp assistance [R19]">
+      <bpmn:incoming>f_36</bpmn:incoming>
+      <bpmn:outgoing>f_38</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_pk" name="Plan taxi to nearest station with lift [R19]">
+      <bpmn:incoming>f_37</bpmn:incoming>
+      <bpmn:outgoing>f_39</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_m2">
+      <bpmn:incoming>f_38</bpmn:incoming>
+      <bpmn:incoming>f_39</bpmn:incoming>
+      <bpmn:outgoing>f_40</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_ord" name="Order assistance; notify operating company [R13, R40]">
+      <bpmn:incoming>f_40</bpmn:incoming>
+      <bpmn:outgoing>f_41</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_send" name="Send travel plan with meeting point [R14]">
+      <bpmn:incoming>f_41</bpmn:incoming>
+      <bpmn:outgoing>f_42</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="e_bk" name="Booking completed">
+      <bpmn:incoming>f_42</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:startEvent id="s_help" name="Help call or disruption notice received [R30]">
+      <bpmn:outgoing>f_45</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="s_help_def" />
+    </bpmn:startEvent>
+    <bpmn:task id="t_replan" name="Re-plan: later departure or taxi [R30-R32]">
+      <bpmn:incoming>f_45</bpmn:incoming>
+      <bpmn:outgoing>f_46</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_inf" name="Inform passenger and provider">
+      <bpmn:incoming>f_46</bpmn:incoming>
+      <bpmn:outgoing>f_47</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="e_re" name="Journey re-planned">
+      <bpmn:incoming>f_47</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:startEvent id="s_rep" name="Assistance report received [R33]">
+      <bpmn:outgoing>f_43</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="s_rep_def" />
+    </bpmn:startEvent>
+    <bpmn:task id="t_rec" name="Record outcome; follow up with operator quarterly [R33]">
+      <bpmn:incoming>f_43</bpmn:incoming>
+      <bpmn:outgoing>f_44</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="e_rec" name="Outcome recorded">
+      <bpmn:incoming>f_44</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f_27" sourceRef="s_req" targetRef="t_reg" />
+    <bpmn:sequenceFlow id="f_28" sourceRef="t_reg" targetRef="g_12" />
+    <bpmn:sequenceFlow id="f_29" name="Yes" sourceRef="g_12" targetRef="g_m1" />
+    <bpmn:sequenceFlow id="f_30" name="No" sourceRef="g_12" targetRef="t_late" />
+    <bpmn:sequenceFlow id="f_31" sourceRef="t_late" targetRef="g_poss" />
+    <bpmn:sequenceFlow id="f_32" name="Yes" sourceRef="g_poss" targetRef="g_m1" />
+    <bpmn:sequenceFlow id="f_33" name="No" sourceRef="g_poss" targetRef="e_no" />
+    <bpmn:sequenceFlow id="f_34" sourceRef="g_m1" targetRef="t_chk" />
+    <bpmn:sequenceFlow id="f_35" sourceRef="t_chk" targetRef="g_lift" />
+    <bpmn:sequenceFlow id="f_36" name="Yes" sourceRef="g_lift" targetRef="t_pl" />
+    <bpmn:sequenceFlow id="f_37" name="No (K station)" sourceRef="g_lift" targetRef="t_pk" />
+    <bpmn:sequenceFlow id="f_38" sourceRef="t_pl" targetRef="g_m2" />
+    <bpmn:sequenceFlow id="f_39" sourceRef="t_pk" targetRef="g_m2" />
+    <bpmn:sequenceFlow id="f_40" sourceRef="g_m2" targetRef="t_ord" />
+    <bpmn:sequenceFlow id="f_41" sourceRef="t_ord" targetRef="t_send" />
+    <bpmn:sequenceFlow id="f_42" sourceRef="t_send" targetRef="e_bk" />
+    <bpmn:sequenceFlow id="f_43" sourceRef="s_rep" targetRef="t_rec" />
+    <bpmn:sequenceFlow id="f_44" sourceRef="t_rec" targetRef="e_rec" />
+    <bpmn:sequenceFlow id="f_45" sourceRef="s_help" targetRef="t_replan" />
+    <bpmn:sequenceFlow id="f_46" sourceRef="t_replan" targetRef="t_inf" />
+    <bpmn:sequenceFlow id="f_47" sourceRef="t_inf" targetRef="e_re" />
+    <bpmn:textAnnotation id="a2"><bpmn:text>24 h for Swedish Øresund stations and trains to Germany [R10]. EU law allows up to 24 h; DSB uses 12 h since 2016 [R11].</bpmn:text></bpmn:textAnnotation>
+    <bpmn:association id="a2_as" sourceRef="g_12" targetRef="a2" />
+    <bpmn:textAnnotation id="a3"><bpmn:text>Limits: 140 x 70 cm and 300 kg incl. passenger; 120 cm on NT/NJ trains, longer aids get a lift taxi [R17, R18].</bpmn:text></bpmn:textAnnotation>
+    <bpmn:association id="a3_as" sourceRef="t_chk" targetRef="a3" />
+    <bpmn:textAnnotation id="a5"><bpmn:text>Providers: station staff or local taxi company; Falck at Copenhagen Airport [R20]. Follow-up outside this model: compensation for damaged aids [R34], complaints [R35], staff training [R36], door-to-door trips booked 72 h ahead [R37].</bpmn:text></bpmn:textAnnotation>
+  </bpmn:process>
+  <bpmn:process id="Proc_Prv" name="P5 AS-IS: station assistance" isExecutable="false">
+    <bpmn:startEvent id="s_ord" name="New or changed assistance order received [R20]">
+      <bpmn:outgoing>f_48</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="s_ord_def" />
+    </bpmn:startEvent>
+    <bpmn:intermediateCatchEvent id="c_time" name="Meeting time reached [R22]">
+      <bpmn:incoming>f_48</bpmn:incoming>
+      <bpmn:outgoing>f_49</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="c_time_def" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:task id="t_meet" name="Meet passenger at Meeting Point or arriving train [R23]">
+      <bpmn:incoming>f_49</bpmn:incoming>
+      <bpmn:outgoing>f_50</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t_lift" name="Escort; operate lift or ramp; help with 1 item max 20 kg [R03, R05, R17]">
+      <bpmn:incoming>f_51</bpmn:incoming>
+      <bpmn:outgoing>f_53</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g_show" name="Passenger at Meeting Point? [R24]">
+      <bpmn:incoming>f_50</bpmn:incoming>
+      <bpmn:outgoing>f_51</bpmn:outgoing>
+      <bpmn:outgoing>f_52</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="g_mr">
+      <bpmn:incoming>f_52</bpmn:incoming>
+      <bpmn:incoming>f_53</bpmn:incoming>
+      <bpmn:outgoing>f_54</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t_rep" name="Report assistance delivered or failed to DSB [R33]">
+      <bpmn:incoming>f_54</bpmn:incoming>
+      <bpmn:outgoing>f_55</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="e_del" name="Order closed">
+      <bpmn:incoming>f_55</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f_48" sourceRef="s_ord" targetRef="c_time" />
+    <bpmn:sequenceFlow id="f_49" sourceRef="c_time" targetRef="t_meet" />
+    <bpmn:sequenceFlow id="f_50" sourceRef="t_meet" targetRef="g_show" />
+    <bpmn:sequenceFlow id="f_51" name="Yes" sourceRef="g_show" targetRef="t_lift" />
+    <bpmn:sequenceFlow id="f_52" name="No (no-show)" sourceRef="g_show" targetRef="g_mr" />
+    <bpmn:sequenceFlow id="f_53" sourceRef="t_lift" targetRef="g_mr" />
+    <bpmn:sequenceFlow id="f_54" sourceRef="g_mr" targetRef="t_rep" />
+    <bpmn:sequenceFlow id="f_55" sourceRef="t_rep" targetRef="e_del" />
+    <bpmn:textAnnotation id="a4"><bpmn:text>Runs once per station: departure, each change, arrival [R25, R26]. At K stations the provider drives the passenger to the nearest station with a lift [R19]. Free of charge and offered whenever trains run [R02, R21].</bpmn:text></bpmn:textAnnotation>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_P5"><bpmndi:BPMNPlane id="Plane_P5" bpmnElement="Collab_P5">
+    <bpmndi:BPMNShape id="P_OP_di" bpmnElement="P_OP" isHorizontal="true"><dc:Bounds x="160" y="40" width="3200" height="60" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="P_PAX_di" bpmnElement="P_PAX" isHorizontal="true"><dc:Bounds x="160" y="140" width="3200" height="320" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="P_DSB_di" bpmnElement="P_DSB" isHorizontal="true"><dc:Bounds x="160" y="500" width="3200" height="360" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="P_PRV_di" bpmnElement="P_PRV" isHorizontal="true"><dc:Bounds x="160" y="900" width="3200" height="170" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="s_need_di" bpmnElement="s_need"><dc:Bounds x="232" y="337" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="195" y="377" width="110" height="42" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_book_di" bpmnElement="g_book" isMarkerVisible="true"><dc:Bounds x="335" y="330" width="50" height="50" />
+      <bpmndi:BPMNLabel><dc:Bounds x="305" y="385" width="110" height="28" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_spont_di" bpmnElement="t_spont"><dc:Bounds x="435" y="175" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="e_spont_di" bpmnElement="e_spont"><dc:Bounds x="622" y="197" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="585" y="237" width="110" height="28" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_book_di" bpmnElement="t_book"><dc:Bounds x="435" y="315" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="c_conf_di" bpmnElement="c_conf"><dc:Bounds x="622" y="337" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="652" y="298" width="110" height="28" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_evt_di" bpmnElement="g_evt"><dc:Bounds x="735" y="330" width="50" height="50" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="c_decl_di" bpmnElement="c_decl"><dc:Bounds x="1057" y="197" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="1025" y="168" width="100" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="e_decl_di" bpmnElement="e_decl"><dc:Bounds x="1167" y="197" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="1130" y="237" width="110" height="28" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="c_plan_di" bpmnElement="c_plan"><dc:Bounds x="1872" y="337" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="1752" y="380" width="125" height="42" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_m_di" bpmnElement="g_m" isMarkerVisible="true"><dc:Bounds x="1965" y="330" width="50" height="50" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_report_di" bpmnElement="t_report"><dc:Bounds x="2045" y="315" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_ok_di" bpmnElement="g_ok" isMarkerVisible="true"><dc:Bounds x="2225" y="330" width="50" height="50" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2188" y="386" width="92" height="42" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_call_di" bpmnElement="t_call"><dc:Bounds x="2305" y="175" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="c_new_di" bpmnElement="c_new"><dc:Bounds x="2562" y="197" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2605" y="222" width="110" height="28" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_mb_di" bpmnElement="g_mb" isMarkerVisible="true"><dc:Bounds x="2345" y="330" width="50" height="50" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_board_di" bpmnElement="t_board"><dc:Bounds x="2435" y="315" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_travel_di" bpmnElement="t_travel"><dc:Bounds x="2595" y="315" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_h_di" bpmnElement="g_h" isMarkerVisible="true"><dc:Bounds x="2765" y="330" width="50" height="50" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2735" y="385" width="110" height="28" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_staff_di" bpmnElement="t_staff"><dc:Bounds x="2835" y="175" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_mh_di" bpmnElement="g_mh" isMarkerVisible="true"><dc:Bounds x="2875" y="330" width="50" height="50" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_alight_di" bpmnElement="t_alight"><dc:Bounds x="2965" y="315" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_chg_di" bpmnElement="g_chg" isMarkerVisible="true"><dc:Bounds x="3145" y="330" width="50" height="50" />
+      <bpmndi:BPMNLabel><dc:Bounds x="3115" y="300" width="110" height="28" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="e_done_di" bpmnElement="e_done"><dc:Bounds x="3252" y="337" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="3215" y="377" width="110" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="s_req_di" bpmnElement="s_req"><dc:Bounds x="482" y="572" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="395" y="612" width="110" height="28" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_reg_di" bpmnElement="t_reg"><dc:Bounds x="575" y="550" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_12_di" bpmnElement="g_12" isMarkerVisible="true"><dc:Bounds x="765" y="565" width="50" height="50" />
+      <bpmndi:BPMNLabel><dc:Bounds x="815" y="538" width="140" height="28" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_late_di" bpmnElement="t_late"><dc:Bounds x="805" y="690" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_poss_di" bpmnElement="g_poss" isMarkerVisible="true"><dc:Bounds x="955" y="705" width="50" height="50" />
+      <bpmndi:BPMNLabel><dc:Bounds x="935" y="778" width="90" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="e_no_di" bpmnElement="e_no"><dc:Bounds x="1057" y="712" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="1100" y="740" width="80" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_m1_di" bpmnElement="g_m1" isMarkerVisible="true"><dc:Bounds x="955" y="565" width="50" height="50" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_chk_di" bpmnElement="t_chk"><dc:Bounds x="1135" y="550" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_lift_di" bpmnElement="g_lift" isMarkerVisible="true"><dc:Bounds x="1315" y="565" width="50" height="50" />
+      <bpmndi:BPMNLabel><dc:Bounds x="1285" y="520" width="110" height="28" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_pl_di" bpmnElement="t_pl"><dc:Bounds x="1415" y="550" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_pk_di" bpmnElement="t_pk"><dc:Bounds x="1415" y="690" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_m2_di" bpmnElement="g_m2" isMarkerVisible="true"><dc:Bounds x="1585" y="565" width="50" height="50" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_ord_di" bpmnElement="t_ord"><dc:Bounds x="1665" y="550" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_send_di" bpmnElement="t_send"><dc:Bounds x="1825" y="550" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="e_bk_di" bpmnElement="e_bk"><dc:Bounds x="1992" y="572" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="1955" y="612" width="110" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="s_help_di" bpmnElement="s_help"><dc:Bounds x="2302" y="572" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2205" y="612" width="110" height="42" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_replan_di" bpmnElement="t_replan"><dc:Bounds x="2385" y="550" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_inf_di" bpmnElement="t_inf"><dc:Bounds x="2545" y="550" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="e_re_di" bpmnElement="e_re"><dc:Bounds x="2712" y="572" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2675" y="612" width="110" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="s_rep_di" bpmnElement="s_rep"><dc:Bounds x="2772" y="782" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2735" y="750" width="110" height="28" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_rec_di" bpmnElement="t_rec"><dc:Bounds x="2855" y="760" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="e_rec_di" bpmnElement="e_rec"><dc:Bounds x="3042" y="782" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="3005" y="822" width="110" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="s_ord_di" bpmnElement="s_ord"><dc:Bounds x="1712" y="967" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="1620" y="1008" width="110" height="28" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="c_time_di" bpmnElement="c_time"><dc:Bounds x="1882" y="967" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="1845" y="1007" width="110" height="28" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_meet_di" bpmnElement="t_meet"><dc:Bounds x="2045" y="945" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_lift_di" bpmnElement="t_lift"><dc:Bounds x="2335" y="945" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_show_di" bpmnElement="g_show" isMarkerVisible="true"><dc:Bounds x="2225" y="960" width="50" height="50" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2195" y="918" width="110" height="28" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_mr_di" bpmnElement="g_mr" isMarkerVisible="true"><dc:Bounds x="2505" y="960" width="50" height="50" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_rep_di" bpmnElement="t_rep"><dc:Bounds x="2595" y="945" width="130" height="80" />
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="e_del_di" bpmnElement="e_del"><dc:Bounds x="2762" y="967" width="36" height="36" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2725" y="1007" width="110" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="f_01_di" bpmnElement="f_01">
+      <di:waypoint x="268" y="355" />
+      <di:waypoint x="335" y="355" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_02_di" bpmnElement="f_02">
+      <di:waypoint x="360" y="330" />
+      <di:waypoint x="360" y="215" />
+      <di:waypoint x="435" y="215" />
+      <bpmndi:BPMNLabel><dc:Bounds x="366" y="306" width="18" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_03_di" bpmnElement="f_03">
+      <di:waypoint x="565" y="215" />
+      <di:waypoint x="622" y="215" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_04_di" bpmnElement="f_04">
+      <di:waypoint x="385" y="355" />
+      <di:waypoint x="435" y="355" />
+      <bpmndi:BPMNLabel><dc:Bounds x="393" y="337" width="24" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_05_di" bpmnElement="f_05">
+      <di:waypoint x="565" y="355" />
+      <di:waypoint x="622" y="355" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_06_di" bpmnElement="f_06">
+      <di:waypoint x="658" y="355" />
+      <di:waypoint x="735" y="355" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_07_di" bpmnElement="f_07">
+      <di:waypoint x="760" y="330" />
+      <di:waypoint x="760" y="215" />
+      <di:waypoint x="1057" y="215" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_08_di" bpmnElement="f_08">
+      <di:waypoint x="1093" y="215" />
+      <di:waypoint x="1167" y="215" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_09_di" bpmnElement="f_09">
+      <di:waypoint x="785" y="355" />
+      <di:waypoint x="1872" y="355" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_10_di" bpmnElement="f_10">
+      <di:waypoint x="1908" y="355" />
+      <di:waypoint x="1965" y="355" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_11_di" bpmnElement="f_11">
+      <di:waypoint x="2015" y="355" />
+      <di:waypoint x="2045" y="355" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_12_di" bpmnElement="f_12">
+      <di:waypoint x="2175" y="355" />
+      <di:waypoint x="2225" y="355" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_13_di" bpmnElement="f_13">
+      <di:waypoint x="2275" y="355" />
+      <di:waypoint x="2345" y="355" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2283" y="337" width="24" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_14_di" bpmnElement="f_14">
+      <di:waypoint x="2395" y="355" />
+      <di:waypoint x="2435" y="355" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_15_di" bpmnElement="f_15">
+      <di:waypoint x="2250" y="330" />
+      <di:waypoint x="2250" y="215" />
+      <di:waypoint x="2305" y="215" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2256" y="306" width="18" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_16_di" bpmnElement="f_16">
+      <di:waypoint x="2435" y="215" />
+      <di:waypoint x="2562" y="215" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_17_di" bpmnElement="f_17">
+      <di:waypoint x="2580" y="197" />
+      <di:waypoint x="2580" y="162" />
+      <di:waypoint x="1990" y="162" />
+      <di:waypoint x="1990" y="330" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_18_di" bpmnElement="f_18">
+      <di:waypoint x="2565" y="355" />
+      <di:waypoint x="2595" y="355" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_19_di" bpmnElement="f_19">
+      <di:waypoint x="2725" y="355" />
+      <di:waypoint x="2765" y="355" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_20_di" bpmnElement="f_20">
+      <di:waypoint x="2815" y="355" />
+      <di:waypoint x="2875" y="355" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2823" y="337" width="24" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_21_di" bpmnElement="f_21">
+      <di:waypoint x="2790" y="330" />
+      <di:waypoint x="2790" y="215" />
+      <di:waypoint x="2835" y="215" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2796" y="306" width="18" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_22_di" bpmnElement="f_22">
+      <di:waypoint x="2900" y="255" />
+      <di:waypoint x="2900" y="330" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_23_di" bpmnElement="f_23">
+      <di:waypoint x="2925" y="355" />
+      <di:waypoint x="2965" y="355" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_24_di" bpmnElement="f_24">
+      <di:waypoint x="3095" y="355" />
+      <di:waypoint x="3145" y="355" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_25_di" bpmnElement="f_25">
+      <di:waypoint x="3195" y="355" />
+      <di:waypoint x="3252" y="355" />
+      <bpmndi:BPMNLabel><dc:Bounds x="3203" y="337" width="18" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_26_di" bpmnElement="f_26">
+      <di:waypoint x="3170" y="380" />
+      <di:waypoint x="3170" y="435" />
+      <di:waypoint x="2370" y="435" />
+      <di:waypoint x="2370" y="380" />
+      <bpmndi:BPMNLabel><dc:Bounds x="3176" y="390" width="24" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_27_di" bpmnElement="f_27">
+      <di:waypoint x="518" y="590" />
+      <di:waypoint x="575" y="590" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_28_di" bpmnElement="f_28">
+      <di:waypoint x="705" y="590" />
+      <di:waypoint x="765" y="590" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_29_di" bpmnElement="f_29">
+      <di:waypoint x="815" y="590" />
+      <di:waypoint x="955" y="590" />
+      <bpmndi:BPMNLabel><dc:Bounds x="823" y="572" width="24" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_30_di" bpmnElement="f_30">
+      <di:waypoint x="790" y="615" />
+      <di:waypoint x="790" y="730" />
+      <di:waypoint x="805" y="730" />
+      <bpmndi:BPMNLabel><dc:Bounds x="796" y="625" width="18" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_31_di" bpmnElement="f_31">
+      <di:waypoint x="935" y="730" />
+      <di:waypoint x="955" y="730" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_32_di" bpmnElement="f_32">
+      <di:waypoint x="980" y="705" />
+      <di:waypoint x="980" y="615" />
+      <bpmndi:BPMNLabel><dc:Bounds x="986" y="681" width="24" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_33_di" bpmnElement="f_33">
+      <di:waypoint x="1005" y="730" />
+      <di:waypoint x="1057" y="730" />
+      <bpmndi:BPMNLabel><dc:Bounds x="1013" y="712" width="18" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_34_di" bpmnElement="f_34">
+      <di:waypoint x="1005" y="590" />
+      <di:waypoint x="1135" y="590" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_35_di" bpmnElement="f_35">
+      <di:waypoint x="1265" y="590" />
+      <di:waypoint x="1315" y="590" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_36_di" bpmnElement="f_36">
+      <di:waypoint x="1365" y="590" />
+      <di:waypoint x="1415" y="590" />
+      <bpmndi:BPMNLabel><dc:Bounds x="1373" y="572" width="24" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_37_di" bpmnElement="f_37">
+      <di:waypoint x="1340" y="615" />
+      <di:waypoint x="1340" y="730" />
+      <di:waypoint x="1415" y="730" />
+      <bpmndi:BPMNLabel><dc:Bounds x="1346" y="625" width="90" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_38_di" bpmnElement="f_38">
+      <di:waypoint x="1545" y="590" />
+      <di:waypoint x="1585" y="590" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_39_di" bpmnElement="f_39">
+      <di:waypoint x="1545" y="730" />
+      <di:waypoint x="1610" y="730" />
+      <di:waypoint x="1610" y="615" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_40_di" bpmnElement="f_40">
+      <di:waypoint x="1635" y="590" />
+      <di:waypoint x="1665" y="590" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_41_di" bpmnElement="f_41">
+      <di:waypoint x="1795" y="590" />
+      <di:waypoint x="1825" y="590" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_42_di" bpmnElement="f_42">
+      <di:waypoint x="1955" y="590" />
+      <di:waypoint x="1992" y="590" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_43_di" bpmnElement="f_43">
+      <di:waypoint x="2808" y="800" />
+      <di:waypoint x="2855" y="800" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_44_di" bpmnElement="f_44">
+      <di:waypoint x="2985" y="800" />
+      <di:waypoint x="3042" y="800" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_45_di" bpmnElement="f_45">
+      <di:waypoint x="2338" y="590" />
+      <di:waypoint x="2385" y="590" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_46_di" bpmnElement="f_46">
+      <di:waypoint x="2515" y="590" />
+      <di:waypoint x="2545" y="590" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_47_di" bpmnElement="f_47">
+      <di:waypoint x="2675" y="590" />
+      <di:waypoint x="2712" y="590" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_48_di" bpmnElement="f_48">
+      <di:waypoint x="1748" y="985" />
+      <di:waypoint x="1882" y="985" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_49_di" bpmnElement="f_49">
+      <di:waypoint x="1918" y="985" />
+      <di:waypoint x="2045" y="985" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_50_di" bpmnElement="f_50">
+      <di:waypoint x="2175" y="985" />
+      <di:waypoint x="2225" y="985" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_51_di" bpmnElement="f_51">
+      <di:waypoint x="2275" y="985" />
+      <di:waypoint x="2335" y="985" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2283" y="967" width="24" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_52_di" bpmnElement="f_52">
+      <di:waypoint x="2250" y="1010" />
+      <di:waypoint x="2250" y="1050" />
+      <di:waypoint x="2530" y="1050" />
+      <di:waypoint x="2530" y="1010" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2256" y="1020" width="78" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_53_di" bpmnElement="f_53">
+      <di:waypoint x="2465" y="985" />
+      <di:waypoint x="2505" y="985" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_54_di" bpmnElement="f_54">
+      <di:waypoint x="2555" y="985" />
+      <di:waypoint x="2595" y="985" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f_55_di" bpmnElement="f_55">
+      <di:waypoint x="2725" y="985" />
+      <di:waypoint x="2762" y="985" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m_01_di" bpmnElement="m_01">
+      <di:waypoint x="500" y="395" />
+      <di:waypoint x="500" y="572" />
+      <bpmndi:BPMNLabel><dc:Bounds x="508" y="473" width="90" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m_02_di" bpmnElement="m_02">
+      <di:waypoint x="640" y="550" />
+      <di:waypoint x="640" y="373" />
+      <bpmndi:BPMNLabel><dc:Bounds x="648" y="473" width="80" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m_03_di" bpmnElement="m_03">
+      <di:waypoint x="1075" y="712" />
+      <di:waypoint x="1075" y="233" />
+      <bpmndi:BPMNLabel><dc:Bounds x="1083" y="473" width="50" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m_04_di" bpmnElement="m_04">
+      <di:waypoint x="1890" y="550" />
+      <di:waypoint x="1890" y="373" />
+      <bpmndi:BPMNLabel><dc:Bounds x="1898" y="473" width="70" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m_05_di" bpmnElement="m_05">
+      <di:waypoint x="1700" y="550" />
+      <di:waypoint x="1700" y="100" />
+      <bpmndi:BPMNLabel><dc:Bounds x="1560" y="112" width="130" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m_06_di" bpmnElement="m_06">
+      <di:waypoint x="1730" y="630" />
+      <di:waypoint x="1730" y="967" />
+      <bpmndi:BPMNLabel><dc:Bounds x="1738" y="905" width="100" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m_07_di" bpmnElement="m_07">
+      <di:waypoint x="500" y="175" />
+      <di:waypoint x="500" y="100" />
+      <bpmndi:BPMNLabel><dc:Bounds x="508" y="112" width="80" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m_08_di" bpmnElement="m_08">
+      <di:waypoint x="2110" y="395" />
+      <di:waypoint x="2110" y="945" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2118" y="466" width="90" height="27" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m_09_di" bpmnElement="m_09">
+      <di:waypoint x="2320" y="255" />
+      <di:waypoint x="2320" y="572" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2328" y="473" width="60" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m_10_di" bpmnElement="m_10">
+      <di:waypoint x="2290" y="100" />
+      <di:waypoint x="2290" y="590" />
+      <di:waypoint x="2302" y="590" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2150" y="112" width="135" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m_11_di" bpmnElement="m_11">
+      <di:waypoint x="2580" y="550" />
+      <di:waypoint x="2580" y="233" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2588" y="473" width="100" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m_12_di" bpmnElement="m_12">
+      <di:waypoint x="2560" y="630" />
+      <di:waypoint x="2560" y="870" />
+      <di:waypoint x="1690" y="870" />
+      <di:waypoint x="1690" y="985" />
+      <di:waypoint x="1712" y="985" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2566" y="700" width="90" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m_13_di" bpmnElement="m_13">
+      <di:waypoint x="2360" y="945" />
+      <di:waypoint x="2360" y="520" />
+      <di:waypoint x="2500" y="520" />
+      <di:waypoint x="2500" y="395" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2372" y="526" width="100" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m_14_di" bpmnElement="m_14">
+      <di:waypoint x="2660" y="945" />
+      <di:waypoint x="2660" y="885" />
+      <di:waypoint x="2790" y="885" />
+      <di:waypoint x="2790" y="818" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2665" y="866" width="125" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m_15_di" bpmnElement="m_15">
+      <di:waypoint x="2900" y="175" />
+      <di:waypoint x="2900" y="100" />
+      <bpmndi:BPMNLabel><dc:Bounds x="2908" y="112" width="160" height="14" /></bpmndi:BPMNLabel>
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNShape id="a1_di" bpmnElement="a1"><dc:Bounds x="1290" y="160" width="360" height="100" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="a2_di" bpmnElement="a2"><dc:Bounds x="560" y="655" width="230" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="a2_as_di" bpmnElement="a2_as">
+      <di:waypoint x="790" y="615" />
+      <di:waypoint x="675" y="655" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNShape id="a3_di" bpmnElement="a3"><dc:Bounds x="1140" y="780" width="260" height="62" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="a3_as_di" bpmnElement="a3_as">
+      <di:waypoint x="1200" y="630" />
+      <di:waypoint x="1270" y="780" />
+    </bpmndi:BPMNEdge>
+    <bpmndi:BPMNShape id="a4_di" bpmnElement="a4"><dc:Bounds x="2830" y="915" width="330" height="96" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="a5_di" bpmnElement="a5"><dc:Bounds x="2690" y="640" width="330" height="96" /></bpmndi:BPMNShape>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</bpmn:definitions>
