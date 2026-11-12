@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_fineRecipient" name="Determine fine recipient" namespace="http://camunda.org/schema/1.0/dmn" exporter="Camunda Modeler" exporterVersion="5.52.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <decision id="fineRecipient" name="Fine recipient">
+    <decisionTable id="DecisionTable_fineRecipient" hitPolicy="FIRST">
+      <input id="Input_traveller" label="Passenger type">
+        <inputExpression id="InputExpression_traveller" typeRef="string">
+          <text>passenger</text>
+        </inputExpression>
+      </input>
+      <input id="Input_alone" label="Travelling alone?">
+        <inputExpression id="InputExpression_alone" typeRef="boolean">
+          <text>travellingAlone</text>
+        </inputExpression>
+      </input>
+      <input id="Input_companion" label="Travelling with (adult / child)">
+        <inputExpression id="InputExpression_companion" typeRef="string">
+          <text>companionType</text>
+        </inputExpression>
+      </input>
+      <output id="Output_fineRecipient" label="Fine recipient" name="fineRecipient" typeRef="string" />
+      <rule id="Rule_r_1">
+        <description>P2-57: separate fine for the dog or bike, issued to the person travelling with it</description>
+        <inputEntry id="IE_r_1_1">
+          <text>"dog","bike"</text>
+        </inputEntry>
+        <inputEntry id="IE_r_1_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_r_1_3">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="OE_r_1">
+          <text>"owner"</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_r_2">
+        <description>P2-35: a child travelling alone gets the fine themselves</description>
+        <inputEntry id="IE_r_2_1">
+          <text>"child"</text>
+        </inputEntry>
+        <inputEntry id="IE_r_2_2">
+          <text>true</text>
+        </inputEntry>
+        <inputEntry id="IE_r_2_3">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="OE_r_2">
+          <text>"self"</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_r_3">
+        <description>P2-35: adult with more than two free children gets the fine for the extra child, at the child rate</description>
+        <inputEntry id="IE_r_3_1">
+          <text>"child"</text>
+        </inputEntry>
+        <inputEntry id="IE_r_3_2">
+          <text>false</text>
+        </inputEntry>
+        <inputEntry id="IE_r_3_3">
+          <text>"adult"</text>
+        </inputEntry>
+        <outputEntry id="OE_r_3">
+          <text>"accompanyingAdult"</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_r_4">
+        <description>P2-35: child under 16 with more than one child under 12: the paying child gets it</description>
+        <inputEntry id="IE_r_4_1">
+          <text>"child"</text>
+        </inputEntry>
+        <inputEntry id="IE_r_4_2">
+          <text>false</text>
+        </inputEntry>
+        <inputEntry id="IE_r_4_3">
+          <text>"child"</text>
+        </inputEntry>
+        <outputEntry id="OE_r_4">
+          <text>"payingChild"</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_r_5">
+        <description>Default: adults, young people and any other case get their own fine</description>
+        <inputEntry id="IE_r_5_1">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_r_5_2">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="IE_r_5_3">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="OE_r_5">
+          <text>"self"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="DMNDiagram_fineRecipient">
+      <dmndi:DMNShape id="DMNShape_fineRecipient" dmnElementRef="fineRecipient">
+        <dc:Bounds height="80" width="180" x="160" y="100" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

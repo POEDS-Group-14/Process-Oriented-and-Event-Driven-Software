@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_fineAmount" name="Set amount" namespace="http://camunda.org/schema/1.0/dmn" exporter="Camunda Modeler" exporterVersion="5.52.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <decision id="fineAmount" name="Set amount">
+    <decisionTable id="DecisionTable_fineAmount">
+      <input id="Input_traveller" label="Passenger type">
+        <inputExpression id="InputExpression_traveller" typeRef="string">
+          <text>passenger</text>
+        </inputExpression>
+      </input>
+      <output id="Output_fineAmount" label="Fine amount (kr)" name="fineAmount" typeRef="integer" />
+      <rule id="Rule_a_1">
+        <description>P2-24, P2-31: Movia also states that there are no reduction for students or pensioners</description>
+        <inputEntry id="IE_a_1_1">
+          <text>"adult","youth"</text>
+        </inputEntry>
+        <outputEntry id="OE_a_1">
+          <text>1000</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_a_2">
+        <description>P2-24</description>
+        <inputEntry id="IE_a_2_1">
+          <text>"child","dog"</text>
+        </inputEntry>
+        <outputEntry id="OE_a_2">
+          <text>500</text>
+        </outputEntry>
+      </rule>
+      <rule id="Rule_a_3">
+        <description>P2-24</description>
+        <inputEntry id="IE_a_3_1">
+          <text>"bike"</text>
+        </inputEntry>
+        <outputEntry id="OE_a_3">
+          <text>100</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="DMNDiagram_fineAmount">
+      <dmndi:DMNShape id="DMNShape_fineAmount" dmnElementRef="fineAmount">
+        <dc:Bounds height="80" width="180" x="160" y="100" />
+      </dmndi:DMNShape>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

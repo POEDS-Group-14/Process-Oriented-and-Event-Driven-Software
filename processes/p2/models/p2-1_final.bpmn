@@ -4,7 +4,7 @@
     <bpmn:participant id="Participant_1xnwp1y" name="Passenger" />
     <bpmn:participant id="Participant_1ab93kx" name="Movia" processRef="Process_07ecq23" />
     <bpmn:participant id="Participant_1xqxepe" name="Gældsstyrelsen" />
-    <bpmn:participant id="Participant_0wmk0u0" name="Fine dispute handling (Process 3, Movia, DCR)" />
+    <bpmn:participant id="Participant_0wmk0u0" name="Fine dispute handling (Process 3)" />
     <bpmn:messageFlow id="MsgFlow_IdShown" name="ID shown" sourceRef="Participant_1xnwp1y" targetRef="Activity_11xzb3l" />
     <bpmn:messageFlow id="MsgFlow_FineSlip" name="Fine slip" sourceRef="Activity_0ml3ezc" targetRef="Participant_1xnwp1y" />
     <bpmn:messageFlow id="MsgFlow_Receipt" name="Signature" sourceRef="Participant_1xnwp1y" targetRef="Activity_175whz0" />
@@ -16,7 +16,7 @@
     <bpmn:messageFlow id="MF_Complaint" name="Complaint" sourceRef="Participant_1xnwp1y" targetRef="B_Complaint" />
     <bpmn:messageFlow id="MF_Payment" name="Payment" sourceRef="Participant_1xnwp1y" targetRef="B_Payment" />
     <bpmn:messageFlow id="MF_Decision" name="Decision with new deadline" sourceRef="T_Decision" targetRef="Participant_1xnwp1y" />
-    <bpmn:messageFlow id="MF_Forward" name="Complaint (case data)" sourceRef="T_Hold" targetRef="Participant_0wmk0u0" />
+    <bpmn:messageFlow id="MF_Forward" name="Complaint" sourceRef="T_Hold" targetRef="Participant_0wmk0u0" />
     <bpmn:messageFlow id="MF_Outcome" name="Outcome" sourceRef="Participant_0wmk0u0" targetRef="E_Outcome" />
     <bpmn:messageFlow id="MF_Transfer" name="Claim with CPR" sourceRef="S_Transfer" targetRef="Participant_1xqxepe" />
   </bpmn:collaboration>
@@ -242,14 +242,14 @@
         <bpmn:outgoing>SF_new</bpmn:outgoing>
         <bpmn:outgoing>SF_loopYes</bpmn:outgoing>
       </bpmn:exclusiveGateway>
-      <bpmn:task id="S_NewDeadline" name="Set new deadline (max 30 days)">
+      <bpmn:task id="S_NewDeadline" name="Set new deadline">
         <bpmn:extensionElements>
           <camunda:executionListener expression="${execution.setVariable(&#39;paymentDeadline&#39;, dateTime().plusDays(30).toDate()); execution.setVariable(&#39;postponed&#39;, true)}" event="end" />
         </bpmn:extensionElements>
         <bpmn:incoming>SF_new</bpmn:incoming>
         <bpmn:outgoing>SF_loopNew</bpmn:outgoing>
       </bpmn:task>
-      <bpmn:intermediateCatchEvent id="S_Deadline" name="Payment deadline passed (14 days from issue)">
+      <bpmn:intermediateCatchEvent id="S_Deadline" name="Payment deadline passed">
         <bpmn:incoming>SF_toDeadline</bpmn:incoming>
         <bpmn:outgoing>SF4</bpmn:outgoing>
         <bpmn:timerEventDefinition>
@@ -311,7 +311,7 @@
       <bpmn:outgoing>F_pay1</bpmn:outgoing>
       <bpmn:messageEventDefinition messageRef="Message_PaymentReceived" />
     </bpmn:boundaryEvent>
-    <bpmn:task id="T_RegPayment" name="Register payment (fees first)">
+    <bpmn:task id="T_RegPayment" name="Register payment">
       <bpmn:incoming>F_pay1</bpmn:incoming>
       <bpmn:outgoing>F_pay2</bpmn:outgoing>
     </bpmn:task>
@@ -526,11 +526,12 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="S_NewDeadline_di" bpmnElement="S_NewDeadline">
         <dc:Bounds x="2860" y="280" width="100" height="80" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="S_Deadline_di" bpmnElement="S_Deadline">
         <dc:Bounds x="2690" y="402" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="2653" y="443" width="110" height="27" />
+          <dc:Bounds x="2664" y="443" width="89" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="S_Rem1_di" bpmnElement="S_Rem1">
@@ -635,6 +636,7 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="T_RegPayment_di" bpmnElement="T_RegPayment">
         <dc:Bounds x="3720" y="580" width="100" height="80" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="E_Paid_di" bpmnElement="E_Paid">
         <dc:Bounds x="3862" y="602" width="36" height="36" />
@@ -716,7 +718,7 @@
         <di:waypoint x="740" y="930" />
         <di:waypoint x="1010" y="930" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="860" y="912" width="19" height="14" />
+          <dc:Bounds x="861" y="912" width="18" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="F_IdNo_di" bpmnElement="F_IdNo">
@@ -847,6 +849,7 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Participant_0wmk0u0_di" bpmnElement="Participant_0wmk0u0" isHorizontal="true" isExpanded="false">
         <dc:Bounds x="2560" y="1130" width="700" height="60" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="DataIn_CPR_di" bpmnElement="DataIn_CPR">
         <di:waypoint x="1020" y="995" />
@@ -950,14 +953,14 @@
         <di:waypoint x="3990" y="670" />
         <di:waypoint x="3990" y="140" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="3996" y="190" width="130" height="14" />
+          <dc:Bounds x="4005" y="160" width="89" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="MF_Forward_di" bpmnElement="MF_Forward">
         <di:waypoint x="2860" y="690" />
         <di:waypoint x="2860" y="1130" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="2866" y="1100" width="110" height="14" />
+          <dc:Bounds x="2896" y="1100" width="50" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="MF_Outcome_di" bpmnElement="MF_Outcome">
