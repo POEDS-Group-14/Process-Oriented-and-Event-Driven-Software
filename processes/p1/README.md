@@ -1,11 +1,11 @@
-# Process 1 - Rejsegaranti claim (Line L)
+# Process 1 - Travel guarantee claim (Movia)
 
 Owner and author of every model in this folder: **Liam Palmqvist**.
 Issues: #1, with sub-issues #7 AS-IS, #8 TO-BE, #9 Camunda, #10 DCR and #11 event log.
 
 | Issue | What | Where |
 |---|---|---|
-| #7 | AS-IS BPMN | `models/rejsegaranti-as-is.bpmn` / `.pdf`, `docs/as-is.md` |
+| #7 | AS-IS: claim-handling BPMN and the DRD with its four DMN tables (the first, Line L version is in `models/archive/`) | `models/travel-guarantee/`, `docs/as-is.md` |
 | #8 | TO-BE BPMN and redesign rationale | `models/rejsegaranti-to-be.bpmn` / `.pdf`, `docs/to-be-redesign.md` |
 | #9 | Runs in Camunda: started by CEP situations, outcomes sent back to the CEP, simulated claims | `service/`, `docker-compose.yml`, `docs/cep-interface.md` |
 | #10 | DCR compliance rules | `models/rejsegaranti-rules.dcr.xml` / `.pdf`, `docs/dcr-rules.md` |

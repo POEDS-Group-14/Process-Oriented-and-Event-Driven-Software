@@ -1,7 +1,10 @@
 """Generate the AS-IS and TO-BE BPMN models for process 1 (rejsegaranti).
 
-  uv run --project service python tools/build_bpmn.py        -> models/rejsegaranti-as-is.bpmn
+  uv run --project service python tools/build_bpmn.py        -> models/archive/rejsegaranti-as-is.bpmn
                                         models/rejsegaranti-to-be.bpmn
+
+The AS-IS here is the first, Line L version, kept as history. The current AS-IS is the Movia
+travel guarantee in models/travel-guarantee/ (see docs/as-is.md).
 
 Both files open in Camunda Modeler. If you edit a model in the Modeler,
 stop regenerating it (or port the change here) so edits are not lost.
@@ -245,7 +248,7 @@ def as_is() -> str:
 
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    for name, fn in (("rejsegaranti-as-is.bpmn", as_is), ("rejsegaranti-to-be.bpmn", to_be)):
+    for name, fn in (("archive/rejsegaranti-as-is.bpmn", as_is), ("rejsegaranti-to-be.bpmn", to_be)):
         with open(os.path.join(OUT, name), "w", encoding="utf-8") as fh:
             fh.write(fn())
         print("wrote", name)

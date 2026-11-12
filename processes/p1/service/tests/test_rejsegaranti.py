@@ -21,7 +21,7 @@ from rejsegaranti.xes import write_xes
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 TO_BE = os.path.join(ROOT, "models", "rejsegaranti-to-be.bpmn")
-AS_IS = os.path.join(ROOT, "models", "rejsegaranti-as-is.bpmn")
+AS_IS = os.path.join(ROOT, "models", "archive", "rejsegaranti-as-is.bpmn")
 RULES = os.path.join(ROOT, "models", "rejsegaranti-rules.dcr.xml")
 NS = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
 CAM = "{http://camunda.org/schema/1.0/bpmn}"
