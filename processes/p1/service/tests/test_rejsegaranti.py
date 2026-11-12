@@ -331,6 +331,22 @@ class FakeCamunda:
     def correlate(self, message, business_key=None, variables=None, correlation_keys=None):
         self.calls.append((message, business_key, variables))
 
+    # the AS-IS tables, enough of them for the results page: the real ones are checked in Camunda by
+    # models/travel-guarantee/check_camunda.py
+    def evaluate(self, key, variables):
+        self.calls.append((key, None, variables))
+        if key == "Decision_ClaimValid":
+            if not variables["receiptAttached"]:
+                return {"claimValid": False, "claimReason": "No receipt"}
+            ok = variables["daysToClaim"] <= 14
+            return {"claimValid": ok, "claimReason": "Valid" if ok else "Claim too late"}
+        if variables["cause"] != "none":
+            return {"covered": False, "reason": "Strike, weather or force majeure"}
+        return {"covered": True, "reason": "Covered"}
+
+    def process_instances(self, key):
+        return [{"businessKey": "C1", "startTime": "2026-11-20T09:00:00.000+0100"}]
+
 
 class BridgeHttp(unittest.TestCase):
     def setUp(self):
@@ -368,12 +384,13 @@ class BridgeHttp(unittest.TestCase):
     def test_results_page(self):
         self.post("/claims", {**claim_near(), "passenger": "P0042"})
         self.store.put("outcomes", "C1", {"claimId": "C1", "outcome": "rejected", "payoutDkk": 0.0,
-                                          "reason": "<b>no delay</b>"})
-        with urllib.request.urlopen(self.base + "/results/?x=1") as resp:
+                                          "reason": "<b>no delay</b> 8296 m from a station"})
+        with urllib.request.urlopen(self.base + "/results/to-be?x=1") as resp:
             self.assertIn("text/html", resp.headers["Content-Type"])
             page = resp.read().decode()
         self.assertIn("simulator", page)  # every banner says the claims are simulated
-        self.assertIn("&lt;b&gt;no delay&lt;/b&gt;", page)  # escaped
+        self.assertIn("&lt;b&gt;no delay&lt;/b&gt; 8.3 km from a station", page)  # escaped, distance in km
+        self.assertNotIn('action="subscribe"', page)  # the sign-up form is hidden
         self.assertNotIn("P0042", page)  # no passenger IDs on the public page
         self.assertIn('href="claims.csv"', page)
         for path in ("/results/claims.csv", "/claims.csv"):
@@ -393,6 +410,38 @@ class BridgeHttp(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as e:
                 urllib.request.urlopen(self.base + bad)
             self.assertEqual(e.exception.code, 404)
+
+    def test_as_is_page_is_the_main_page(self):
+        self.store.put("delays", "D1", DELAY)
+        for cid, amount, trip in (("C1", 450.0, "2026-11-04T07:20:00+01:00"),
+                                  ("C2", 120.0, "2026-11-04T07:25:00+01:00"),
+                                  ("C3", 200.0, "2026-11-04T07:25:00+01:00")):
+            self.store.put("claims", cid, {**claim_near(amountDkk=amount, trip=trip), "claimId": cid})
+        self.store.put("outcomes", "C1", {"claimId": "C1", "delayId": "D1", "outcome": "rejected"})
+        self.store.put("outcomes", "C2", {"claimId": "C2", "delayId": None, "outcome": "rejected"})
+        for path in ("/", "/results", "/results/"):
+            with urllib.request.urlopen(self.base + path) as resp:
+                page = resp.read().decode()
+            self.assertIn(": AS-IS</h1>", page)
+            self.assertIn('href="to-be"', page)
+        # C1: received 16 days after the trip (FakeCamunda.process_instances) -> too late
+        self.assertIn("Claim too late", page)
+        # C2: no matched delay; C3: no outcome yet, matched here -> covered, refund = fare under the cap
+        self.assertIn("No delay over 20 min found", page)
+        self.assertRegex(page, r"C3</td>.*?<td class=paid>paid</td><td class=num>200.00</td>")
+        decided = [c for c in self.cam.calls if c[0] == "Decision_TravelGuarantee"]
+        self.assertEqual(decided[0][2]["incident"], "delay over 20 min")
+        self.assertEqual(decided[0][2]["service"], "local train")  # line L: letters only
+        with urllib.request.urlopen(self.base + "/to-be") as resp:
+            self.assertIn(": TO-BE</h1>", resp.read().decode())
+
+    def test_as_is_refund_capped(self):
+        from rejsegaranti import asis
+        asis._cache.clear()
+        self.store.put("delays", "D1", DELAY)
+        self.store.put("claims", "C9", {**claim_near(amountDkk=450.0), "claimId": "C9"})
+        row = asis.judge(self.store, self.cam)[0]
+        self.assertEqual((row["outcome"], row["refundDkk"]), ("paid", 300.0))  # received the same day: no history
 
     def test_live_run_waits_before_reusing_a_receipt(self):
         refused = {**claim_near(receiptId="R9"), "claimId": "C2"}
@@ -550,8 +599,8 @@ class Mailing(unittest.TestCase):
         threading.Thread(target=srv.serve_forever, daemon=True).start()
         base = f"http://127.0.0.1:{srv.server_address[1]}"
         try:
-            with urllib.request.urlopen(base + "/results") as r:
-                self.assertIn('action="subscribe"', r.read().decode())
+            with urllib.request.urlopen(base + "/results/to-be") as r:
+                self.assertNotIn('action="subscribe"', r.read().decode())  # form hidden, the list still works
             with urllib.request.urlopen(base + "/results/subscribe", data=b"email=me%40example.com") as r:
                 self.assertIn("Check your inbox", r.read().decode())
             self.wait(1)

@@ -97,13 +97,14 @@ def _covers(stops: Iterable[str], affected: Iterable[str]) -> bool:
 
 # ---- exclusion 1: planned change announced by the day before -------------
 
-def notice_excludes(delay: dict, notices: Iterable[dict]) -> Optional[dict]:
+def notice_excludes(delay: dict, notices: Iterable[dict], min_notice: Optional[timedelta] = None) -> Optional[dict]:
     """Return the notice that excludes this delay, or None.
 
     A notice excludes the delay when it covers the delay's line (a notice without lines covers
     every line), covers the affected
     stops and the delay time, and was first seen on a day before the change
-    took effect (local Copenhagen date). We only know when our recorder
+    took effect (local Copenhagen date), or with min_notice, at least that long
+    before. We only know when our recorder
     first saw a notice, not when it was published (see issue #6).
     """
     t = delay_time(delay)
@@ -116,7 +117,8 @@ def notice_excludes(delay: dict, notices: Iterable[dict]) -> Optional[dict]:
         start, end = parse_ts(n["effectiveFrom"]), parse_ts(n["effectiveTo"])
         if not (start <= t <= end):
             continue
-        if local_date(parse_ts(n["firstSeen"])) < local_date(start):
+        seen = parse_ts(n["firstSeen"])
+        if (seen <= start - min_notice) if min_notice else (local_date(seen) < local_date(start)):
             return n
     return None
 

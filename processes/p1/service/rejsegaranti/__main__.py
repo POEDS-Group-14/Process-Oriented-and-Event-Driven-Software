@@ -1,6 +1,6 @@
 """Command line for process 1 (rejsegaranti).
 
-  uv run rejsegaranti deploy               deploy the TO-BE BPMN to Camunda
+  uv run rejsegaranti deploy               deploy the TO-BE BPMN and the AS-IS decision tables to Camunda
   uv run rejsegaranti run                  CEP bridge (:8090) + external-task workers
   uv run rejsegaranti simulate --post      send simulated situations and claims to the bridge
   uv run rejsegaranti simulate --offline   dry run without Camunda -> out/*.xes
@@ -34,9 +34,11 @@ RULES_XML = os.path.join(MODELS, "rejsegaranti-rules.dcr.xml")
 
 def cmd_deploy(a):
     from .camunda import Camunda
-    files = [os.path.join(MODELS, "rejsegaranti-to-be.bpmn")]
+    # the AS-IS tables decide the claims on the main results page (asis.py)
+    files = [os.path.join(MODELS, "rejsegaranti-to-be.bpmn"),
+             os.path.join(MODELS, "travel-guarantee", "travel-guarantee.dmn")]
     r = Camunda().deploy("rejsegaranti", files)
-    defs = list((r.get("deployedProcessDefinitions") or {}).values())
+    defs = [*(r.get("deployedProcessDefinitions") or {}).values(), *(r.get("deployedDecisionDefinitions") or {}).values()]
     print("deployment", r["id"], "->", ", ".join(f"{d['key']} v{d['version']}" for d in defs) or "no change")
 
 

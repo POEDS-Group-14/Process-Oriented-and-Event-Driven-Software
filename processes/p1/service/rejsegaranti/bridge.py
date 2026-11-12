@@ -7,7 +7,9 @@ Endpoints (JSON bodies, see docs/cep-interface.md):
   POST /cep/notice    planned service change notice from process 6 (stored)
   POST /claims        passenger claim         -> starts rejsegaranti-claim
   GET  /state         registry contents (debugging)
-  GET  /results       read-only HTML summary of the outcomes (shared publicly, see deploy/README.md)
+  GET  /results       read-only HTML page: the claims judged by the AS-IS rules, the travel guarantee's DMN
+                      tables on Camunda (shared publicly as "/", see deploy/README.md; "/" serves it locally too)
+  GET  /results/to-be the outcomes the running TO-BE process decided (also "/to-be")
   GET  /results/<f>   its data as downloads: claims.csv, per-line.csv, claims.xes, delay-cases.xes
   POST /results/subscribe              join the claim mailing list (form field "email"; double opt-in)
   GET|POST /results/confirm?token=     confirm it (GET shows a button, the POST confirms)
@@ -182,8 +184,13 @@ def make_server(bridge: Bridge, host: str = "0.0.0.0", port: int = 8090) -> Thre
                 return self._send(200, {"ok": True})
             if self.path == "/state":
                 return self._send(200, bridge.state())
-            if self.path.split("?")[0].rstrip("/") == "/results":
-                data = results.render(bridge.store, signup=bridge.notifier is not None).encode()
+            page = self.path.split("?")[0].rstrip("/")
+            if page in ("", "/results", "/to-be", "/results/to-be"):
+                if page.endswith("/to-be"):
+                    html = results.render(bridge.store, signup=False)  # sign-up form hidden; the list itself still works
+                else:
+                    html = results.render_as_is(bridge.store, bridge.camunda)
+                data = html.encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Content-Length", str(len(data)))

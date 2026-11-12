@@ -126,6 +126,12 @@ class Camunda:
         })
 
     # ---- history (for the event log) ---------------------------------------
+    # ---- decisions ---------------------------------------------------------
+    def evaluate(self, key: str, variables: Dict[str, Any]) -> Dict[str, Any]:
+        """Evaluate the latest deployed DMN decision; its single result row as plain values ({} if none)."""
+        rows = self.post(f"/decision-definition/key/{key}/evaluate", {"variables": to_variables(variables)})
+        return {k: v.get("value") for k, v in rows[0].items()} if rows else {}
+
     def process_instances(self, key: str) -> List[dict]:
         return self.get("/history/process-instance", processDefinitionKey=key,
                         sortBy="startTime", sortOrder="asc", maxResults=100000) or []
