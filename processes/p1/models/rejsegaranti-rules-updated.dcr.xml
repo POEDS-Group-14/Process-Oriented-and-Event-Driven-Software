@@ -1,0 +1,558 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<dcrgraph>
+  <specification>
+    <resources>
+      <events>
+        <event id="Activity0">
+          <custom>
+            <roles>
+              <role>Passenger</role>
+            </roles>
+            <visualization>
+              <location xLoc="-320" yLoc="270"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity1">
+          <custom>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <visualization>
+              <location xLoc="-130" yLoc="70"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity2">
+          <custom>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <visualization>
+              <location xLoc="50" yLoc="70"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity3">
+          <custom>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <visualization>
+              <location xLoc="450" yLoc="396"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity4">
+          <custom>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <visualization>
+              <location xLoc="450" yLoc="571"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity5">
+          <custom>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <visualization>
+              <location xLoc="50" yLoc="-190"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity6">
+          <custom>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <visualization>
+              <location xLoc="280" yLoc="-150"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity7">
+          <custom>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <visualization>
+              <location xLoc="280" yLoc="-348"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity8">
+          <custom>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <visualization>
+              <location xLoc="450" yLoc="30"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity9">
+          <custom>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <visualization>
+              <location xLoc="450" yLoc="-150"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity10">
+          <custom>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <visualization>
+              <location xLoc="450" yLoc="-348"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity11">
+          <custom>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <visualization>
+              <location xLoc="450" yLoc="-520"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity12">
+          <custom>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <visualization>
+              <location xLoc="450" yLoc="746"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity13">
+          <custom>
+            <roles>
+              <role>Finance</role>
+            </roles>
+            <visualization>
+              <location xLoc="660" yLoc="-60"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity14">
+          <custom>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <visualization>
+              <location xLoc="1000" yLoc="-96"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity15">
+          <custom>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <visualization>
+              <location xLoc="1200" yLoc="70"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+        <event id="Activity16">
+          <custom>
+            <roles>
+              <role>Claim engine</role>
+            </roles>
+            <visualization>
+              <location xLoc="1400" yLoc="70"/>
+              <size width="130" height="150"/>
+            </visualization>
+          </custom>
+        </event>
+      </events>
+      <subProcesses/>
+      <labels>
+        <label id="Claim submitted"/>
+        <label id="Match claim to CEP delay situation"/>
+        <label id="No verified delay"/>
+        <label id="Planned change announced by the day before"/>
+        <label id="Force majeure"/>
+        <label id="Delay verified"/>
+        <label id="Check receipt"/>
+        <label id="Check distance to stations"/>
+        <label id="Receipt rejected"/>
+        <label id="Receipt verified"/>
+        <label id="Trip outside 250 m"/>
+        <label id="Trip within 250 m"/>
+        <label id="Calculate payout"/>
+        <label id="Pay out claim"/>
+        <label id="Reject claim"/>
+        <label id="Report claim outcome to CEP"/>
+        <label id="Claim closed"/>
+      </labels>
+      <labelMappings>
+        <labelMapping eventId="Activity0" labelId="Claim submitted"/>
+        <labelMapping eventId="Activity1" labelId="Match claim to CEP delay situation"/>
+        <labelMapping eventId="Activity2" labelId="No verified delay"/>
+        <labelMapping eventId="Activity3" labelId="Planned change announced by the day before"/>
+        <labelMapping eventId="Activity4" labelId="Force majeure"/>
+        <labelMapping eventId="Activity5" labelId="Delay verified"/>
+        <labelMapping eventId="Activity6" labelId="Check receipt"/>
+        <labelMapping eventId="Activity7" labelId="Check distance to stations"/>
+        <labelMapping eventId="Activity8" labelId="Receipt rejected"/>
+        <labelMapping eventId="Activity9" labelId="Receipt verified"/>
+        <labelMapping eventId="Activity10" labelId="Trip outside 250 m"/>
+        <labelMapping eventId="Activity11" labelId="Trip within 250 m"/>
+        <labelMapping eventId="Activity12" labelId="Calculate payout"/>
+        <labelMapping eventId="Activity13" labelId="Pay out claim"/>
+        <labelMapping eventId="Activity14" labelId="Reject claim"/>
+        <labelMapping eventId="Activity15" labelId="Report claim outcome to CEP"/>
+        <labelMapping eventId="Activity16" labelId="Claim closed"/>
+      </labelMappings>
+      <variables/>
+      <expressions/>
+      <variableAccesses>
+        <readAccessess/>
+        <writeAccessess/>
+      </variableAccesses>
+    </resources>
+    <constraints>
+      <conditions>
+        <condition sourceId="Activity0" targetId="Activity1">
+          <custom>
+            <waypoints>
+              <waypoint x="-190" y="309"/>
+              <waypoint x="-65" y="309"/>
+              <waypoint x="-65" y="220"/>
+            </waypoints>
+            <id id="Activity0Activity1condition"/>
+          </custom>
+        </condition>
+        <condition sourceId="Activity1" targetId="Activity5">
+          <custom>
+            <waypoints>
+              <waypoint x="-65" y="70"/>
+              <waypoint x="-65" y="-115"/>
+              <waypoint x="50" y="-115"/>
+            </waypoints>
+            <id id="Activity1Activity5condition"/>
+          </custom>
+        </condition>
+        <condition sourceId="Activity1" targetId="Activity2">
+          <custom>
+            <waypoints>
+              <waypoint x="0" y="145"/>
+              <waypoint x="50" y="145"/>
+            </waypoints>
+            <id id="Activity1Activity2condition"/>
+          </custom>
+        </condition>
+        <condition sourceId="Activity5" targetId="Activity6">
+          <custom>
+            <waypoints>
+              <waypoint x="180" y="-107"/>
+              <waypoint x="280" y="-107"/>
+            </waypoints>
+            <id id="Activity5Activity6condition"/>
+          </custom>
+        </condition>
+        <condition sourceId="Activity5" targetId="Activity7">
+          <custom>
+            <waypoints>
+              <waypoint x="180" y="-170"/>
+              <waypoint x="345" y="-170"/>
+              <waypoint x="345" y="-198"/>
+            </waypoints>
+            <id id="Activity5Activity7condition"/>
+          </custom>
+        </condition>
+        <condition sourceId="Activity6" targetId="Activity9">
+          <custom>
+            <waypoints>
+              <waypoint x="410" y="-57"/>
+              <waypoint x="450" y="-57"/>
+            </waypoints>
+            <id id="Activity6Activity9condition"/>
+          </custom>
+        </condition>
+        <condition sourceId="Activity6" targetId="Activity8">
+          <custom>
+            <waypoints>
+              <waypoint x="345" y="0"/>
+              <waypoint x="345" y="120"/>
+              <waypoint x="450" y="120"/>
+            </waypoints>
+            <id id="Activity6Activity8condition"/>
+          </custom>
+        </condition>
+        <condition sourceId="Activity7" targetId="Activity11">
+          <custom>
+            <waypoints>
+              <waypoint x="345" y="-348"/>
+              <waypoint x="345" y="-430"/>
+              <waypoint x="450" y="-430"/>
+            </waypoints>
+            <id id="Activity7Activity11condition"/>
+          </custom>
+        </condition>
+        <condition sourceId="Activity7" targetId="Activity10">
+          <custom>
+            <waypoints>
+              <waypoint x="410" y="-282"/>
+              <waypoint x="450" y="-282"/>
+            </waypoints>
+            <id id="Activity7Activity10condition"/>
+          </custom>
+        </condition>
+        <condition sourceId="Activity9" targetId="Activity13">
+          <custom>
+            <waypoints>
+              <waypoint x="580" y="-10"/>
+              <waypoint x="660" y="-10"/>
+            </waypoints>
+            <id id="Activity9Activity13condition"/>
+          </custom>
+        </condition>
+        <condition sourceId="Activity5" targetId="Activity13">
+          <custom>
+            <waypoints>
+              <waypoint x="180" y="-70"/>
+              <waypoint x="215" y="-70"/>
+              <waypoint x="215" y="15"/>
+              <waypoint x="660" y="15"/>
+            </waypoints>
+            <id id="Activity5Activity13condition"/>
+          </custom>
+        </condition>
+        <condition sourceId="Activity11" targetId="Activity13">
+          <custom>
+            <waypoints>
+              <waypoint x="580" y="-410"/>
+              <waypoint x="725" y="-410"/>
+              <waypoint x="725" y="-60"/>
+            </waypoints>
+            <id id="Activity11Activity13condition"/>
+          </custom>
+        </condition>
+        <condition sourceId="Activity12" targetId="Activity13">
+          <custom>
+            <waypoints>
+              <waypoint x="580" y="785"/>
+              <waypoint x="750" y="785"/>
+              <waypoint x="750" y="90"/>
+            </waypoints>
+            <id id="Activity12Activity13condition"/>
+          </custom>
+        </condition>
+        <condition sourceId="Activity13" targetId="Activity15">
+          <custom>
+            <waypoints>
+              <waypoint x="770" y="90"/>
+              <waypoint x="770" y="130"/>
+              <waypoint x="1200" y="130"/>
+            </waypoints>
+            <id id="Activity13Activity15condition"/>
+          </custom>
+        </condition>
+        <condition sourceId="Activity14" targetId="Activity15">
+          <custom>
+            <waypoints>
+              <waypoint x="1130" y="-21"/>
+              <waypoint x="1265" y="-21"/>
+              <waypoint x="1265" y="70"/>
+            </waypoints>
+            <id id="Activity14Activity15condition"/>
+          </custom>
+        </condition>
+        <condition sourceId="Activity15" targetId="Activity16">
+          <custom>
+            <waypoints>
+              <waypoint x="1330" y="160"/>
+              <waypoint x="1400" y="160"/>
+            </waypoints>
+            <id id="Activity15Activity16condition"/>
+          </custom>
+        </condition>
+      </conditions>
+      <responses>
+        <response sourceId="Activity0" targetId="Activity15">
+          <custom>
+            <waypoints>
+              <waypoint x="-190" y="370"/>
+              <waypoint x="1265" y="370"/>
+              <waypoint x="1265" y="220"/>
+            </waypoints>
+            <id id="Activity0Activity15response"/>
+          </custom>
+        </response>
+        <response sourceId="Activity11" targetId="Activity13">
+          <custom>
+            <waypoints>
+              <waypoint x="580" y="-430"/>
+              <waypoint x="760" y="-430"/>
+              <waypoint x="760" y="-60"/>
+            </waypoints>
+            <id id="Activity11Activity13response"/>
+          </custom>
+        </response>
+      </responses>
+      <coresponces/>
+      <excludes>
+        <exclude sourceId="Activity8" targetId="Activity13">
+          <custom>
+            <waypoints>
+              <waypoint x="580" y="70"/>
+              <waypoint x="660" y="70"/>
+            </waypoints>
+            <id id="Activity8Activity13exclude"/>
+          </custom>
+        </exclude>
+        <exclude sourceId="Activity3" targetId="Activity13">
+          <custom>
+            <waypoints>
+              <waypoint x="580" y="471"/>
+              <waypoint x="700" y="471"/>
+              <waypoint x="700" y="90"/>
+            </waypoints>
+            <id id="Activity3Activity13exclude"/>
+          </custom>
+        </exclude>
+        <exclude sourceId="Activity4" targetId="Activity13">
+          <custom>
+            <waypoints>
+              <waypoint x="580" y="602"/>
+              <waypoint x="725" y="602"/>
+              <waypoint x="725" y="90"/>
+            </waypoints>
+            <id id="Activity4Activity13exclude"/>
+          </custom>
+        </exclude>
+        <exclude sourceId="Activity2" targetId="Activity13">
+          <custom>
+            <waypoints>
+              <waypoint x="180" y="200"/>
+              <waypoint x="680" y="200"/>
+              <waypoint x="680" y="90"/>
+            </waypoints>
+            <id id="Activity2Activity13exclude"/>
+          </custom>
+        </exclude>
+        <exclude sourceId="Activity10" targetId="Activity13">
+          <custom>
+            <waypoints>
+              <waypoint x="580" y="-291"/>
+              <waypoint x="690" y="-291"/>
+              <waypoint x="690" y="-60"/>
+            </waypoints>
+            <id id="Activity10Activity13exclude"/>
+          </custom>
+        </exclude>
+        <exclude sourceId="Activity13" targetId="Activity13">
+          <custom>
+            <waypoints>
+              <waypoint x="660" y="-40"/>
+              <waypoint x="630" y="-40"/>
+              <waypoint x="630" y="-100"/>
+              <waypoint x="830" y="-100"/>
+              <waypoint x="830" y="-40"/>
+              <waypoint x="790" y="-40"/>
+            </waypoints>
+            <id id="Activity13Activity13exclude"/>
+          </custom>
+        </exclude>
+        <exclude sourceId="Activity13" targetId="Activity14">
+          <custom>
+            <waypoints>
+              <waypoint x="790" y="30"/>
+              <waypoint x="1000" y="30"/>
+            </waypoints>
+            <id id="Activity13Activity14exclude"/>
+          </custom>
+        </exclude>
+        <exclude sourceId="Activity14" targetId="Activity13">
+          <custom>
+            <waypoints>
+              <waypoint x="1000" y="0"/>
+              <waypoint x="790" y="0"/>
+            </waypoints>
+            <id id="Activity14Activity13exclude"/>
+          </custom>
+        </exclude>
+        <exclude sourceId="Activity15" targetId="Activity15">
+          <custom>
+            <waypoints>
+              <waypoint x="1330" y="100"/>
+              <waypoint x="1360" y="100"/>
+              <waypoint x="1360" y="30"/>
+              <waypoint x="1160" y="30"/>
+              <waypoint x="1160" y="100"/>
+              <waypoint x="1200" y="100"/>
+            </waypoints>
+            <id id="Activity15Activity15exclude"/>
+          </custom>
+        </exclude>
+        <exclude sourceId="Activity11" targetId="Activity14">
+          <custom>
+            <waypoints>
+              <waypoint x="580" y="-463"/>
+              <waypoint x="1065" y="-463"/>
+              <waypoint x="1065" y="-96"/>
+            </waypoints>
+            <id id="Activity11Activity14exclude"/>
+          </custom>
+        </exclude>
+      </excludes>
+      <includes/>
+      <milestones/>
+      <updates/>
+      <spawns/>
+    </constraints>
+  </specification>
+  <runtime>
+    <marking>
+      <globalStore/>
+      <executed/>
+      <included>
+        <event id="Activity0"/>
+        <event id="Activity1"/>
+        <event id="Activity2"/>
+        <event id="Activity3"/>
+        <event id="Activity4"/>
+        <event id="Activity5"/>
+        <event id="Activity6"/>
+        <event id="Activity7"/>
+        <event id="Activity8"/>
+        <event id="Activity9"/>
+        <event id="Activity10"/>
+        <event id="Activity11"/>
+        <event id="Activity12"/>
+        <event id="Activity13"/>
+        <event id="Activity14"/>
+        <event id="Activity15"/>
+        <event id="Activity16"/>
+      </included>
+      <pendingResponses/>
+    </marking>
+  </runtime>
+</dcrgraph>
