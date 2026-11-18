@@ -102,7 +102,7 @@ def valid_email(email: str) -> bool:
 
 class Notifier:
     """Sends the mail. `on_event` is a CepSink listener: each ClaimPaid / ClaimRejected event becomes one email
-    to everyone on the list."""
+    to everyone on the list, except events of claims decided again by `rejsegaranti replay` (reprocessed)."""
 
     def __init__(self, people: MailingList, store, env=os.environ, send=None):
         self.people, self.store = people, store
@@ -140,6 +140,8 @@ class Notifier:
 
     def on_event(self, event: dict) -> None:
         if event.get("eventType") not in ("ClaimPaid", "ClaimRejected"):
+            return
+        if event.get("reprocessed"):  # decided again by `rejsegaranti replay`: the list has had this claim
             return
         people = self.people.confirmed()
         if not people:

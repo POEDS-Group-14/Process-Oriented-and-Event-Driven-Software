@@ -104,6 +104,11 @@ class Camunda:
             body["correlationKeys"] = to_variables(correlation_keys)
         return self.post("/message", body)
 
+    def delete_instance(self, pid: str, reason: str = "") -> None:
+        """Delete a running process instance (its history is kept)."""
+        from urllib.parse import quote
+        self._request("DELETE", f"/process-instance/{pid}?skipCustomListeners=true&deleteReason={quote(reason)}")
+
     # ---- external tasks --------------------------------------------------
     def fetch_and_lock(self, worker_id: str, topics: List[str], max_tasks: int = 10,
                        lock_ms: int = 30_000, long_poll_ms: int = 10_000) -> List[dict]:

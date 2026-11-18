@@ -1,19 +1,27 @@
 """Situation registry shared by the CEP bridge and the workers.
 
-Holds what the CEP has told us (delays, weather, notices), the claims that
-came in, and the outcomes. Persisted as one JSON file so a restart does not
-lose state. Thread-safe.
+Holds what the CEP has told us (delays, weather, notices), the claims and
+appeals that came in, and the assessments and outcomes. Persisted as one JSON
+file so a restart does not lose state. Thread-safe.
+
+The file is read only when the Store is created, and every change rewrites it
+whole. So exactly one process may own it: `rejsegaranti run` (bridge and
+workers share one Store). Other commands go through the bridge over HTTP
+(`rejsegaranti replay` uses its /replay endpoints) instead of writing the file.
 """
 from __future__ import annotations
 
 import json
 import os
+import shutil
 import threading
 from typing import Any, Dict, List, Optional
 
 
 class Store:
-    KINDS = ("delays", "weather", "notices", "claims", "assessments", "outcomes")
+    KINDS = ("delays", "weather", "notices", "claims", "assessments", "outcomes", "appeals")
+    # what the processes decided, as opposed to what came in: `replay` clears these and decides again
+    DECIDED = ("assessments", "outcomes", "appeals")
 
     def __init__(self, path: Optional[str] = None):
         self.path = path
@@ -66,3 +74,21 @@ class Store:
     def paid_receipt_ids(self, exclude_claim: Optional[str] = None) -> List[str]:
         with self._lock:
             return [r for r, c in self.paid_receipts.items() if c != exclude_claim]
+
+    def counts(self) -> Dict[str, int]:
+        with self._lock:
+            return {**{k: len(v) for k, v in self.data.items()}, "paid_receipts": len(self.paid_receipts)}
+
+    def reset_decided(self, backup: Optional[str] = None) -> Dict[str, int]:
+        """Copy the file to `backup` (if given), then forget everything the processes decided (DECIDED and
+        the paid receipts), keeping what came in. Returns the counts that were cleared."""
+        with self._lock:
+            if backup and self.path and os.path.exists(self.path):
+                shutil.copyfile(self.path, backup)
+            cleared = {k: len(self.data[k]) for k in self.DECIDED}
+            cleared["paid_receipts"] = len(self.paid_receipts)
+            for k in self.DECIDED:
+                self.data[k] = {}
+            self.paid_receipts = {}
+            self._save()
+            return cleared

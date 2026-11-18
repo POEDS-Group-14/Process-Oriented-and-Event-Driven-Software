@@ -1,8 +1,10 @@
-"""External-task workers for the two TO-BE processes.
+"""External-task workers for the three TO-BE processes (models/to-be/).
 
-Each handler takes the task's process variables and returns the variables
-to complete it with. Handlers are plain functions so tests can call them
-without Camunda. `run_workers` is the polling loop against Camunda.
+Each handler takes the task's process variables and returns the variables to complete it with. The
+decisions are the business rule tasks on Camunda; the handlers only gather the raw facts the tables read,
+keep the registry and tell the CEP. Handlers are plain functions so tests can call them without Camunda.
+`run_workers` is the polling loop against Camunda. HANDLERS maps each topic in activities.TOPICS to its
+handler.
 """
 from __future__ import annotations
 
@@ -11,142 +13,159 @@ import socket
 import time
 from typing import Callable, Dict
 
+from . import activities as A
 from . import rules
+from .asis import service
 from .camunda import Camunda, from_variables
 from .cep import CepSink
+from .intake import fare, receipt_id
 from .store import Store
+from .timeutil import iso, now
 
 log = logging.getLogger("rejsegaranti.workers")
 
 
 class NotReady(Exception):
-    """Retry later (e.g. the delay case has not been assessed yet)."""
+    """Retry later (e.g. the delay has not been assessed yet)."""
 
 
 Handler = Callable[[dict, Store, CepSink], dict]
 
+# The operator's cause codes the ToBe_Cause table knows; anything else is "none"
+OPERATOR_CAUSES = {"strike", "fire", "person_collision", "natural_event"}
+# What a claim can say about the incident, for the ToBe_Incident table
+INCIDENT_FIELDS = ("visibleToDriver", "busFull", "stopRequested", "minutesToNextDeparture")
+COLLECTED = ("line", "service", "operatorCause", "dmiLevel", "windSpeed", "windGust", "rain1h", "snow1h",
+             "hoursAnnouncedBefore", "delayMinutes")
 
-# ---- delay case: rejsegaranti-delay-case ---------------------------------
 
-def check_notice(v: dict, store: Store, cep: CepSink) -> dict:
+# ---- assess disruption: tobe-assess-disruption ------------------------------
+
+def collect_disruption(v: dict, store: Store, cep: CepSink) -> dict:
+    """The raw facts the ToBe_Exclusion and ToBe_Cause tables read, from the registry."""
     delay = store.get("delays", v["delayId"])
-    n = rules.notice_excludes(delay, store.all("notices"))
-    return {"noticeExcluded": n is not None, "noticeId": n["noticeId"] if n else None}
+    cause = delay.get("cause")
+    notice = rules.covering_notice(delay, store.all("notices"))
+    return {
+        "service": service(str(delay["line"])),
+        "operatorCause": cause if cause in OPERATOR_CAUSES else "none",
+        **rules.weather_at(delay, store.all("weather")),
+        "hoursAnnouncedBefore": rules.hours_announced_before(notice) if notice else None,
+    }
 
 
-def check_force_majeure(v: dict, store: Store, cep: CepSink) -> dict:
-    delay = store.get("delays", v["delayId"])
-    reason = rules.force_majeure(delay, store.all("weather"))
-    return {"forceMajeure": reason is not None, "forceMajeureReason": reason}
+def notify_passengers(v: dict, store: Store, cep: CepSink) -> dict:
+    """Simulated: there is no passenger registry, so the CEP is told instead."""
+    cep.emit("PassengersNotified", {"delayId": v["delayId"], "line": v.get("line"),
+                                    "reprocessed": bool(v.get("reprocessed"))})
+    return {}
 
 
-def report_assessment(v: dict, store: Store, cep: CepSink) -> dict:
-    applies = not (v.get("noticeExcluded") or v.get("forceMajeure"))
-    reason = None
-    if v.get("noticeExcluded"):
-        reason = f"planned change announced by the day before (notice {v.get('noticeId')})"
-    elif v.get("forceMajeure"):
-        reason = f"force majeure: {v.get('forceMajeureReason')}"
+def publish_assessment(v: dict, store: Store, cep: CepSink) -> dict:
     assessment = {
         "delayId": v["delayId"],
-        "guaranteeApplies": applies,
-        "noticeExcluded": bool(v.get("noticeExcluded")),
-        "forceMajeure": bool(v.get("forceMajeure")),
-        "exclusionReason": reason,
+        "exclusion": v["exclusion"],
+        "guaranteeApplies": v["exclusion"] == "none",
+        **{k: v.get(k) for k in COLLECTED},
+        "reprocessed": bool(v.get("reprocessed")),
     }
     store.put("assessments", v["delayId"], assessment)
     cep.emit("DelayAssessed", assessment)
-    return {"guaranteeApplies": applies}
+    return {"guaranteeApplies": assessment["guaranteeApplies"]}
 
 
-# ---- claim: rejsegaranti-claim -------------------------------------------
+# ---- decide claim: tobe-decide-claim ------------------------------------------
 
-def match_delay(v: dict, store: Store, cep: CepSink) -> dict:
+def match_claim(v: dict, store: Store, cep: CepSink) -> dict:
+    """The delay the claim refers to and its assessment. No delay: delayMinutes None, which the
+    ToBe_Incident table answers with "No verified delay"."""
     claim = store.get("claims", v["claimId"])
+    incident = {"incident": claim.get("incident") or "delay",
+                **{k: claim.get(k) for k in INCIDENT_FIELDS}}
     delay = rules.match_delay(claim, store.all("delays"))
     if delay is None:
-        return {"delayVerified": False, "delayId": None, "noticeExcluded": False,
-                "forceMajeure": False, "exclusionReason": "no verified Line L delay of 30+ minutes"}
+        return {"delayId": None, "delayMinutes": None, "exclusion": "none", **incident}
     a = store.get("assessments", delay["delayId"])
     if a is None:
         raise NotReady(f"delay {delay['delayId']} not assessed yet")
-    return {"delayVerified": True, "delayId": delay["delayId"],
-            "noticeExcluded": a["noticeExcluded"], "forceMajeure": a["forceMajeure"],
-            "exclusionReason": a["exclusionReason"]}
-
-
-def check_receipt(v: dict, store: Store, cep: CepSink) -> dict:
-    claim = store.get("claims", v["claimId"])
-    reason = rules.check_receipt(claim["receipt"], store.paid_receipt_ids(exclude_claim=v["claimId"]))
-    return {"receiptValid": reason is None, "receiptReason": reason}
-
-
-def check_distance(v: dict, store: Store, cep: CepSink) -> dict:
-    claim = store.get("claims", v["claimId"])
-    delay = store.get("delays", v["delayId"]) if v.get("delayId") else None
-    reason = rules.check_distance(claim, delay)
-    return {"withinRadius": reason is None, "distanceReason": reason}
-
-
-def calc_payout(v: dict, store: Store, cep: CepSink) -> dict:
-    claim = store.get("claims", v["claimId"])
-    return {"payoutDkk": rules.payout(claim["receipt"]["amountDkk"])}
+    return {"delayId": delay["delayId"], "delayMinutes": float(delay["delayMinutes"]),
+            "exclusion": a["exclusion"], **incident}
 
 
 def pay_out(v: dict, store: Store, cep: CepSink) -> dict:
     claim = store.get("claims", v["claimId"])
-    if not store.mark_paid(claim["receipt"]["receiptId"], v["claimId"]):
-        # two claims with the same receipt passed the check concurrently:
-        # stop here and leave an incident for a case worker
+    rid = receipt_id(claim)
+    if rid and not store.mark_paid(rid, v["claimId"]):
+        # the receipt was paid on another claim in the meantime: stop here and
+        # leave an incident for a case worker
         raise RuntimeError("receipt was paid out on another claim in the meantime")
     return {"payoutReference": f"PAY-{v['claimId']}"}
 
 
 def reject(v: dict, store: Store, cep: CepSink) -> dict:
-    if not v.get("delayVerified"):
-        reason = v.get("exclusionReason") or "no verified delay"
-    elif v.get("noticeExcluded") or v.get("forceMajeure"):
-        reason = v.get("exclusionReason")
-    elif v.get("receiptValid") is False:
-        reason = "receipt: " + str(v.get("receiptReason"))
-    elif v.get("withinRadius") is False:
-        reason = "distance: " + str(v.get("distanceReason"))
-    else:
-        reason = "rejected"
-    return {"rejectionReason": reason}
+    return {"rejectionReason": v.get("guaranteeReason") if v.get("claimValid") else v.get("claimReason")}
 
 
-def report_outcome(v: dict, store: Store, cep: CepSink) -> dict:
+def send_decision(v: dict, store: Store, cep: CepSink) -> dict:
     paid = v.get("payoutReference") is not None
     outcome = {
         "claimId": v["claimId"],
         "delayId": v.get("delayId"),
         "outcome": "paid" if paid else "rejected",
-        "payoutDkk": v.get("payoutDkk") if paid else 0.0,
+        "payoutDkk": float(v.get("refundDkk") or 0) if paid else 0.0,
         "reason": None if paid else v.get("rejectionReason"),
+        "reprocessed": bool(v.get("reprocessed")),
     }
     store.put("outcomes", v["claimId"], outcome)
     cep.emit("ClaimPaid" if paid else "ClaimRejected", outcome)
     return {"outcome": outcome["outcome"]}
 
 
-HANDLERS: Dict[str, Handler] = {
-    "rg-check-notice": check_notice,
-    "rg-check-force-majeure": check_force_majeure,
-    "rg-report-assessment": report_assessment,
-    "rg-match-delay": match_delay,
-    "rg-check-receipt": check_receipt,
-    "rg-check-distance": check_distance,
-    "rg-calc-payout": calc_payout,
-    "rg-pay-out": pay_out,
-    "rg-reject": reject,
-    "rg-report-outcome": report_outcome,
+# ---- handle appeal: tobe-handle-appeal ------------------------------------------
+
+def retrieve_claim(v: dict, store: Store, cep: CepSink) -> dict:
+    """The claim and its first decision, for the case worker. Without a receipt the fare is 0, so an
+    upheld appeal pays nothing rather than failing the refund table."""
+    claim = store.get("claims", v["claimId"]) or {}
+    previous = store.get("outcomes", v["claimId"]) or {}
+    amount = fare(claim)
+    return {"fareDkk": 0.0 if amount is None else amount,
+            "previousOutcome": previous.get("outcome"), "previousReason": previous.get("reason")}
+
+
+def send_appeal_decision(v: dict, store: Store, cep: CepSink) -> dict:
+    upheld = bool(v.get("upheld"))
+    refund = float(v.get("refundDkk") or 0) if upheld else 0.0
+    appeal = {"claimId": v["claimId"], "reason": v.get("appealReason"), "status": "decided",
+              "upheld": upheld, "reviewNote": v.get("reviewNote"), "refundDkk": refund,
+              "previousOutcome": v.get("previousOutcome"), "decidedAt": iso(now())}
+    store.put("appeals", v["claimId"], appeal)
+    if upheld:
+        store.put("outcomes", v["claimId"], {"claimId": v["claimId"], "outcome": "paid", "payoutDkk": refund,
+                                             "reason": None, "appealUpheld": True,
+                                             "reprocessed": False})
+    cep.emit("AppealDecided", appeal)
+    return {"appealOutcome": "upheld" if upheld else "dismissed"}
+
+
+BY_ACTIVITY: Dict[str, Handler] = {
+    A.COLLECT_DISRUPTION: collect_disruption,
+    A.NOTIFY_PASSENGERS: notify_passengers,
+    A.PUBLISH_ASSESSMENT: publish_assessment,
+    A.MATCH_CLAIM: match_claim,
+    A.PAY_OUT: pay_out,
+    A.REJECT_INVALID: reject,
+    A.REJECT_NOT_COVERED: reject,
+    A.SEND_DECISION: send_decision,
+    A.RETRIEVE_CLAIM: retrieve_claim,
+    A.SEND_APPEAL_DECISION: send_appeal_decision,
 }
+HANDLERS: Dict[str, Handler] = {A.TOPICS[a]: fn for a, fn in BY_ACTIVITY.items()}
 
 
 def run_workers(camunda: Camunda, store: Store, cep: CepSink, stop=None) -> None:
     worker_id = f"rejsegaranti-{socket.gethostname()}"
-    topics = list(HANDLERS)
+    topics = sorted(HANDLERS)
     log.info("worker %s polling %s", worker_id, ", ".join(topics))
     while not (stop and stop.is_set()):
         try:
@@ -165,7 +184,16 @@ def run_workers(camunda: Camunda, store: Store, cep: CepSink, stop=None) -> None
                 camunda.complete(t["id"], worker_id, out)
                 log.info("%-24s %s -> %s", t["topicName"], t.get("businessKey"), out)
             except NotReady as e:
-                camunda.failure(t["id"], worker_id, str(e), max(retries - 1, 0), 2000)
+                _report(camunda, t, worker_id, str(e), max(retries - 1, 0), 2000)
             except Exception as e:  # incident after the last retry
                 log.exception("task %s failed", t["topicName"])
-                camunda.failure(t["id"], worker_id, f"{type(e).__name__}: {e}", 0, 0)
+                _report(camunda, t, worker_id, f"{type(e).__name__}: {e}", 0, 0)
+
+
+def _report(camunda: Camunda, t: dict, worker_id: str, message: str, retries: int, retry_ms: int) -> None:
+    """Report a failed task. If that fails too (the instance was deleted meanwhile, Camunda restarting),
+    log it and go on: the loop must keep running."""
+    try:
+        camunda.failure(t["id"], worker_id, message, retries, retry_ms)
+    except Exception as e:  # noqa: BLE001
+        log.warning("could not report the failure of %s: %s", t["topicName"], e)
