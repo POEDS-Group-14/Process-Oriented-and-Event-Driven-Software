@@ -6,9 +6,9 @@ Issues: #1, with sub-issues #7 AS-IS, #8 TO-BE, #9 Camunda, #10 DCR and #11 even
 | Issue | What | Where |
 |---|---|---|
 | #7 | AS-IS: claim-handling BPMN and the DRD with its four DMN tables (the first, Line L version is in `models/archive/`) | `models/travel-guarantee/`, `docs/as-is.md` |
-| #8 | TO-BE BPMN and redesign rationale | `models/rejsegaranti-to-be.bpmn` / `.pdf`, `docs/to-be-redesign.md` |
+| #8 | TO-BE: three BPMN processes (assess disruption, decide claim, handle appeal), their processdoctor variants and the TO-BE DRD (the first, Line L version is in `models/archive/`) | `models/to-be/`, `docs/to-be-redesign.md` |
 | #9 | Runs in Camunda: started by CEP situations, outcomes sent back to the CEP, simulated claims | `service/`, `docker-compose.yml`, `docs/cep-interface.md` |
-| #10 | DCR compliance rules | `models/rejsegaranti-rules.dcr.xml` / `.pdf`, `docs/dcr-rules.md` |
+| #10 | DCR compliance rules of the Line L version (archived; the service no longer checks them) | `models/archive/rejsegaranti-rules.dcr.xml` / `.pdf`, `docs/dcr-rules.md` |
 | #11 | Event log export and conformance pre-check | `service/rejsegaranti/export.py`, `docs/conformance.md` |
 
 ## Requirements
@@ -25,15 +25,26 @@ Issues: #1, with sub-issues #7 AS-IS, #8 TO-BE, #9 Camunda, #10 DCR and #11 even
 ```bash
 docker compose up -d                  # Camunda at http://localhost:8085/camunda (demo/demo)
 cd service
-uv run rejsegaranti deploy        # deploys models/rejsegaranti-to-be.bpmn (both processes)
+uv run rejsegaranti deploy        # the TO-BE models in models/to-be/ and the AS-IS decision tables
 uv run rejsegaranti run           # bridge on :8090 + external-task workers (leave running)
 
 # in a second terminal
 cd service
 uv run rejsegaranti simulate --post     # simulated delays, notices, weather and claims
-uv run rejsegaranti export              # Camunda history -> ../out/claims-camunda.xes
-uv run rejsegaranti check ../out/claims-camunda.xes -v
+uv run rejsegaranti export              # Camunda history -> ../out/claims-camunda.xes and the other logs
+uv run rejsegaranti replay              # decide every stored delay and claim again with the TO-BE models
 ```
+
+`replay` is for after a model change. It asks the running bridge to back up `registry.json` to
+`registry.before-replay-<time>.json` and clear the assessments, outcomes, appeals and paid receipts, then
+starts one assess-disruption instance per stored delay and, once every delay is assessed, one decide-claim
+instance per stored claim in order of trip start. Replayed events carry `reprocessed`, so the mailing list
+gets no email for them. It prints the outcomes, the rejection reasons and how they compare with the AS-IS
+tables. Running it twice is safe: it deletes any TO-BE instances still running first.
+
+An appeal against a decided claim goes to the bridge: `curl -X POST localhost:8090/appeals -d
+'{"claimId": "C0001", "reason": "..."}'`. A case worker then reviews it in Camunda Tasklist (group
+`caseworker`).
 
 Settings, all optional:
 
@@ -41,8 +52,6 @@ Settings, all optional:
 - `CEP_URL`, the Siddhi HTTP source for outcome events
 - `BRIDGE_PORT` (default 8090)
 - `DATA_DIR` (default `out/`)
-
-Without Camunda, run `uv run rejsegaranti simulate --offline [--noise 0.1]`. It runs the same rules and writes an XES log with the same activity names.
 
 ## Always on: the pinklady server
 
@@ -56,22 +65,23 @@ cd service && uv run python -m unittest -v
 
 The tests cover:
 
-- the rules: 30 min, 300 kr, 250 m, receipt, notice by the day before (including the example from #6), DMI/OWM force majeure
-- the workers, including the retry while a delay case is not yet assessed and the duplicate-receipt guard
-- the bridge over HTTP
-- the BPMN, checking that names, topics and messages match the code
-- that offline traces only use paths that exist in the BPMN
-- the DCR rules: a clean log conforms, and each kind of injected violation is caught
+- the facts the tables read: the notice covering a delay and how long before it was announced (including the example from #6), the weather at the delay, the delay a claim matches
+- the start variables (one function for live intake and for `replay`): receipt, days to claim in Copenhagen days, receipt used on an earlier claim
+- the workers of all three processes, including the retry while a delay is not yet assessed and the duplicate-payout guard
+- the bridge over HTTP: intake, `/appeals`, the `/replay` endpoints, the TO-BE page with its AS-IS comparison
+- the models: activity names and topics match `activities.py`, every table input is a variable the processes set, and the processdoctor rules hold for the `*.processdoctor.bpmn` files and `passenger-journey.bpmn`
+- no email for replayed claims
 
 ## Regenerating the models
 
-- `uv run --project service python tools/build_bpmn.py` regenerates both BPMN files from code. If you edit a model in Camunda Modeler, stop regenerating it, or port the change to `tools/build_bpmn.py`.
-- `uv run rejsegaranti build-dcr` regenerates the DCR XML and drawing (needs Graphviz `dot` for the PDF).
+- `uv run --project service python tools/build_to_be_bpmn.py` regenerates the BPMN files in `models/to-be/` (the executable processes, their processdoctor variants, the collaboration overview and the passenger journey). The activity names come from `service/rejsegaranti/activities.py`. If you edit a model in Camunda Modeler, stop regenerating it, or port the change to the generator.
+- `python3 tools/build_to_be_dmn.py` regenerates `models/to-be/travel-guarantee-to-be.dmn`, the TO-BE decision tables.
+- After a change, run `uv run rejsegaranti deploy` and `uv run rejsegaranti replay` to decide the stored claims again.
 - The PDFs and SVGs of the BPMN models were rendered with bpmn-js. To redo them, open the `.bpmn` in Camunda Modeler and use Export as PNG/SVG.
 
 ## Known gaps
 
 - **Real delay data for Line L:** none is published. We looked on Dataudveksleren (7 November 2026) and found no Letbane dataset, so the server uses real delays of Copenhagen's buses and S-trains instead (see `deploy/README.md`, "Why Copenhagen's buses and S-trains"). Locally, delays are simulated unless you pass `--delays file.csv`.
-- **Line L station coordinates** in `service/rejsegaranti/stations.py` are approximate (about ±100 m); the Copenhagen lines' come from GTFS (`data/stations.csv`). Check them before using the 250 m rule on anything real.
-- **processdoctor.dtu.dk** check: still to do by hand (upload the DCR XML and the exported XES).
-- **Fresh start:** the bridge keeps its state in `out/registry.json`. Delete it, and run `docker compose down` for Camunda, before re-sending the same simulated scenario. Otherwise delays are deduplicated and repeated claims get HTTP 409.
+- **Line L station coordinates** in `service/rejsegaranti/stations.py` are approximate (about ±100 m); the Copenhagen lines' come from GTFS (`data/stations.csv`). They only decide which delay a claim's trip matches.
+- **processdoctor.dtu.dk** check: still to do by hand (upload the `*.processdoctor.bpmn` files and the exported XES).
+- **Fresh start:** the bridge keeps its state in `out/registry.json`. To decide everything again, use `replay`. To start from nothing, delete the file and run `docker compose down` for Camunda before re-sending the same simulated scenario. Otherwise delays are deduplicated and repeated claims get HTTP 409.

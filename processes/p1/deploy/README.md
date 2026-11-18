@@ -20,7 +20,7 @@ The lines are set in three units: `REJSEGARANTI_LINES=*` (every line in `data/st
 | Service | What it does | Data |
 |---|---|---|
 | `rejsegaranti-camunda` | Camunda 7 Run 7.24 on port 8085 (8080 is taken on pinklady), with webapps and REST API | H2 database in `/opt/camunda/camunda-h2-default` (includes the history, which is the event log) |
-| `rejsegaranti-bridge` | Waits for Camunda, deploys `models/rejsegaranti-to-be.bpmn` (nothing happens if it is unchanged), then runs the CEP bridge on port 8090, the results page at `/results` and the external-task workers | `/var/lib/rejsegaranti` (`registry.json`, `cep-events.jsonl`) |
+| `rejsegaranti-bridge` | Waits for Camunda, deploys the TO-BE models in `models/to-be/` and the AS-IS decision tables (nothing happens if they are unchanged), then runs the CEP bridge on port 8090, the results page at `/results` and the external-task workers | `/var/lib/rejsegaranti` (`registry.json`, `cep-events.jsonl`) |
 | `rejsegaranti-feed` | `rejsegaranti feed --real --interval 300`: every 5 minutes, simulates claims for the real delays the bridge has received, once each delay has played out (40 minutes after the delayed departure) | None of its own. Everything goes through the bridge |
 | `rejsegaranti-recorder` | The recorder (`../recorder`): **real** Movia bus and DSB S-tog delays and cancellations from Dataudveksleren (datasets 788 and 801), plus OpenWeatherMap and DMI every 10 minutes. Sends every delay and the OpenWeatherMap weather to the bridge | `/var/lib/rejsegaranti-recorder` |
 
