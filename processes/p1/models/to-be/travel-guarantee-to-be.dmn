@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/" xmlns:di="http://www.omg.org/spec/DMN/20180521/DI/" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:camunda="http://camunda.org/schema/1.0/dmn" id="Definitions_travel_guarantee_to_be" name="Travel guarantee (TO-BE)" namespace="http://poeds.dtu.dk/travel-guarantee" exporter="build_dmn.py" exporterVersion="2.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <decision id="ToBe_TravelGuarantee" name="Travel guarantee applies" camunda:historyTimeToLive="180">
+    <informationRequirement id="IR_ToBe_TravelGuarantee_ToBe_Incident"><requiredDecision href="#ToBe_Incident" /></informationRequirement>
+    <informationRequirement id="IR_ToBe_TravelGuarantee_Input_exclusion"><requiredInput href="#Input_exclusion" /></informationRequirement>
+    <authorityRequirement id="AR_ToBe_TravelGuarantee"><requiredAuthority href="#KS_Terms" /></authorityRequirement>
+    <decisionTable id="DT_ToBe_TravelGuarantee" hitPolicy="UNIQUE">
+      <input id="In_ToBe_TravelGuarantee_0" label="Exclusion"><inputExpression id="IE_ToBe_TravelGuarantee_0" typeRef="string"><text>exclusion</text></inputExpression><inputValues id="IV_ToBe_TravelGuarantee_0"><text>"none","Flextrafik","Strike, weather or force majeure","Planned change"</text></inputValues></input>
+      <input id="In_ToBe_TravelGuarantee_1" label="Incident assessment"><inputExpression id="IE_ToBe_TravelGuarantee_1" typeRef="string"><text>incidentAssessment</text></inputExpression><inputValues id="IV_ToBe_TravelGuarantee_1"><text>"Qualifies","No verified delay","Delay 20 min or less","Not visible to driver","Bus full","Next bus within 20 min","Stop not requested in time","Next departure within 20 min","Missed connection"</text></inputValues></input>
+      <output id="Out_ToBe_TravelGuarantee_0" label="Covered" name="covered" typeRef="boolean"></output>
+      <output id="Out_ToBe_TravelGuarantee_1" label="Reason" name="reason" typeRef="string"></output>
+      <rule id="R_ToBe_TravelGuarantee_1">
+        <description>An exclusion always wins</description>
+        <inputEntry id="IN_ToBe_TravelGuarantee_1_0"><text>not("none")</text></inputEntry>
+        <inputEntry id="IN_ToBe_TravelGuarantee_1_1"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_TravelGuarantee_1_0"><text>false</text></outputEntry>
+        <outputEntry id="OUT_ToBe_TravelGuarantee_1_1"><text>exclusion</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_TravelGuarantee_2">
+        <description>Only the part of the trip the bus or local train should have covered</description>
+        <inputEntry id="IN_ToBe_TravelGuarantee_2_0"><text>"none"</text></inputEntry>
+        <inputEntry id="IN_ToBe_TravelGuarantee_2_1"><text>"Qualifies"</text></inputEntry>
+        <outputEntry id="OUT_ToBe_TravelGuarantee_2_0"><text>true</text></outputEntry>
+        <outputEntry id="OUT_ToBe_TravelGuarantee_2_1"><text>"Covered"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_TravelGuarantee_3">
+        <inputEntry id="IN_ToBe_TravelGuarantee_3_0"><text>"none"</text></inputEntry>
+        <inputEntry id="IN_ToBe_TravelGuarantee_3_1"><text>not("Qualifies")</text></inputEntry>
+        <outputEntry id="OUT_ToBe_TravelGuarantee_3_0"><text>false</text></outputEntry>
+        <outputEntry id="OUT_ToBe_TravelGuarantee_3_1"><text>incidentAssessment</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <decision id="ToBe_Exclusion" name="Excluded by cause" camunda:historyTimeToLive="180">
+    <informationRequirement id="IR_ToBe_Exclusion_ToBe_Cause"><requiredDecision href="#ToBe_Cause" /></informationRequirement>
+    <informationRequirement id="IR_ToBe_Exclusion_Input_service"><requiredInput href="#Input_service" /></informationRequirement>
+    <informationRequirement id="IR_ToBe_Exclusion_Input_hoursAnnouncedBefore"><requiredInput href="#Input_hoursAnnouncedBefore" /></informationRequirement>
+    <authorityRequirement id="AR_ToBe_Exclusion"><requiredAuthority href="#KS_Terms" /></authorityRequirement>
+    <decisionTable id="DT_ToBe_Exclusion" hitPolicy="UNIQUE">
+      <input id="In_ToBe_Exclusion_0" label="Service"><inputExpression id="IE_ToBe_Exclusion_0" typeRef="string"><text>service</text></inputExpression><inputValues id="IV_ToBe_Exclusion_0"><text>"bus","local train","Flextrafik"</text></inputValues></input>
+      <input id="In_ToBe_Exclusion_1" label="Cause of disruption"><inputExpression id="IE_ToBe_Exclusion_1" typeRef="string"><text>cause</text></inputExpression><inputValues id="IV_ToBe_Exclusion_1"><text>"none","strike","weather","force majeure"</text></inputValues></input>
+      <input id="In_ToBe_Exclusion_2" label="Hours the change was announced before"><inputExpression id="IE_ToBe_Exclusion_2" typeRef="number"><text>hoursAnnouncedBefore</text></inputExpression></input>
+      <output id="Out_ToBe_Exclusion_0" label="Exclusion" name="exclusion" typeRef="string"><outputValues id="OV_ToBe_Exclusion_0"><text>"none","Flextrafik","Strike, weather or force majeure","Planned change"</text></outputValues></output>
+      <rule id="R_ToBe_Exclusion_1">
+        <description>Flextrafik is not covered</description>
+        <inputEntry id="IN_ToBe_Exclusion_1_0"><text>"Flextrafik"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Exclusion_1_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Exclusion_1_2"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Exclusion_1_0"><text>"Flextrafik"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Exclusion_2">
+        <description>Bus strikes, weather that makes the timetable impossible, force majeure</description>
+        <inputEntry id="IN_ToBe_Exclusion_2_0"><text>not("Flextrafik")</text></inputEntry>
+        <inputEntry id="IN_ToBe_Exclusion_2_1"><text>not("none")</text></inputEntry>
+        <inputEntry id="IN_ToBe_Exclusion_2_2"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Exclusion_2_0"><text>"Strike, weather or force majeure"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Exclusion_3">
+        <description>Announced on dinoffentligetransport.dk 24 h before departure</description>
+        <inputEntry id="IN_ToBe_Exclusion_3_0"><text>not("Flextrafik")</text></inputEntry>
+        <inputEntry id="IN_ToBe_Exclusion_3_1"><text>"none"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Exclusion_3_2"><text>&gt;= 24</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Exclusion_3_0"><text>"Planned change"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Exclusion_4">
+        <description>Announced too late to count</description>
+        <inputEntry id="IN_ToBe_Exclusion_4_0"><text>not("Flextrafik")</text></inputEntry>
+        <inputEntry id="IN_ToBe_Exclusion_4_1"><text>"none"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Exclusion_4_2"><text>&lt; 24</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Exclusion_4_0"><text>"none"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Exclusion_5">
+        <description>No notice of a planned change</description>
+        <inputEntry id="IN_ToBe_Exclusion_5_0"><text>not("Flextrafik")</text></inputEntry>
+        <inputEntry id="IN_ToBe_Exclusion_5_1"><text>"none"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Exclusion_5_2"><text>null</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Exclusion_5_0"><text>"none"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <decision id="ToBe_Cause" name="Cause of disruption" camunda:historyTimeToLive="180">
+    <informationRequirement id="IR_ToBe_Cause_Input_operatorCause"><requiredInput href="#Input_operatorCause" /></informationRequirement>
+    <informationRequirement id="IR_ToBe_Cause_Input_dmiLevel"><requiredInput href="#Input_dmiLevel" /></informationRequirement>
+    <informationRequirement id="IR_ToBe_Cause_Input_windSpeed"><requiredInput href="#Input_windSpeed" /></informationRequirement>
+    <informationRequirement id="IR_ToBe_Cause_Input_windGust"><requiredInput href="#Input_windGust" /></informationRequirement>
+    <informationRequirement id="IR_ToBe_Cause_Input_rain1h"><requiredInput href="#Input_rain1h" /></informationRequirement>
+    <informationRequirement id="IR_ToBe_Cause_Input_snow1h"><requiredInput href="#Input_snow1h" /></informationRequirement>
+    <authorityRequirement id="AR_ToBe_Cause"><requiredAuthority href="#KS_Weather" /></authorityRequirement>
+    <decisionTable id="DT_ToBe_Cause" hitPolicy="FIRST">
+      <input id="In_ToBe_Cause_0" label="Operator's cause code"><inputExpression id="IE_ToBe_Cause_0" typeRef="string"><text>operatorCause</text></inputExpression><inputValues id="IV_ToBe_Cause_0"><text>"none","strike","fire","person_collision","natural_event"</text></inputValues></input>
+      <input id="In_ToBe_Cause_1" label="DMI warning level"><inputExpression id="IE_ToBe_Cause_1" typeRef="number"><text>dmiLevel</text></inputExpression></input>
+      <input id="In_ToBe_Cause_2" label="Wind speed (m/s)"><inputExpression id="IE_ToBe_Cause_2" typeRef="number"><text>windSpeed</text></inputExpression></input>
+      <input id="In_ToBe_Cause_3" label="Wind gust (m/s)"><inputExpression id="IE_ToBe_Cause_3" typeRef="number"><text>windGust</text></inputExpression></input>
+      <input id="In_ToBe_Cause_4" label="Rain, last hour (mm)"><inputExpression id="IE_ToBe_Cause_4" typeRef="number"><text>rain1h</text></inputExpression></input>
+      <input id="In_ToBe_Cause_5" label="Snow, last hour (mm)"><inputExpression id="IE_ToBe_Cause_5" typeRef="number"><text>snow1h</text></inputExpression></input>
+      <output id="Out_ToBe_Cause_0" label="Cause of disruption" name="cause" typeRef="string"><outputValues id="OV_ToBe_Cause_0"><text>"none","strike","weather","force majeure"</text></outputValues></output>
+      <rule id="R_ToBe_Cause_1">
+        <description>Strike reported by the operator</description>
+        <inputEntry id="IN_ToBe_Cause_1_0"><text>"strike"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_1_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_1_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_1_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_1_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_1_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Cause_1_0"><text>"strike"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Cause_2">
+        <description>Fire, person collision, unusual natural event</description>
+        <inputEntry id="IN_ToBe_Cause_2_0"><text>"fire","person_collision","natural_event"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_2_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_2_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_2_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_2_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_2_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Cause_2_0"><text>"force majeure"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Cause_3">
+        <description>DMI level 2 "Farligt vejr" or 3</description>
+        <inputEntry id="IN_ToBe_Cause_3_0"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_3_1"><text>&gt;= 2</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_3_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_3_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_3_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_3_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Cause_3_0"><text>"weather"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Cause_4">
+        <description>DMI level 1 "Voldsomt vejr": the official warning wins over the readings below</description>
+        <inputEntry id="IN_ToBe_Cause_4_0"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_4_1"><text>&lt; 2</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_4_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_4_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_4_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_4_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Cause_4_0"><text>"none"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Cause_5">
+        <description>No DMI warning: Beaufort 10, storm</description>
+        <inputEntry id="IN_ToBe_Cause_5_0"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_5_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_5_2"><text>&gt;= 24.5</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_5_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_5_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_5_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Cause_5_0"><text>"weather"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Cause_6">
+        <description>No DMI warning: hurricane-force gusts</description>
+        <inputEntry id="IN_ToBe_Cause_6_0"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_6_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_6_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_6_3"><text>&gt;= 32.7</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_6_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_6_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Cause_6_0"><text>"weather"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Cause_7">
+        <description>No DMI warning: cloudburst (15 mm in 30 min) kept up for an hour</description>
+        <inputEntry id="IN_ToBe_Cause_7_0"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_7_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_7_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_7_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_7_4"><text>&gt;= 30</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_7_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Cause_7_0"><text>"weather"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Cause_8">
+        <description>No DMI warning: heavy snowfall</description>
+        <inputEntry id="IN_ToBe_Cause_8_0"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_8_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_8_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_8_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_8_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_8_5"><text>&gt;= 5</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Cause_8_0"><text>"weather"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Cause_9">
+        <description>Nothing outside the operator's control</description>
+        <inputEntry id="IN_ToBe_Cause_9_0"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_9_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_9_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_9_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_9_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Cause_9_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Cause_9_0"><text>"none"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <decision id="ToBe_Incident" name="Incident qualifies" camunda:historyTimeToLive="180">
+    <informationRequirement id="IR_ToBe_Incident_Input_incident"><requiredInput href="#Input_incident" /></informationRequirement>
+    <informationRequirement id="IR_ToBe_Incident_Input_delayMinutes"><requiredInput href="#Input_delayMinutes" /></informationRequirement>
+    <informationRequirement id="IR_ToBe_Incident_Input_visibleToDriver"><requiredInput href="#Input_visibleToDriver" /></informationRequirement>
+    <informationRequirement id="IR_ToBe_Incident_Input_busFull"><requiredInput href="#Input_busFull" /></informationRequirement>
+    <informationRequirement id="IR_ToBe_Incident_Input_stopRequested"><requiredInput href="#Input_stopRequested" /></informationRequirement>
+    <informationRequirement id="IR_ToBe_Incident_Input_minutesToNextDeparture"><requiredInput href="#Input_minutesToNextDeparture" /></informationRequirement>
+    <authorityRequirement id="AR_ToBe_Incident"><requiredAuthority href="#KS_Terms" /></authorityRequirement>
+    <decisionTable id="DT_ToBe_Incident" hitPolicy="UNIQUE">
+      <input id="In_ToBe_Incident_0" label="Incident"><inputExpression id="IE_ToBe_Incident_0" typeRef="string"><text>incident</text></inputExpression><inputValues id="IV_ToBe_Incident_0"><text>"delay","bus passed stop","train did not stop","left over 2 min early","missed connection"</text></inputValues></input>
+      <input id="In_ToBe_Incident_1" label="Delay (min)"><inputExpression id="IE_ToBe_Incident_1" typeRef="number"><text>delayMinutes</text></inputExpression></input>
+      <input id="In_ToBe_Incident_2" label="Visible to driver"><inputExpression id="IE_ToBe_Incident_2" typeRef="boolean"><text>visibleToDriver</text></inputExpression></input>
+      <input id="In_ToBe_Incident_3" label="Bus full"><inputExpression id="IE_ToBe_Incident_3" typeRef="boolean"><text>busFull</text></inputExpression></input>
+      <input id="In_ToBe_Incident_4" label="Stop requested in time"><inputExpression id="IE_ToBe_Incident_4" typeRef="boolean"><text>stopRequested</text></inputExpression></input>
+      <input id="In_ToBe_Incident_5" label="Minutes to the next departure"><inputExpression id="IE_ToBe_Incident_5" typeRef="number"><text>minutesToNextDeparture</text></inputExpression></input>
+      <output id="Out_ToBe_Incident_0" label="Incident assessment" name="incidentAssessment" typeRef="string"><outputValues id="OV_ToBe_Incident_0"><text>"Qualifies","No verified delay","Delay 20 min or less","Not visible to driver","Bus full","Next bus within 20 min","Stop not requested in time","Next departure within 20 min","Missed connection"</text></outputValues></output>
+      <rule id="R_ToBe_Incident_1">
+        <description>Actual delay, not a projected one</description>
+        <inputEntry id="IN_ToBe_Incident_1_0"><text>"delay"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_1_1"><text>&gt; 20</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_1_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_1_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_1_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_1_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Incident_1_0"><text>"Qualifies"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Incident_2">
+        <inputEntry id="IN_ToBe_Incident_2_0"><text>"delay"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_2_1"><text>&lt;= 20</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_2_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_2_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_2_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_2_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Incident_2_0"><text>"Delay 20 min or less"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Incident_3">
+        <description>No delay in the real-time data matches the trip</description>
+        <inputEntry id="IN_ToBe_Incident_3_0"><text>"delay"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_3_1"><text>null</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_3_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_3_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_3_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_3_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Incident_3_0"><text>"No verified delay"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Incident_4">
+        <inputEntry id="IN_ToBe_Incident_4_0"><text>"bus passed stop"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_4_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_4_2"><text>false</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_4_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_4_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_4_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Incident_4_0"><text>"Not visible to driver"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Incident_5">
+        <inputEntry id="IN_ToBe_Incident_5_0"><text>"bus passed stop"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_5_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_5_2"><text>true</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_5_3"><text>true</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_5_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_5_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Incident_5_0"><text>"Bus full"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Incident_6">
+        <inputEntry id="IN_ToBe_Incident_6_0"><text>"bus passed stop"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_6_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_6_2"><text>true</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_6_3"><text>false</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_6_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_6_5"><text>&lt;= 20</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Incident_6_0"><text>"Next bus within 20 min"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Incident_7">
+        <inputEntry id="IN_ToBe_Incident_7_0"><text>"bus passed stop"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_7_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_7_2"><text>true</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_7_3"><text>false</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_7_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_7_5"><text>&gt; 20</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Incident_7_0"><text>"Qualifies"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Incident_8">
+        <inputEntry id="IN_ToBe_Incident_8_0"><text>"train did not stop"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_8_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_8_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_8_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_8_4"><text>false</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_8_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Incident_8_0"><text>"Stop not requested in time"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Incident_9">
+        <inputEntry id="IN_ToBe_Incident_9_0"><text>"train did not stop"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_9_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_9_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_9_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_9_4"><text>true</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_9_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Incident_9_0"><text>"Qualifies"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Incident_10">
+        <inputEntry id="IN_ToBe_Incident_10_0"><text>"left over 2 min early"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_10_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_10_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_10_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_10_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_10_5"><text>&lt;= 20</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Incident_10_0"><text>"Next departure within 20 min"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Incident_11">
+        <inputEntry id="IN_ToBe_Incident_11_0"><text>"left over 2 min early"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_11_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_11_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_11_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_11_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_11_5"><text>&gt; 20</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Incident_11_0"><text>"Qualifies"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Incident_12">
+        <description>Lost connections after a delay</description>
+        <inputEntry id="IN_ToBe_Incident_12_0"><text>"missed connection"</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_12_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_12_2"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_12_3"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_12_4"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_Incident_12_5"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Incident_12_0"><text>"Missed connection"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <decision id="ToBe_ClaimValid" name="Claim valid" camunda:historyTimeToLive="180">
+    <informationRequirement id="IR_ToBe_ClaimValid_Input_receiptAttached"><requiredInput href="#Input_receiptAttached" /></informationRequirement>
+    <informationRequirement id="IR_ToBe_ClaimValid_Input_daysToClaim"><requiredInput href="#Input_daysToClaim" /></informationRequirement>
+    <informationRequirement id="IR_ToBe_ClaimValid_Input_receiptUsedBefore"><requiredInput href="#Input_receiptUsedBefore" /></informationRequirement>
+    <authorityRequirement id="AR_ToBe_ClaimValid"><requiredAuthority href="#KS_Claim" /></authorityRequirement>
+    <decisionTable id="DT_ToBe_ClaimValid" hitPolicy="UNIQUE">
+      <input id="In_ToBe_ClaimValid_0" label="Taxi receipt attached"><inputExpression id="IE_ToBe_ClaimValid_0" typeRef="boolean"><text>receiptAttached</text></inputExpression></input>
+      <input id="In_ToBe_ClaimValid_1" label="Days from incident to claim received"><inputExpression id="IE_ToBe_ClaimValid_1" typeRef="number"><text>daysToClaim</text></inputExpression></input>
+      <input id="In_ToBe_ClaimValid_2" label="Receipt used on an earlier claim"><inputExpression id="IE_ToBe_ClaimValid_2" typeRef="boolean"><text>receiptUsedBefore</text></inputExpression></input>
+      <output id="Out_ToBe_ClaimValid_0" label="Claim valid" name="claimValid" typeRef="boolean"></output>
+      <output id="Out_ToBe_ClaimValid_1" label="Claim reason" name="claimReason" typeRef="string"><outputValues id="OV_ToBe_ClaimValid_1"><text>"Valid","No receipt","Claim too late","Receipt already claimed"</text></outputValues></output>
+      <rule id="R_ToBe_ClaimValid_1">
+        <description>Receipt must be attached [2][3]</description>
+        <inputEntry id="IN_ToBe_ClaimValid_1_0"><text>false</text></inputEntry>
+        <inputEntry id="IN_ToBe_ClaimValid_1_1"><text>-</text></inputEntry>
+        <inputEntry id="IN_ToBe_ClaimValid_1_2"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_ClaimValid_1_0"><text>false</text></outputEntry>
+        <outputEntry id="OUT_ToBe_ClaimValid_1_1"><text>"No receipt"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_ClaimValid_2">
+        <description>Claim must reach Movia within 14 days [3]</description>
+        <inputEntry id="IN_ToBe_ClaimValid_2_0"><text>true</text></inputEntry>
+        <inputEntry id="IN_ToBe_ClaimValid_2_1"><text>&gt; 14</text></inputEntry>
+        <inputEntry id="IN_ToBe_ClaimValid_2_2"><text>-</text></inputEntry>
+        <outputEntry id="OUT_ToBe_ClaimValid_2_0"><text>false</text></outputEntry>
+        <outputEntry id="OUT_ToBe_ClaimValid_2_1"><text>"Claim too late"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_ClaimValid_3">
+        <description>TO-BE: one refund per receipt, checked at intake instead of at payout</description>
+        <inputEntry id="IN_ToBe_ClaimValid_3_0"><text>true</text></inputEntry>
+        <inputEntry id="IN_ToBe_ClaimValid_3_1"><text>&lt;= 14</text></inputEntry>
+        <inputEntry id="IN_ToBe_ClaimValid_3_2"><text>true</text></inputEntry>
+        <outputEntry id="OUT_ToBe_ClaimValid_3_0"><text>false</text></outputEntry>
+        <outputEntry id="OUT_ToBe_ClaimValid_3_1"><text>"Receipt already claimed"</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_ClaimValid_4">
+        <inputEntry id="IN_ToBe_ClaimValid_4_0"><text>true</text></inputEntry>
+        <inputEntry id="IN_ToBe_ClaimValid_4_1"><text>&lt;= 14</text></inputEntry>
+        <inputEntry id="IN_ToBe_ClaimValid_4_2"><text>false</text></inputEntry>
+        <outputEntry id="OUT_ToBe_ClaimValid_4_0"><text>true</text></outputEntry>
+        <outputEntry id="OUT_ToBe_ClaimValid_4_1"><text>"Valid"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <decision id="ToBe_Refund" name="Refund amount" camunda:historyTimeToLive="180">
+    <informationRequirement id="IR_ToBe_Refund_Input_fareDkk"><requiredInput href="#Input_fareDkk" /></informationRequirement>
+    <authorityRequirement id="AR_ToBe_Refund"><requiredAuthority href="#KS_Claim" /></authorityRequirement>
+    <decisionTable id="DT_ToBe_Refund" hitPolicy="UNIQUE">
+      <input id="In_ToBe_Refund_0" label="Taxi fare (kr)"><inputExpression id="IE_ToBe_Refund_0" typeRef="number"><text>fareDkk</text></inputExpression></input>
+      <output id="Out_ToBe_Refund_0" label="Refund (kr)" name="refundDkk" typeRef="number"></output>
+      <rule id="R_ToBe_Refund_1">
+        <description>The fare in full</description>
+        <inputEntry id="IN_ToBe_Refund_1_0"><text>&lt;= 300</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Refund_1_0"><text>fareDkk</text></outputEntry>
+      </rule>
+      <rule id="R_ToBe_Refund_2">
+        <description>At most 300 kr per taxi, however many share it [2][3]</description>
+        <inputEntry id="IN_ToBe_Refund_2_0"><text>&gt; 300</text></inputEntry>
+        <outputEntry id="OUT_ToBe_Refund_2_0"><text>300</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+  <inputData id="Input_exclusion" name="Exclusion (from Assess disruption)"><variable id="Var_exclusion" name="exclusion" typeRef="string" /></inputData>
+  <inputData id="Input_operatorCause" name="Operator's cause code"><variable id="Var_operatorCause" name="operatorCause" typeRef="string" /></inputData>
+  <inputData id="Input_dmiLevel" name="DMI warning level"><variable id="Var_dmiLevel" name="dmiLevel" typeRef="number" /></inputData>
+  <inputData id="Input_windSpeed" name="Wind speed (m/s)"><variable id="Var_windSpeed" name="windSpeed" typeRef="number" /></inputData>
+  <inputData id="Input_windGust" name="Wind gust (m/s)"><variable id="Var_windGust" name="windGust" typeRef="number" /></inputData>
+  <inputData id="Input_rain1h" name="Rain, last hour (mm)"><variable id="Var_rain1h" name="rain1h" typeRef="number" /></inputData>
+  <inputData id="Input_snow1h" name="Snow, last hour (mm)"><variable id="Var_snow1h" name="snow1h" typeRef="number" /></inputData>
+  <inputData id="Input_service" name="Service"><variable id="Var_service" name="service" typeRef="string" /></inputData>
+  <inputData id="Input_hoursAnnouncedBefore" name="Hours the change was announced before"><variable id="Var_hoursAnnouncedBefore" name="hoursAnnouncedBefore" typeRef="number" /></inputData>
+  <inputData id="Input_incident" name="Incident"><variable id="Var_incident" name="incident" typeRef="string" /></inputData>
+  <inputData id="Input_delayMinutes" name="Delay (min)"><variable id="Var_delayMinutes" name="delayMinutes" typeRef="number" /></inputData>
+  <inputData id="Input_visibleToDriver" name="Visible to driver"><variable id="Var_visibleToDriver" name="visibleToDriver" typeRef="boolean" /></inputData>
+  <inputData id="Input_busFull" name="Bus full"><variable id="Var_busFull" name="busFull" typeRef="boolean" /></inputData>
+  <inputData id="Input_stopRequested" name="Stop requested in time"><variable id="Var_stopRequested" name="stopRequested" typeRef="boolean" /></inputData>
+  <inputData id="Input_minutesToNextDeparture" name="Minutes to the next departure"><variable id="Var_minutesToNextDeparture" name="minutesToNextDeparture" typeRef="number" /></inputData>
+  <inputData id="Input_receiptAttached" name="Taxi receipt attached"><variable id="Var_receiptAttached" name="receiptAttached" typeRef="boolean" /></inputData>
+  <inputData id="Input_daysToClaim" name="Days from incident to claim received"><variable id="Var_daysToClaim" name="daysToClaim" typeRef="number" /></inputData>
+  <inputData id="Input_receiptUsedBefore" name="Receipt used on an earlier claim"><variable id="Var_receiptUsedBefore" name="receiptUsedBefore" typeRef="boolean" /></inputData>
+  <inputData id="Input_fareDkk" name="Taxi fare (kr)"><variable id="Var_fareDkk" name="fareDkk" typeRef="number" /></inputData>
+  <knowledgeSource id="KS_Terms" name="Travel guarantee terms (Movia) [1]" />
+  <knowledgeSource id="KS_Claim" name="Movia claim rules [2][3]" />
+  <knowledgeSource id="KS_Weather" name="DMI and OpenWeatherMap limits (group proposal)" />
+  <textAnnotation id="Annotation_Author"><text>Travel guarantee, Movia bus and local train. Author: Liam Palmqvist. Hit policy Unique, except First in Cause of disruption. Sources: references in '1. Rejsegaranti claim.md'.</text></textAnnotation>
+  <textAnnotation id="Annotation_Scope"><text>Covers only the part of the trip the bus or local train should have covered. No other costs (e.g. flight or show tickets, lost earnings).</text></textAnnotation>
+  <association id="Assoc_Annotation_Scope"><sourceRef href="#Annotation_Scope" /><targetRef href="#ToBe_TravelGuarantee" /></association>
+  <textAnnotation id="Annotation_Delay"><text>Actual delay: a +20 min estimate on Rejseplan or a stop screen is not enough, the bus or train may catch up.</text></textAnnotation>
+  <association id="Assoc_Annotation_Delay"><sourceRef href="#Annotation_Delay" /><targetRef href="#Input_delayMinutes" /></association>
+  <textAnnotation id="Annotation_Deadline"><text>14 days: quoted from Movia in ABTM decision 2022-0042 [3]. Not confirmed on a current Movia page.</text></textAnnotation>
+  <association id="Assoc_Annotation_Deadline"><sourceRef href="#Annotation_Deadline" /><targetRef href="#Input_daysToClaim" /></association>
+  <textAnnotation id="Annotation_PerDelay"><text>Once per delay, in Assess disruption. Its result reaches 'Travel guarantee applies' as the input Exclusion, so every claim on one delay gets the same exclusion.</text></textAnnotation>
+  <association id="Assoc_Annotation_PerDelay"><sourceRef href="#Annotation_PerDelay" /><targetRef href="#ToBe_Exclusion" /></association>
+  <textAnnotation id="Annotation_Weather"><text>Weather limits are the group's proposal: Beaufort 10 wind, Beaufort 12 gusts, DMI's cloudburst rate, heavy snow. To be justified in the report.</text></textAnnotation>
+  <association id="Assoc_Annotation_Weather"><sourceRef href="#Annotation_Weather" /><targetRef href="#KS_Weather" /></association>
+  <dmndi:DMNDI><dmndi:DMNDiagram id="DMNDiagram_1">
+    <dmndi:DMNShape id="ToBe_TravelGuarantee_di" dmnElementRef="ToBe_TravelGuarantee"><dc:Bounds x="1437" y="40" width="180" height="80" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="ToBe_Exclusion_di" dmnElementRef="ToBe_Exclusion"><dc:Bounds x="560" y="220" width="180" height="80" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="ToBe_Cause_di" dmnElementRef="ToBe_Cause"><dc:Bounds x="377" y="420" width="180" height="80" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="ToBe_Incident_di" dmnElementRef="ToBe_Incident"><dc:Bounds x="1437" y="220" width="180" height="80" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="ToBe_ClaimValid_di" dmnElementRef="ToBe_ClaimValid"><dc:Bounds x="2130" y="220" width="180" height="80" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="ToBe_Refund_di" dmnElementRef="ToBe_Refund"><dc:Bounds x="2465" y="220" width="180" height="80" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="KS_Terms_di" dmnElementRef="KS_Terms"><dc:Bounds x="900" y="50" width="170" height="63" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="KS_Claim_di" dmnElementRef="KS_Claim"><dc:Bounds x="2300" y="40" width="170" height="63" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="KS_Weather_di" dmnElementRef="KS_Weather"><dc:Bounds x="130" y="428" width="170" height="63" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_exclusion_di" dmnElementRef="Input_exclusion"><dc:Bounds x="1180" y="237" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_operatorCause_di" dmnElementRef="Input_operatorCause"><dc:Bounds x="40" y="640" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_dmiLevel_di" dmnElementRef="Input_dmiLevel"><dc:Bounds x="185" y="640" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_windSpeed_di" dmnElementRef="Input_windSpeed"><dc:Bounds x="330" y="640" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_windGust_di" dmnElementRef="Input_windGust"><dc:Bounds x="475" y="640" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_rain1h_di" dmnElementRef="Input_rain1h"><dc:Bounds x="620" y="640" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_snow1h_di" dmnElementRef="Input_snow1h"><dc:Bounds x="765" y="640" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_service_di" dmnElementRef="Input_service"><dc:Bounds x="620" y="420" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_hoursAnnouncedBefore_di" dmnElementRef="Input_hoursAnnouncedBefore"><dc:Bounds x="765" y="420" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_incident_di" dmnElementRef="Input_incident"><dc:Bounds x="1100" y="420" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_delayMinutes_di" dmnElementRef="Input_delayMinutes"><dc:Bounds x="1245" y="420" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_visibleToDriver_di" dmnElementRef="Input_visibleToDriver"><dc:Bounds x="1390" y="420" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_busFull_di" dmnElementRef="Input_busFull"><dc:Bounds x="1535" y="420" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_stopRequested_di" dmnElementRef="Input_stopRequested"><dc:Bounds x="1680" y="420" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_minutesToNextDeparture_di" dmnElementRef="Input_minutesToNextDeparture"><dc:Bounds x="1825" y="420" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_receiptAttached_di" dmnElementRef="Input_receiptAttached"><dc:Bounds x="2010" y="420" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_daysToClaim_di" dmnElementRef="Input_daysToClaim"><dc:Bounds x="2155" y="420" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_receiptUsedBefore_di" dmnElementRef="Input_receiptUsedBefore"><dc:Bounds x="2300" y="420" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Input_fareDkk_di" dmnElementRef="Input_fareDkk"><dc:Bounds x="2490" y="420" width="130" height="45" /></dmndi:DMNShape>
+    <dmndi:DMNEdge id="IR_ToBe_TravelGuarantee_ToBe_Incident_di" dmnElementRef="IR_ToBe_TravelGuarantee_ToBe_Incident"><di:waypoint x="1527" y="220" /><di:waypoint x="1527" y="120" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_TravelGuarantee_Input_exclusion_di" dmnElementRef="IR_ToBe_TravelGuarantee_Input_exclusion"><di:waypoint x="1245" y="237" /><di:waypoint x="1527" y="120" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="AR_ToBe_TravelGuarantee_di" dmnElementRef="AR_ToBe_TravelGuarantee"><di:waypoint x="1070" y="81" /><di:waypoint x="1437" y="80" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Exclusion_ToBe_Cause_di" dmnElementRef="IR_ToBe_Exclusion_ToBe_Cause"><di:waypoint x="467" y="420" /><di:waypoint x="650" y="300" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Exclusion_Input_service_di" dmnElementRef="IR_ToBe_Exclusion_Input_service"><di:waypoint x="685" y="420" /><di:waypoint x="650" y="300" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Exclusion_Input_hoursAnnouncedBefore_di" dmnElementRef="IR_ToBe_Exclusion_Input_hoursAnnouncedBefore"><di:waypoint x="830" y="420" /><di:waypoint x="650" y="300" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="AR_ToBe_Exclusion_di" dmnElementRef="AR_ToBe_Exclusion"><di:waypoint x="900" y="81" /><di:waypoint x="740" y="260" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Cause_Input_operatorCause_di" dmnElementRef="IR_ToBe_Cause_Input_operatorCause"><di:waypoint x="105" y="640" /><di:waypoint x="467" y="500" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Cause_Input_dmiLevel_di" dmnElementRef="IR_ToBe_Cause_Input_dmiLevel"><di:waypoint x="250" y="640" /><di:waypoint x="467" y="500" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Cause_Input_windSpeed_di" dmnElementRef="IR_ToBe_Cause_Input_windSpeed"><di:waypoint x="395" y="640" /><di:waypoint x="467" y="500" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Cause_Input_windGust_di" dmnElementRef="IR_ToBe_Cause_Input_windGust"><di:waypoint x="540" y="640" /><di:waypoint x="467" y="500" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Cause_Input_rain1h_di" dmnElementRef="IR_ToBe_Cause_Input_rain1h"><di:waypoint x="685" y="640" /><di:waypoint x="467" y="500" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Cause_Input_snow1h_di" dmnElementRef="IR_ToBe_Cause_Input_snow1h"><di:waypoint x="830" y="640" /><di:waypoint x="467" y="500" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="AR_ToBe_Cause_di" dmnElementRef="AR_ToBe_Cause"><di:waypoint x="300" y="459" /><di:waypoint x="377" y="460" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Incident_Input_incident_di" dmnElementRef="IR_ToBe_Incident_Input_incident"><di:waypoint x="1165" y="420" /><di:waypoint x="1527" y="300" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Incident_Input_delayMinutes_di" dmnElementRef="IR_ToBe_Incident_Input_delayMinutes"><di:waypoint x="1310" y="420" /><di:waypoint x="1527" y="300" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Incident_Input_visibleToDriver_di" dmnElementRef="IR_ToBe_Incident_Input_visibleToDriver"><di:waypoint x="1455" y="420" /><di:waypoint x="1527" y="300" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Incident_Input_busFull_di" dmnElementRef="IR_ToBe_Incident_Input_busFull"><di:waypoint x="1600" y="420" /><di:waypoint x="1527" y="300" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Incident_Input_stopRequested_di" dmnElementRef="IR_ToBe_Incident_Input_stopRequested"><di:waypoint x="1745" y="420" /><di:waypoint x="1527" y="300" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Incident_Input_minutesToNextDeparture_di" dmnElementRef="IR_ToBe_Incident_Input_minutesToNextDeparture"><di:waypoint x="1890" y="420" /><di:waypoint x="1527" y="300" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="AR_ToBe_Incident_di" dmnElementRef="AR_ToBe_Incident"><di:waypoint x="1070" y="81" /><di:waypoint x="1437" y="260" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_ClaimValid_Input_receiptAttached_di" dmnElementRef="IR_ToBe_ClaimValid_Input_receiptAttached"><di:waypoint x="2075" y="420" /><di:waypoint x="2220" y="300" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_ClaimValid_Input_daysToClaim_di" dmnElementRef="IR_ToBe_ClaimValid_Input_daysToClaim"><di:waypoint x="2220" y="420" /><di:waypoint x="2220" y="300" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_ClaimValid_Input_receiptUsedBefore_di" dmnElementRef="IR_ToBe_ClaimValid_Input_receiptUsedBefore"><di:waypoint x="2365" y="420" /><di:waypoint x="2220" y="300" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="AR_ToBe_ClaimValid_di" dmnElementRef="AR_ToBe_ClaimValid"><di:waypoint x="2300" y="71" /><di:waypoint x="2220" y="220" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="IR_ToBe_Refund_Input_fareDkk_di" dmnElementRef="IR_ToBe_Refund_Input_fareDkk"><di:waypoint x="2555" y="420" /><di:waypoint x="2555" y="300" /></dmndi:DMNEdge>
+    <dmndi:DMNEdge id="AR_ToBe_Refund_di" dmnElementRef="AR_ToBe_Refund"><di:waypoint x="2470" y="71" /><di:waypoint x="2555" y="220" /></dmndi:DMNEdge>
+    <dmndi:DMNShape id="Annotation_Author_di" dmnElementRef="Annotation_Author"><dc:Bounds x="40" y="20" width="420" height="70" /></dmndi:DMNShape>
+    <dmndi:DMNShape id="Annotation_Scope_di" dmnElementRef="Annotation_Scope"><dc:Bounds x="1660" y="40" width="300" height="60" /></dmndi:DMNShape>
+    <dmndi:DMNEdge id="Assoc_Annotation_Scope_di" dmnElementRef="Assoc_Annotation_Scope"><di:waypoint x="1660" y="70" /><di:waypoint x="1617" y="80" /></dmndi:DMNEdge>
+    <dmndi:DMNShape id="Annotation_Delay_di" dmnElementRef="Annotation_Delay"><dc:Bounds x="1100" y="500" width="300" height="50" /></dmndi:DMNShape>
+    <dmndi:DMNEdge id="Assoc_Annotation_Delay_di" dmnElementRef="Assoc_Annotation_Delay"><di:waypoint x="1250" y="500" /><di:waypoint x="1245" y="442" /></dmndi:DMNEdge>
+    <dmndi:DMNShape id="Annotation_Deadline_di" dmnElementRef="Annotation_Deadline"><dc:Bounds x="2010" y="500" width="300" height="50" /></dmndi:DMNShape>
+    <dmndi:DMNEdge id="Assoc_Annotation_Deadline_di" dmnElementRef="Assoc_Annotation_Deadline"><di:waypoint x="2160" y="500" /><di:waypoint x="2155" y="442" /></dmndi:DMNEdge>
+    <dmndi:DMNShape id="Annotation_PerDelay_di" dmnElementRef="Annotation_PerDelay"><dc:Bounds x="40" y="120" width="380" height="70" /></dmndi:DMNShape>
+    <dmndi:DMNEdge id="Assoc_Annotation_PerDelay_di" dmnElementRef="Assoc_Annotation_PerDelay"><di:waypoint x="420" y="155" /><di:waypoint x="560" y="260" /></dmndi:DMNEdge>
+    <dmndi:DMNShape id="Annotation_Weather_di" dmnElementRef="Annotation_Weather"><dc:Bounds x="40" y="505" width="180" height="80" /></dmndi:DMNShape>
+    <dmndi:DMNEdge id="Assoc_Annotation_Weather_di" dmnElementRef="Assoc_Annotation_Weather"><di:waypoint x="130" y="505" /><di:waypoint x="130" y="459" /></dmndi:DMNEdge>
+  </dmndi:DMNDiagram></dmndi:DMNDI>
+</definitions>

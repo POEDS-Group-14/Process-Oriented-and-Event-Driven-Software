@@ -1,0 +1,55 @@
+<mxfile host="drawio">
+  <diagram id="landscape" name="Process landscape">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Process 1, Movia travel guarantee: TO-BE process landscape" style="text;html=1;align=left;verticalAlign=middle;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="600" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_mgmt" value="Management" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="1060" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="monitor" value="Monitor travel guarantee costs&lt;br&gt;(claim outcomes per line and delay)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="lane_mgmt">
+          <mxGeometry x="430" y="35" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_cust" value="Customer-oriented" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="1060" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="journey" value="Passenger journey: disrupted trip to settled claim&lt;br&gt;(notified, takes a taxi, claims, gets the decision, may appeal)" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="lane_cust">
+          <mxGeometry x="60" y="35" width="960" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_core" value="Business-oriented" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="350" width="1060" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="assess" value="Assess disruption&lt;br&gt;(once per delay)" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="lane_core">
+          <mxGeometry x="60" y="35" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="decide" value="Decide claim and pay out&lt;br&gt;(once per claim)" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="lane_core">
+          <mxGeometry x="390" y="35" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="appeal" value="Handle appeal&lt;br&gt;(once per appeal)" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="lane_core">
+          <mxGeometry x="720" y="35" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_support" value="Support" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="1060" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="recorder" value="Collect real-time delays and weather&lt;br&gt;(recorder, delay monitor)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="lane_support">
+          <mxGeometry x="80" y="35" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tables" value="Maintain the decision tables&lt;br&gt;(Movia's terms as DMN)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="lane_support">
+          <mxGeometry x="410" y="35" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="delays" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="recorder" target="assess">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="rules" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="tables" target="decide">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="outcomes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="appeal" target="monitor">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1085" y="415" /><mxPoint x="1085" y="115" /></Array></mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

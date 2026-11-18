@@ -9,7 +9,7 @@ from xml.sax.saxutils import escape
 
 SIZE = {
     "task": (100, 80), "serviceTask": (100, 80), "sendTask": (100, 80), "userTask": (100, 80),
-    "manualTask": (100, 80), "receiveTask": (100, 80),
+    "manualTask": (100, 80), "receiveTask": (100, 80), "businessRuleTask": (100, 80),
     "startEvent": (36, 36), "endEvent": (36, 36), "intermediateThrowEvent": (36, 36),
     "intermediateCatchEvent": (36, 36),
     "exclusiveGateway": (50, 50), "parallelGateway": (50, 50), "eventBasedGateway": (50, 50),
@@ -98,12 +98,16 @@ class Process:
         for n in self.nodes.values():
             name = f' name="{q(n.name)}"' if n.name else ""
             out.append(f"    <bpmn:{n.type} id=\"{n.id}\"{name}{n.attrs}>")
+            body = n.body
+            if body.startswith("<bpmn:extensionElements"):  # the schema wants it before incoming/outgoing
+                out.append("      " + body)
+                body = ""
             for i in n.incoming:
                 out.append(f"      <bpmn:incoming>{i}</bpmn:incoming>")
             for o in n.outgoing:
                 out.append(f"      <bpmn:outgoing>{o}</bpmn:outgoing>")
-            if n.body:
-                out.append("      " + n.body)
+            if body:
+                out.append("      " + body)
             out.append(f"    </bpmn:{n.type}>")
         for f in self.flows:
             name = f' name="{q(f.name)}"' if f.name else ""
@@ -130,10 +134,17 @@ class Process:
                 if n.label == "left":
                     lw = 88
                     lx, ly = n.x - n.w / 2 - 4 - lw, n.y - 20
+                elif n.label == "right":
+                    lw = 90
+                    lx, ly = n.x + n.w / 2 + 6, n.y - 14
+                elif n.label == "above":
+                    lw = 110
+                    lx, ly = n.x - lw / 2, n.y - n.h / 2 - 32
                 else:
                     lw = 110
                     lx, ly = n.x - lw / 2, n.y + n.h / 2 + 4
-                out.append(f'        <bpmndi:BPMNLabel><dc:Bounds x="{lx:.0f}" y="{ly:.0f}" width="{lw}" height="40" /></bpmndi:BPMNLabel>')
+                lh = 28 if n.label == "above" else 40
+                out.append(f'        <bpmndi:BPMNLabel><dc:Bounds x="{lx:.0f}" y="{ly:.0f}" width="{lw}" height="{lh}" /></bpmndi:BPMNLabel>')
             out.append("      </bpmndi:BPMNShape>")
         for f in self.flows:
             wp = f.wp or auto_waypoints(f.src, f.tgt)
@@ -142,11 +153,12 @@ class Process:
                 out.append(f'        <di:waypoint x="{x:.0f}" y="{y:.0f}" />')
             if f.name:
                 (x1, y1), (x2, y2) = wp[0], wp[1]
+                lw = max(26, 7 * len(f.name))  # wide enough that the text stays beside the line
                 if abs(y1 - y2) < 1:  # horizontal: just after the source
-                    lx, ly = x1 + 2, y1 - 17
-                else:
-                    lx, ly = x1 + 4, (y1 + y2) / 2 - 8
-                out.append(f'        <bpmndi:BPMNLabel><dc:Bounds x="{lx:.0f}" y="{ly:.0f}" width="26" height="14" /></bpmndi:BPMNLabel>')
+                    lx, ly = x1 + 4, y1 - 17
+                else:  # vertical: to the right of the line, half way
+                    lx, ly = x1 + 6, (y1 + y2) / 2 - 7
+                out.append(f'        <bpmndi:BPMNLabel><dc:Bounds x="{lx:.0f}" y="{ly:.0f}" width="{lw}" height="14" /></bpmndi:BPMNLabel>')
             out.append("      </bpmndi:BPMNEdge>")
         return "\n".join(out)
 
@@ -163,7 +175,7 @@ def document(defs_id, processes, collapsed=(), message_flows=(), messages=(), do
          'xmlns:modeler="http://camunda.org/schema/modeler/1.0" '
          'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
          f'id="{defs_id}" targetNamespace="http://poeds-group-14.dtu.dk/rejsegaranti" '
-         'exporter="tools/build_bpmn.py" exporterVersion="1.0" '
+         'exporter="tools/build_to_be_bpmn.py" exporterVersion="1.0" '
          'modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">']
     h.append('  <bpmn:collaboration id="Collaboration_1">')
     # documentation is not allowed directly under <definitions> (the engine's XSD check rejects it)
@@ -202,9 +214,9 @@ def document(defs_id, processes, collapsed=(), message_flows=(), messages=(), do
             (x1, y1), (x2, y2) = max(segs, key=lambda s: abs(s[0][0] - s[1][0]) + abs(s[0][1] - s[1][1]) * (0.5 if len(segs) > 1 else 1))
             if abs(y1 - y2) < 1:  # horizontal: above the middle
                 lx, ly = (x1 + x2) / 2 - 60, y1 - 15
-            else:
-                lx, ly = x1 + 6, (y1 + y2) / 2 - 7
-            h.append(f'        <bpmndi:BPMNLabel><dc:Bounds x="{lx:.0f}" y="{ly:.0f}" width="120" height="14" /></bpmndi:BPMNLabel>')
+            else:  # vertical: beside the line, a fixed distance below its upper end, so labels line up
+                lx, ly = x1 + 6, min(y1, y2) + 24
+            h.append(f'        <bpmndi:BPMNLabel><dc:Bounds x="{lx:.0f}" y="{ly:.0f}" width="{max(60, 7 * len(name))}" height="14" /></bpmndi:BPMNLabel>')
         h.append("      </bpmndi:BPMNEdge>")
     for aid, _, (x, y, w, hh) in annotations:
         h.append(f'      <bpmndi:BPMNShape id="{aid}_di" bpmnElement="{aid}"><dc:Bounds x="{x}" y="{y}" width="{w}" height="{hh}" /></bpmndi:BPMNShape>')
