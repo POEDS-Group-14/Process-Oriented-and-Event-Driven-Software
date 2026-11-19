@@ -20,7 +20,7 @@ The lines are set in three units: `REJSEGARANTI_LINES=*` (every line in `data/st
 | Service | What it does | Data |
 |---|---|---|
 | `rejsegaranti-camunda` | Camunda 7 Run 7.24 on port 8085 (8080 is taken on pinklady), with webapps and REST API | H2 database in `/opt/camunda/camunda-h2-default` (includes the history, which is the event log) |
-| `rejsegaranti-bridge` | Waits for Camunda, deploys `models/rejsegaranti-to-be.bpmn` (nothing happens if it is unchanged), then runs the CEP bridge on port 8090, the results page at `/results` and the external-task workers | `/var/lib/rejsegaranti` (`registry.json`, `cep-events.jsonl`) |
+| `rejsegaranti-bridge` | Waits for Camunda, deploys the TO-BE models in `models/to-be/` and the AS-IS decision tables (nothing happens if they are unchanged), then runs the CEP bridge on port 8090, the results page at `/results` and the external-task workers | `/var/lib/rejsegaranti` (`registry.json`, `cep-events.jsonl`) |
 | `rejsegaranti-feed` | `rejsegaranti feed --real --interval 300`: every 5 minutes, simulates claims for the real delays the bridge has received, once each delay has played out (40 minutes after the delayed departure) | None of its own. Everything goes through the bridge |
 | `rejsegaranti-recorder` | The recorder (`../recorder`): **real** Movia bus and DSB S-tog delays and cancellations from Dataudveksleren (datasets 788 and 801), plus OpenWeatherMap and DMI every 10 minutes. Sends every delay and the OpenWeatherMap weather to the bridge | `/var/lib/rejsegaranti-recorder` |
 
@@ -34,7 +34,7 @@ The services start in order: Camunda, then the bridge, then the feed. On this ma
 
 ## Opening it
 
-From the home network, or from anywhere through Tailscale. pinklady is on Liam's tailnet as `pinklady` (100.84.116.80).
+Through Tailscale, from anywhere. pinklady is on Liam's tailnet as `pinklady` (100.84.116.80).
 
 | What | Address |
 |---|---|
@@ -49,9 +49,9 @@ The Camunda login is `admin`. The password was generated at install time and is 
 ssh pinklady 'sudo cat /etc/rejsegaranti/camunda-admin'
 ```
 
-On the home network, `pinklady.local` works too. Away from home, your device must have Tailscale switched on.
+pinklady is reached through Tailscale only, not a local network, so your device must have Tailscale switched on (`tailscale status` should list pinklady). If MagicDNS is off, use 100.84.116.80 instead of `pinklady`.
 
-**The REST API and the bridge have no login.** Anyone who can reach ports 8085 and 8090 can start and complete process instances. That's acceptable on the home network and the tailnet, with simulated data. Never put them on Tailscale Funnel or a port forward.
+**The REST API and the bridge have no login.** Anyone who can reach ports 8085 and 8090 can start and complete process instances. That's acceptable on the tailnet, with simulated data. Never put them on Tailscale Funnel or a port forward.
 
 ## Sharing with people outside the tailnet
 
@@ -108,7 +108,7 @@ rsync -av pinklady:/var/lib/rejsegaranti-recorder/ ./recorder-data/
 Run from the laptop, in `processes/p1`:
 
 ```bash
-deploy/install.sh liam@pinklady.local
+deploy/install.sh liam@pinklady
 ```
 
 It copies this folder to `~/rejsegaranti-src` on the server, then runs `deploy/setup-server.sh` there with sudo, which asks for the password once. The setup can run again safely. It updates the code and restarts the services, but keeps Camunda's database, the bridge's state and the recorder's data.

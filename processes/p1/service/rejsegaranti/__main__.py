@@ -1,15 +1,13 @@
 """Command line for process 1 (rejsegaranti).
 
-  uv run rejsegaranti deploy               deploy the TO-BE BPMN and the AS-IS decision tables to Camunda
+  uv run rejsegaranti deploy               deploy the TO-BE models (models/to-be/) and the AS-IS decision tables
   uv run rejsegaranti run                  CEP bridge (:8090) + external-task workers
+  uv run rejsegaranti replay               decide every stored delay and claim again with the TO-BE models
   uv run rejsegaranti simulate --post      send simulated situations and claims to the bridge
-  uv run rejsegaranti simulate --offline   dry run without Camunda -> out/*.xes
   uv run rejsegaranti feed                 post simulated delays and claims every hour, forever
   uv run rejsegaranti feed --real          simulate claims for the real delays the bridge received
   uv run rejsegaranti export               Camunda history -> out/*.xes and .csv
   uv run rejsegaranti per-line             delay cases and claims per 1,000 journeys, per line -> out/per-line.csv
-  uv run rejsegaranti check LOG.xes        replay a log against the DCR rules
-  uv run rejsegaranti build-dcr            regenerate models/rejsegaranti-rules.*
 
 Settings (environment): CAMUNDA_PORT (default 8085) or CAMUNDA_URL (default http://localhost:8085/engine-rest),
 CEP_URL (Siddhi HTTP source; optional), BRIDGE_PORT (8090), DATA_DIR (./out),
@@ -21,25 +19,36 @@ import argparse
 import json
 import logging
 import os
-import subprocess
 import sys
 import threading
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 MODELS = os.path.join(ROOT, "models")
 DATA_DIR = os.environ.get("DATA_DIR", os.path.join(ROOT, "out"))
-RULES_XML = os.path.join(MODELS, "rejsegaranti-rules.dcr.xml")
+# Deployment name -> files. Camunda skips a deployment whose files did not change. The AS-IS tables (they
+# decide the claims on the main results page, asis.py) go in a deployment of their own: both DMN files use
+# the definitions id Definitions_travel_guarantee, and Camunda refuses two of them in one deployment.
+DEPLOY = {
+    "rejsegaranti": [
+        os.path.join(MODELS, "to-be", "assess-disruption.bpmn"),
+        os.path.join(MODELS, "to-be", "decide-claim.bpmn"),
+        os.path.join(MODELS, "to-be", "handle-appeal.bpmn"),
+        os.path.join(MODELS, "to-be", "travel-guarantee-to-be.dmn"),
+    ],
+    "rejsegaranti-as-is": [os.path.join(MODELS, "travel-guarantee", "travel-guarantee.dmn")],
+}
 
 
 def cmd_deploy(a):
     from .camunda import Camunda
-    # the AS-IS tables decide the claims on the main results page (asis.py)
-    files = [os.path.join(MODELS, "rejsegaranti-to-be.bpmn"),
-             os.path.join(MODELS, "travel-guarantee", "travel-guarantee.dmn")]
-    r = Camunda().deploy("rejsegaranti", files)
-    defs = [*(r.get("deployedProcessDefinitions") or {}).values(), *(r.get("deployedDecisionDefinitions") or {}).values()]
-    print("deployment", r["id"], "->", ", ".join(f"{d['key']} v{d['version']}" for d in defs) or "no change")
+    cam = Camunda()
+    for name, files in DEPLOY.items():
+        r = cam.deploy(name, files)
+        defs = [*(r.get("deployedProcessDefinitions") or {}).values(),
+                *(r.get("deployedDecisionDefinitions") or {}).values()]
+        print(name, r["id"], "->", ", ".join(f"{d['key']} v{d['version']}" for d in defs) or "no change")
 
 
 def cmd_run(a):
@@ -68,8 +77,6 @@ def cmd_run(a):
 
 def cmd_simulate(a):
     from . import simulate as S
-    from .dcr import ROLES
-    from .xes import write_csv, write_xes
 
     delays = S.read_delays_csv(a.delays) if a.delays else None
     sc = S.generate(seed=a.seed, n_delays=a.delays_n, delays=delays)
@@ -80,15 +87,6 @@ def cmd_simulate(a):
           f"{len(sc['weather'])} weather situations, {len(sc['claims'])} claims")
     if a.post:
         S.run_live(a.bridge, sc)
-    if a.offline:
-        d, c, st = S.run_offline(sc, seed=a.seed, noise=a.noise)
-        print(f"{len(st.refused_at_intake)} claims refused at the form (incomplete receipt)")
-        tag = "offline" + (f"-noise{int(a.noise * 100)}" if a.noise else "")
-        write_xes(os.path.join(DATA_DIR, f"claims-{tag}.xes"), c, "Rejsegaranti claims (offline, simulated)",
-                  roles=ROLES)
-        write_csv(os.path.join(DATA_DIR, f"claims-{tag}.csv"), c)
-        write_xes(os.path.join(DATA_DIR, f"delay-cases-{tag}.xes"), d, "Rejsegaranti delay cases (offline, simulated)")
-        print(f"wrote {len(c)} claim traces and {len(d)} delay-case traces to {DATA_DIR}")
 
 
 def cmd_feed(a):
@@ -100,17 +98,16 @@ def cmd_feed(a):
 
 
 def cmd_export(a):
+    from .activities import ROLES
     from .camunda import Camunda
-    from .dcr import ROLES
-    from .export import CLAIM_KEY, DELAY_KEY, traces_from_camunda
+    from .export import KEYS, traces_from_camunda
     from .xes import write_csv, write_xes
 
     cam = Camunda()
     os.makedirs(DATA_DIR, exist_ok=True)
-    for key, name in ((CLAIM_KEY, "claims-camunda"), (DELAY_KEY, "delay-cases-camunda")):
+    for key, name in KEYS.items():
         tr = traces_from_camunda(cam, key)
-        write_xes(os.path.join(DATA_DIR, name + ".xes"), tr, f"{key} (Camunda history)",
-                  roles=ROLES if key == CLAIM_KEY else None)
+        write_xes(os.path.join(DATA_DIR, name + ".xes"), tr, f"{key} (Camunda history)", roles=ROLES)
         write_csv(os.path.join(DATA_DIR, name + ".csv"), tr)
         print(f"{key}: {len(tr)} traces -> {name}.xes")
 
@@ -132,34 +129,107 @@ def cmd_per_line(a):
     print("wrote", path)
 
 
-def cmd_check(a):
-    from .dcr import Graph, check_log
-    from .xes import read_xes
+def cmd_replay(a):
+    """Decide every stored delay and claim again with the TO-BE models.
 
-    g = Graph.from_xml(a.rules)
-    r = check_log(g, read_xes(a.log))
-    print(f"traces {r['traces']}, variants {r['variants']}, violating {r['violating']}, "
-          f"fitness {r['fitness']:.3f}")
-    for k, n in r["by_kind"].most_common():
-        print(f"  {n:4d}  {k}")
-    if a.verbose:
-        for tid, p in r["details"].items():
-            print(tid, "|", "; ".join(p))
-    sys.exit(1 if r["violating"] and a.strict else 0)
+    The registry file belongs to the running `rejsegaranti run` process: its Store reads the file once at
+    start and rewrites it whole on every change, so a second process writing it would lose the other's
+    changes (or have its own overwritten). This command therefore never touches the file. It talks to the
+    running bridge over HTTP: POST /replay/reset makes the bridge copy the file to
+    registry.before-replay-<time>.json and clear the assessments, outcomes, appeals and paid receipts in its
+    own Store; POST /replay/delay and /replay/claim make it start the instances (reprocessed = true, so no
+    emails), with the start variables worked out by intake.py as for live intake; GET /state shows the
+    workers' progress. The workers run in that same process, so every write goes through one Store.
 
+    Order: one assess-disruption instance per delay, then wait until every delay has an assessment, then
+    one decide-claim instance per claim by trip start (intake.replay_order), so "receipt used on an earlier
+    claim" means an earlier trip. A claim counts as received when its first AS-IS-era instance started
+    (asis.received_dates), else when the bridge stamped it, else at its trip start.
 
-def cmd_build_dcr(a):
-    from .dcr import to_dot, to_xml
+    Running it twice is safe: it first deletes any TO-BE instances still running (an earlier replay that
+    was stopped, or an appeal waiting for review), then clears and decides everything again.
+    """
+    from collections import Counter
 
-    to_xml(RULES_XML)
-    dot = os.path.join(MODELS, "rejsegaranti-rules.dot")
-    to_dot(dot)
-    for fmt in ("pdf", "svg"):
-        try:
-            subprocess.run(["dot", f"-T{fmt}", dot, "-o", dot[:-4] + "." + fmt], check=True)
-        except (OSError, subprocess.CalledProcessError) as e:
-            print("graphviz not available, skipped", fmt, e)
-    print("wrote", RULES_XML)
+    from . import asis
+    from .camunda import Camunda
+    from .intake import replay_order
+    from .simulate import post
+
+    base = a.bridge.rstrip("/")
+    cam = Camunda()
+
+    def state():
+        import urllib.request
+        with urllib.request.urlopen(base + "/state", timeout=120) as r:
+            return json.loads(r.read())
+
+    def wait(kind, ids, what):
+        deadline = time.monotonic() + a.timeout
+        while True:
+            done = {x.get("claimId") or x.get("delayId") for x in state()[kind]} & ids
+            incidents = cam.get("/incident/count")["count"]
+            print(f"  {len(done)}/{len(ids)} {what}, {incidents} incidents", flush=True)
+            if len(done) == len(ids):
+                return
+            if incidents:
+                sys.exit("stopped: Camunda has incidents (see Cockpit)")
+            if time.monotonic() > deadline:
+                sys.exit(f"stopped: not every {what[:-1]} done after {a.timeout:.0f} s")
+            time.sleep(3)
+
+    from .activities import APPEAL_KEY, ASSESS_KEY, CLAIM_KEY
+    running = [p for k in (ASSESS_KEY, CLAIM_KEY, APPEAL_KEY)
+               for p in cam.get("/process-instance", processDefinitionKey=k) or []]
+    for p in running:
+        cam.delete_instance(p["id"], "replay")
+    print(f"deleted {len(running)} running TO-BE instances")
+
+    r = post(base, "/replay/reset", {})
+    if "status" in r:
+        sys.exit(f"the bridge refused the reset: {r}")
+    print("registry backed up to", r["backup"], "; cleared", r["cleared"])
+
+    s = state()
+    delays = {d["delayId"] for d in s["delays"]}
+    print(f"assessing {len(delays)} delays")
+    for d in s["delays"]:
+        post(base, "/replay/delay", {"delayId": d["delayId"]})
+    wait("assessments", delays, "delays assessed")
+
+    try:
+        received = asis.received_dates(cam)
+    except Exception as e:  # noqa: BLE001 - the old process may never have been deployed here
+        print("no AS-IS claim history:", e)
+        received = {}
+    claims = sorted(s["claims"], key=replay_order)
+    print(f"deciding {len(claims)} claims ({sum(c['claimId'] in received for c in claims)} with an AS-IS "
+          "received time)")
+    for c in claims:
+        res = post(base, "/replay/claim", {"claimId": c["claimId"], "receivedAt": asis.received_at(c, received)})
+        if "status" in res:
+            print("  claim", c["claimId"], res)
+    wait("outcomes", {c["claimId"] for c in claims}, "claims decided")
+
+    outcomes = state()["outcomes"]
+    print("\noutcomes:", dict(Counter(o["outcome"] for o in outcomes)))
+    print(f"paid out: {sum(float(o.get('payoutDkk') or 0) for o in outcomes):,.2f} DKK")
+    for reason, n in Counter(o.get("reason") for o in outcomes if o["outcome"] != "paid").most_common():
+        print(f"  {n:5d}  {reason}")
+    try:
+        from .results import compare
+        from .store import Store
+        store = Store()
+        for kind, records in state().items():
+            store.data[kind] = {i: r for i, r in enumerate(records)}
+        cmp = compare(store, cam)
+    except Exception as e:  # noqa: BLE001 - the comparison is extra; the replay itself is done
+        print("no AS-IS comparison:", e)
+        return
+    print("\nAS-IS (rows) against TO-BE (columns):")
+    for x in ("paid", "rejected"):
+        print(f"  {x:9}" + "".join(f"  TO-BE {y}: {cmp['cross'].get((x, y), 0):4d}" for y in ("paid", "rejected")))
+    print(f"{len(cmp['differ'])} claims decided differently")
 
 
 def main(argv=None):
@@ -171,14 +241,16 @@ def main(argv=None):
     s = sub.add_parser("run")
     s.add_argument("--port", type=int, default=8090)
     s.set_defaults(fn=cmd_run)
+    s = sub.add_parser("replay", help="decide every stored delay and claim again with the TO-BE models")
+    s.add_argument("--bridge", default=f"http://localhost:{os.environ.get('BRIDGE_PORT', '8090')}")
+    s.add_argument("--timeout", type=float, default=1800, help="seconds to wait for each stage")
+    s.set_defaults(fn=cmd_replay)
     s = sub.add_parser("simulate")
     s.add_argument("--seed", type=int, default=14)
     s.add_argument("--delays-n", type=int, default=40, help="number of simulated delays")
-    s.add_argument("--delays", help="CSV of recorded Line L delays (data/delays-format.csv)")
+    s.add_argument("--delays", help="CSV of recorded delays (data/delays-format.csv)")
     s.add_argument("--post", action="store_true", help="send to the bridge")
     s.add_argument("--bridge", default="http://localhost:8090")
-    s.add_argument("--offline", action="store_true", help="dry run without Camunda")
-    s.add_argument("--noise", type=float, default=0.0, help="share of offline traces with injected violations")
     s.set_defaults(fn=cmd_simulate)
     s = sub.add_parser("feed", help="post a batch of simulated delays and claims every interval, forever")
     s.add_argument("--bridge", default="http://localhost:8090")
@@ -191,13 +263,6 @@ def main(argv=None):
     s = sub.add_parser("per-line", help="delay cases and claims per 1,000 scheduled journeys, per line")
     s.add_argument("--bridge", default="http://pinklady:8090")
     s.set_defaults(fn=cmd_per_line)
-    s = sub.add_parser("check")
-    s.add_argument("log")
-    s.add_argument("--rules", default=RULES_XML)
-    s.add_argument("-v", "--verbose", action="store_true")
-    s.add_argument("--strict", action="store_true", help="exit 1 on violations")
-    s.set_defaults(fn=cmd_check)
-    sub.add_parser("build-dcr").set_defaults(fn=cmd_build_dcr)
     a = p.parse_args(argv)
     a.fn(a)
 

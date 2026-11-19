@@ -1,0 +1,14 @@
+{
+  "name": "p1-render",
+  "private": true,
+  "description": "Renders the BPMN and DMN models to SVG and PNG with the bpmn-io viewers (the same rendering as Camunda Modeler)",
+  "type": "module",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "bpmn-js": "17.11.1",
+    "dmn-js": "16.8.2",
+    "puppeteer-core": "25.18.1"
+  }
+}

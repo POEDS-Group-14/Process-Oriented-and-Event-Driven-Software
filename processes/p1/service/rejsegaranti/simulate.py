@@ -1,16 +1,21 @@
-"""Simulated input for process 1 (issue #9) and an offline dry run (issue #11).
+"""Simulated input for process 1 (issue #9).
 
-Claims are always simulated (there is no public claims data). Delays,
-weather and notices are simulated too until real data is available; pass
---delays <csv> to use recorded Line L delays instead (format in
-data/delays-format.csv). The CSV is what the Rejseplanen recorder (#29/#35)
-or the CEP should produce once API access is granted.
+Claims are always simulated (there is no public claims data). On the server the delays and weather are
+real (the recorder posts them); `feed --real` makes up claims for those delays. `simulate` and `feed`
+without --real make up delays, weather and notices as well. Everything is sent to the running bridge
+(--post), and so to Camunda.
 
-Two modes:
-  --post URL      send everything to the running bridge (and so to Camunda)
-  --offline FILE  run the same rule handlers without Camunda and write an XES
-                  log with the same activity names as the BPMN model; use it
-                  to test the DCR rules before the engine is up
+The claims are Movia-style: a taxi trip on a receipt, by a passenger whose bus or local train was late. The
+scenarios are the cases the TO-BE tables (models/to-be/travel-guarantee-to-be.dmn) tell apart:
+
+  valid                     receipt attached, fare at most 300 kr, the trip during the delay
+  no receipt                the claim has no receipt                        -> "No receipt"
+  fare over 300             fare above the cap                              -> refund capped at 300 kr
+  duplicate receipt         a second claim with an earlier claim's receipt  -> "Receipt already claimed"
+  no delay at that time     the trip is hours after the delay               -> "No verified delay"
+  long after the delay      the trip is after the delay has played out      -> "No verified delay"
+
+Delays of 20 minutes or less ("Delay 20 min or less"), notices and storms come from the delays themselves.
 """
 from __future__ import annotations
 
@@ -23,22 +28,13 @@ import urllib.request
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from . import activities as A
-from . import rules, workers
-from .cep import CepSink
+from . import rules
 from .stations import LINES, STATIONS, offset, station_point
-from .store import Store
 from .timeutil import CPH, iso, parse_ts
 
-PROVIDERS = [
-    ("Dantaxi 4x48", "taxi", "10153678"),
-    ("Taxa 4x35", "taxi", "57188416"),
-    ("Donkey Republic", "bike_share", "37315524"),
-    ("Voi Technology", "scooter_share", "39543036"),
-    ("GreenMobility", "car_share", "37008958"),
-]
-# NOTE: provider names are only labels for simulated receipts; the CVR
-# numbers are random 8-digit strings, not the companies' real numbers.
+# Movia refunds taxis only. The names are only labels on simulated receipts.
+TAXIS = ["Dantaxi 4x48", "Taxa 4x35", "Dantaxi Nord", "Taxi Sjælland"]
+FARE_CAP_DKK = 300  # only to pick fares on either side of the cap; the cap itself is in ToBe_Refund
 
 
 def _line(rng: random.Random) -> str:
@@ -55,14 +51,17 @@ def _segment(rng: random.Random, line: str) -> List[str]:
 
 def generate(seed: int = 14, n_delays: int = 40, start: Optional[datetime] = None,
              delays: Optional[List[dict]] = None, id_prefix: str = "") -> dict:
+    """A scenario: delays (unless given), their notices and weather, and claims. Without `start` the
+    delays fall in the 10 days before today, so the claims, received now, are within the 14-day deadline."""
     rng = random.Random(seed)
-    start = start or datetime(2026, 11, 2, 6, 0, tzinfo=CPH)
     out = {"delays": [], "weather": [], "notices": [], "claims": []}
 
     if delays is None:
+        if start is None:
+            start = datetime.now(CPH).replace(hour=6, minute=0, second=0, microsecond=0) - timedelta(days=10)
         delays = []
         for k in range(n_delays):
-            t = start + timedelta(days=rng.randint(0, 27), minutes=rng.randint(0, 17 * 60))
+            t = start + timedelta(days=rng.randint(0, 9), minutes=rng.randint(0, 17 * 60))
             minutes = rng.choice([12, 20, 31, 35, 40, 45, 55, 70, 95]) if rng.random() < 0.2 else rng.randint(30, 90)
             line = _line(rng)
             delays.append({
@@ -110,58 +109,62 @@ def generate(seed: int = 14, n_delays: int = 40, start: Optional[datetime] = Non
             n += 1
             out["claims"].append(_claim(rng, n, d, t, id_prefix))
     # duplicates: the same receipt claimed twice
-    for c in rng.sample(out["claims"], k=max(1, len(out["claims"]) // 25)):
+    with_receipt = [c for c in out["claims"] if c.get("receipt")]
+    for c in rng.sample(with_receipt, k=min(len(with_receipt), max(1, len(out["claims"]) // 25))):
         n += 1
         dup = json.loads(json.dumps(c))
         dup["claimId"] = f"{id_prefix}C{n:04d}"
         dup["scenario"] = "duplicate receipt"
         out["claims"].append(dup)
-    # claims that match no delay (wrong time)
+    # claims that match no delay: hours later, or just after the delay has played out
     for _ in range(max(1, len(delays) // 10)):
         n += 1
         d = rng.choice(delays)
         c = _claim(rng, n, d, parse_ts(d["plannedDeparture"]) + timedelta(hours=8), id_prefix)
         c["scenario"] = "no delay at that time"
         out["claims"].append(c)
+    for _ in range(max(1, len(delays) // 10)):
+        n += 1
+        d = rng.choice(delays)
+        over = timedelta(minutes=float(d["delayMinutes"]) + rules.MATCH_GRACE_MIN + rng.randint(30, 120))
+        c = _claim(rng, n, d, parse_ts(d["plannedDeparture"]) + over, id_prefix, offset_min=(0, 0))
+        c["scenario"] = "long after the delay"
+        out["claims"].append(c)
     return out
 
 
-def _claim(rng: random.Random, n: int, d: dict, t: datetime, id_prefix: str = "") -> dict:
+def _claim(rng: random.Random, n: int, d: dict, t: datetime, id_prefix: str = "",
+           offset_min: Optional[tuple] = None) -> dict:
+    """One claim for delay d; the trip starts a few minutes after t (offset_min: (low, high) minutes)."""
     stops = d["stops"]
     i = rng.randrange(len(stops))
     s_name = stops[i]
     s_lat, s_lon = station_point(d["line"], s_name)
     e_name = stops[-1] if i < len(stops) - 1 else stops[0]
     e_lat, e_lon = station_point(d["line"], e_name)
-    scenario = "valid"
-    near = lambda: rng.uniform(20, 200)  # noqa: E731
-    sn, se = near(), near()
-    roll = rng.random()
-    if roll < 0.08:
-        sn, scenario = rng.uniform(320, 600), "start too far from station"
-    elif roll < 0.13:
-        se, scenario = rng.uniform(320, 600), "end too far from station"
+    sn, se = rng.uniform(20, 200), rng.uniform(20, 200)
     start = offset(s_lat, s_lon, sn * rng.choice([-1, 1]) * 0.7, sn * 0.7)
     end = offset(e_lat, e_lon, se * 0.7, se * rng.choice([-1, 1]) * 0.7)
-    prov, ttype, cvr = rng.choice(PROVIDERS)
-    amount = round(rng.uniform(60, 450), 2)
-    trip = t + timedelta(minutes=rng.randint(5, int(d["delayMinutes"]) + 20))
-    receipt = {
-        "receiptId": f"{id_prefix}R{n:05d}", "provider": prov, "cvr": cvr, "transportType": ttype,
-        "startAddress": f"near {s_name}", "endAddress": f"near {e_name}",
-        "distanceKm": round(rng.uniform(1.5, 12), 1), "minutes": rng.randint(6, 35),
-        "time": iso(trip), "amountDkk": amount, "publiclyAvailable": True,
-    }
+    low, high = offset_min or (5, int(d["delayMinutes"]) + 20)
+    trip = t + timedelta(minutes=rng.randint(low, high))
+    scenario, amount = "valid", round(rng.uniform(60, FARE_CAP_DKK), 2)
     roll = rng.random()
-    if roll < 0.06:
-        receipt["cvr"], scenario = "", "receipt without CVR"
-    elif roll < 0.10:
-        receipt.update(provider="Neighbour car pool", transportType="private_car", publiclyAvailable=False)
-        scenario = "private transport"
-    return {"claimId": f"{id_prefix}C{n:04d}", "passenger": f"P{rng.randint(1, 400):04d}", "tripStart": iso(trip),
-            "startLat": round(start[0], 6), "startLon": round(start[1], 6),
-            "endLat": round(end[0], 6), "endLon": round(end[1], 6),
-            "receipt": receipt, "scenario": scenario, "simulated": True}
+    if roll < 0.07:
+        scenario = "no receipt"
+    elif roll < 0.22:
+        scenario, amount = "fare over 300", round(rng.uniform(FARE_CAP_DKK + 10, 650), 2)
+    claim = {"claimId": f"{id_prefix}C{n:04d}", "passenger": f"P{rng.randint(1, 400):04d}", "tripStart": iso(trip),
+             "startLat": round(start[0], 6), "startLon": round(start[1], 6),
+             "endLat": round(end[0], 6), "endLon": round(end[1], 6),
+             "incident": "delay", "scenario": scenario, "simulated": True}
+    if scenario != "no receipt":
+        claim["receipt"] = {
+            "receiptId": f"{id_prefix}R{n:05d}", "provider": rng.choice(TAXIS), "transportType": "taxi",
+            "startAddress": f"near {s_name}", "endAddress": f"near {e_name}",
+            "distanceKm": round(rng.uniform(1.5, 12), 1), "minutes": rng.randint(6, 35),
+            "time": iso(trip), "amountDkk": amount,
+        }
+    return claim
 
 
 def read_delays_csv(path: str) -> List[dict]:
@@ -192,36 +195,19 @@ def post(base: str, path: str, body: dict) -> dict:
         return {"status": e.code, **json.loads(e.read() or b"{}")}
 
 
-def wait_for_outcome(base: str, claim_id: str, timeout: float = 120.0) -> None:
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        with urllib.request.urlopen(base.rstrip("/") + "/state", timeout=30) as r:
-            if any(o["claimId"] == claim_id for o in json.loads(r.read())["outcomes"]):
-                return
-        time.sleep(1)
-    print("no outcome for", claim_id, f"after {timeout:.0f} s; posting the next claim anyway")
-
-
 def run_live(base: str, scenario: dict, pause: float = 3.0) -> None:
+    """Post a scenario to the bridge: notices and weather first, then the delays, then (after `pause`, so
+    the delays are assessed first) the claims in order. A duplicate receipt needs no wait: the bridge
+    stores each claim before the next is posted, so the later claim sees the earlier one."""
     for n in scenario["notices"]:
         post(base, "/cep/notice", n)
     for w in scenario["weather"]:
         post(base, "/cep/weather", w)
     for d in scenario["delays"]:
         print("delay", d["delayId"], post(base, "/cep/delay", d))
-    time.sleep(pause)  # let the delay cases get assessed first
-    first_use = {}  # receiptId -> first accepted claim with that receipt
+    time.sleep(pause)
     for c in scenario["claims"]:
-        rid = c["receipt"].get("receiptId")
-        if rid in first_use:
-            # A resubmitted receipt arrives days after the first claim, as in the
-            # offline run. Posting it at once would race the first claim to the
-            # payout and leave an incident on C_Pay instead of "Receipt rejected".
-            wait_for_outcome(base, first_use[rid])
-        r = post(base, "/claims", c)
-        print("claim", c["claimId"], r)
-        if "status" not in r:
-            first_use.setdefault(rid, c["claimId"])
+        print("claim", c["claimId"], post(base, "/claims", c))
 
 
 def feed(base: str, batch: int = 5, interval: float = 3600.0, seed: Optional[int] = None) -> None:
@@ -267,9 +253,10 @@ def claims_for(delay: dict) -> List[dict]:
         return []
     rng = random.Random(int(key, 16))
     claims = generate(seed=rng.randrange(1 << 30), delays=[{**delay, "stops": stops}], id_prefix=key + "-")["claims"]
-    # generate() adds one duplicate receipt and one claim at the wrong time per batch, sized for 40 delays;
+    # generate() adds a duplicate receipt and claims at the wrong time to every batch, sized for 40 delays;
     # for a batch of one, keep them about as rarely
-    return [c for c in claims if c["scenario"] not in ("duplicate receipt", "no delay at that time") or rng.random() < 0.1]
+    rare = ("duplicate receipt", "no delay at that time", "long after the delay")
+    return [c for c in claims if c["scenario"] not in rare or rng.random() < 0.1]
 
 
 def feed_real(base: str, interval: float = 300.0, settle_min: float = 40.0) -> None:
@@ -294,125 +281,3 @@ def feed_real(base: str, interval: float = 300.0, settle_min: float = 40.0) -> N
         except OSError as e:  # bridge down or restarting: try again next time
             print(f"bridge not reachable: {e}", flush=True)
         time.sleep(interval)
-
-
-# ---- offline mode: same handlers, no engine ------------------------------
-
-def run_offline(scenario: dict, seed: int = 14, noise: float = 0.0):
-    rng = random.Random(seed + 1)
-    store, cep = Store(), CepSink(url="")
-    for n in scenario["notices"]:
-        store.put("notices", n["noticeId"], n)
-    for w in scenario["weather"]:
-        store.put("weather", w["situationId"], w)
-
-    delay_traces, claim_traces = [], []
-    for d in scenario["delays"]:
-        if not rules.qualifies_as_delay(d):
-            continue
-        store.put("delays", d["delayId"], d)
-        t = parse_ts(d["detectedAt"])
-        tick = lambda: t + timedelta(seconds=rng.uniform(0.2, 2))  # noqa: E731
-        v = {"delayId": d["delayId"]}
-        ev = [(A.DELAY_DETECTED, t)]
-        order = [(A.CHECK_NOTICE, workers.check_notice), (A.CHECK_FORCE_MAJEURE, workers.check_force_majeure)]
-        rng.shuffle(order)
-        for name, fn in order:
-            v.update(fn(v, store, cep))
-            t = tick()
-            ev.append((name, t))
-        t = tick()
-        ev.append((A.NOTICE_BY_DAY_BEFORE if v["noticeExcluded"] else
-                   A.FORCE_MAJEURE if v["forceMajeure"] else A.GUARANTEE_APPLIES, t))
-        v.update(workers.report_assessment(v, store, cep))
-        t = tick()
-        ev += [(A.REPORT_ASSESSMENT, t), (A.DELAY_CASE_DONE, t)]
-        delay_traces.append({"id": d["delayId"], "attrs": {"simulated": True},
-                             "events": [{"name": n_, "time": iso(x)} for n_, x in ev]})
-
-    refused = []
-    for c in scenario["claims"]:
-        if rules.missing_receipt_fields(c["receipt"]):
-            refused.append(c["claimId"])  # refused by the claim form (bridge 422), no instance
-            continue
-        store.put("claims", c["claimId"], c)
-        t = parse_ts(c["tripStart"]) + timedelta(hours=rng.uniform(1, 72))
-        clock = [t]
-
-        def step(name):
-            clock[0] = clock[0] + timedelta(seconds=rng.uniform(0.2, 3))
-            ev.append((name, clock[0]))
-
-        v = {"claimId": c["claimId"]}
-        ev = [(A.CLAIM_SUBMITTED, t)]
-        v.update(workers.match_delay(v, store, cep))
-        step(A.MATCH_DELAY)
-        rejected = True
-        if not v["delayVerified"]:
-            step(A.NO_VERIFIED_DELAY)
-        elif v["noticeExcluded"]:
-            step(A.NOTICE_BY_DAY_BEFORE)
-        elif v["forceMajeure"]:
-            step(A.FORCE_MAJEURE)
-        else:
-            step(A.DELAY_VERIFIED)
-            par = [(A.CHECK_RECEIPT, workers.check_receipt), (A.CHECK_DISTANCE, workers.check_distance)]
-            rng.shuffle(par)
-            for name, fn in par:
-                v.update(fn(v, store, cep))
-                step(name)
-            if not v["receiptValid"]:
-                step(A.RECEIPT_REJECTED)
-            else:
-                step(A.RECEIPT_VERIFIED)
-                if not v["withinRadius"]:
-                    step(A.TRIP_TOO_FAR)
-                else:
-                    step(A.TRIP_WITHIN)
-                    v.update(workers.calc_payout(v, store, cep))
-                    step(A.CALC_PAYOUT)
-                    v.update(workers.pay_out(v, store, cep))
-                    step(A.PAY_OUT)
-                    rejected = False
-        if rejected:
-            v.update(workers.reject(v, store, cep))
-            step(A.REJECT)
-        v.update(workers.report_outcome(v, store, cep))
-        step(A.REPORT_OUTCOME)
-        ev.append((A.CLAIM_CLOSED, clock[0]))
-
-        attrs = {"delayId": v.get("delayId"), "outcome": v["outcome"], "scenario": c.get("scenario"),
-                 "payoutDkk": v.get("payoutDkk"), "simulated": True}
-        names = [e[0] for e in ev]
-        if noise and rng.random() < noise:
-            names, label = _inject(rng, names)
-            attrs["injectedDeviation"] = label
-        times = [e[1] for e in ev]
-        while len(times) < len(names):
-            times.append(times[-1] + timedelta(seconds=1))
-        claim_traces.append({"id": c["claimId"], "attrs": attrs,
-                             "events": [{"name": n_, "time": iso(x)} for n_, x in zip(names, times)]})
-    store.refused_at_intake = refused
-    return delay_traces, claim_traces, store
-
-
-def _inject(rng: random.Random, names: List[str]):
-    """Deliberate rule violations, to show that the conformance check finds them."""
-    kinds = []
-    if A.RECEIPT_REJECTED in names:
-        kinds.append("payout despite rejected receipt")
-    if A.NOTICE_BY_DAY_BEFORE in names:
-        kinds.append("payout despite notice by the day before")
-    if A.PAY_OUT in names:
-        kinds += ["double payout", "no outcome reported"]
-    if not kinds:
-        kinds.append("no outcome reported")
-    label = rng.choice(kinds)
-    n = list(names)
-    if label in ("payout despite rejected receipt", "payout despite notice by the day before"):
-        n[n.index(A.REJECT)] = A.PAY_OUT
-    elif label == "double payout":
-        n.insert(n.index(A.PAY_OUT) + 1, A.PAY_OUT)
-    elif label == "no outcome reported":
-        n.remove(A.REPORT_OUTCOME)
-    return n, label

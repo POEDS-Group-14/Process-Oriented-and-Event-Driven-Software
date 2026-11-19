@@ -1,6 +1,7 @@
 """Tests for process 1. Run from service/:  uv run python -m unittest -v"""
 from __future__ import annotations
 
+import glob
 import json
 import os
 import re
@@ -12,18 +13,16 @@ import xml.etree.ElementTree as ET
 from unittest import mock
 
 from rejsegaranti import activities as A
-from rejsegaranti import dcr, rules, simulate, workers
+from rejsegaranti import intake, rules, simulate, workers
 from rejsegaranti.bridge import Bridge, make_server
 from rejsegaranti.cep import CepSink
 from rejsegaranti.stations import distance_m, offset, station_point
 from rejsegaranti.store import Store
-from rejsegaranti.xes import write_xes
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-TO_BE = os.path.join(ROOT, "models", "rejsegaranti-to-be.bpmn")
-AS_IS = os.path.join(ROOT, "models", "archive", "rejsegaranti-as-is.bpmn")
-RULES = os.path.join(ROOT, "models", "rejsegaranti-rules.dcr.xml")
-NS = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
+TO_BE = os.path.join(ROOT, "models", "to-be")
+EXECUTABLE = ("assess-disruption", "decide-claim", "handle-appeal")
+BPMN = "{http://www.omg.org/spec/BPMN/20100524/MODEL}"
 CAM = "{http://camunda.org/schema/1.0/bpmn}"
 
 DELAY = {"delayId": "D1", "line": "L", "stops": ["Lyngby", "Gammelmosevej", "Buddinge"],
@@ -34,25 +33,17 @@ DELAY = {"delayId": "D1", "line": "L", "stops": ["Lyngby", "Gammelmosevej", "Bud
 def claim_near(start="Lyngby", end="Buddinge", start_m=100, end_m=100, trip="2026-11-04T07:20:00+01:00", **receipt):
     s = offset(*station_point("L", start), start_m, 0)
     e = offset(*station_point("L", end), 0, end_m)
-    r = {"receiptId": "R1", "provider": "Dantaxi", "cvr": "12345678", "transportType": "taxi",
-         "startAddress": "a", "endAddress": "b", "distanceKm": 3.2, "minutes": 9,
-         "time": trip, "amountDkk": 180.0}
+    r = {"receiptId": "R1", "provider": "Dantaxi", "transportType": "taxi", "time": trip, "amountDkk": 180.0}
     r.update(receipt)
     return {"claimId": "C1", "tripStart": trip, "startLat": s[0], "startLon": s[1],
             "endLat": e[0], "endLon": e[1], "receipt": r}
 
 
 class Rules(unittest.TestCase):
-    def test_threshold(self):
+    def test_only_the_line_counts(self):
         self.assertTrue(rules.qualifies_as_delay(DELAY))
-        self.assertFalse(rules.qualifies_as_delay({**DELAY, "delayMinutes": 29}))
+        self.assertTrue(rules.qualifies_as_delay({**DELAY, "delayMinutes": 12}))  # the table decides the minutes
         self.assertFalse(rules.qualifies_as_delay({**DELAY, "line": "A"}))
-
-    def test_payout_cap(self):
-        self.assertEqual(rules.payout(180), 180)
-        self.assertEqual(rules.payout(450), 300)
-        # an int would be sent to Camunda as Long instead of Double
-        self.assertIsInstance(rules.payout(450), float)
 
     def test_notice_example_from_issue_6(self):
         # work planned Wednesday 05:00; notice seen Monday -> excluded
@@ -68,37 +59,39 @@ class Rules(unittest.TestCase):
         # other stops -> does not apply
         self.assertIsNone(rules.notice_excludes(delay, [{**early, "stops": ["Ishøj"]}]))
 
-    def test_force_majeure(self):
+    def test_covering_notice_without_deciding(self):
+        delay = {**DELAY, "plannedDeparture": "2026-11-04T06:00:00+01:00"}
+        early = {"noticeId": "N1", "lines": ["L"], "stops": [], "effectiveFrom": "2026-11-04T05:00:00+01:00",
+                 "effectiveTo": "2026-11-04T12:00:00+01:00", "firstSeen": "2026-11-02T10:00:00+01:00"}
+        late = {**early, "noticeId": "N2", "firstSeen": "2026-11-04T04:30:00+01:00"}
+        self.assertEqual(rules.covering_notice(delay, [late, early])["noticeId"], "N1")  # announced longest before
+        self.assertEqual(rules.hours_announced_before(early), 43.0)
+        self.assertEqual(rules.hours_announced_before(late), 0.5)  # too late, but that is the table's call
+        self.assertEqual(rules.covering_notice(delay, [late])["noticeId"], "N2")
+        self.assertIsNone(rules.covering_notice(delay, [{**early, "lines": ["A"]}]))
+        self.assertIsNone(rules.covering_notice({**delay, "plannedDeparture": "2026-11-04T13:00:00+01:00"}, [early]))
+
+    def test_weather_at_the_delay(self):
+        w = {"validFrom": "2026-11-04T05:00:00+01:00", "validTo": "2026-11-04T09:00:00+01:00"}
+        got = rules.weather_at(DELAY, [{**w, "source": "DMI", "level": 1}, {**w, "source": "DMI", "level": 2},
+                                       {**w, "source": "OWM", "metrics": {"wind_speed": 26.1, "rain_1h": 0}}])
+        self.assertEqual(got, {"dmiLevel": 2, "windSpeed": 26.1, "windGust": None, "rain1h": 0.0, "snow1h": None})
+        later = {"validFrom": "2026-11-04T10:00:00+01:00", "validTo": "2026-11-04T12:00:00+01:00"}
+        self.assertEqual(rules.weather_at(DELAY, [{**later, "source": "DMI", "level": 3}]),
+                         {"dmiLevel": None, "windSpeed": None, "windGust": None, "rain1h": None, "snow1h": None})
+
+    def test_force_majeure(self):  # the AS-IS page's weather check
         w = {"validFrom": "2026-11-04T05:00:00+01:00", "validTo": "2026-11-04T09:00:00+01:00"}
         self.assertIsNotNone(rules.force_majeure(DELAY, [{**w, "source": "DMI", "level": 2}]))
         self.assertIsNone(rules.force_majeure(DELAY, [{**w, "source": "DMI", "level": 1}]))
-        # an official warning below the bar wins over OWM
         self.assertIsNone(rules.force_majeure(DELAY, [{**w, "source": "DMI", "level": 1},
                                                       {**w, "source": "OWM", "metrics": {"wind_speed": 30}}]))
         self.assertIsNotNone(rules.force_majeure(DELAY, [{**w, "source": "OWM", "metrics": {"rain_1h": 31}}]))
-        self.assertIsNone(rules.force_majeure(DELAY, [{**w, "source": "OWM", "metrics": {"rain_1h": 10}}]))
         self.assertEqual(rules.force_majeure({**DELAY, "cause": "fire"}, []), "cause:fire")
-        later = {"validFrom": "2026-11-04T10:00:00+01:00", "validTo": "2026-11-04T12:00:00+01:00"}
-        self.assertIsNone(rules.force_majeure(DELAY, [{**later, "source": "DMI", "level": 3}]))
-
-    def test_distance(self):
-        self.assertIsNone(rules.check_distance(claim_near(), DELAY))
-        self.assertIn("starts", rules.check_distance(claim_near(start_m=400), DELAY))
-        self.assertIn("ends", rules.check_distance(claim_near(end_m=400), DELAY))
-        # start must be near an *affected* station
-        self.assertIsNotNone(rules.check_distance(claim_near(start="Ishøj"), DELAY))
 
     def test_haversine(self):
         a, b = station_point("L", "Lyngby"), offset(*station_point("L", "Lyngby"), 250, 0)
         self.assertAlmostEqual(distance_m(*a, *b), 250, delta=2)
-
-    def test_receipt(self):
-        r = claim_near()["receipt"]
-        self.assertIsNone(rules.check_receipt(r))
-        self.assertIn("CVR", rules.check_receipt({**r, "cvr": "123"}))
-        self.assertIn("missing", rules.check_receipt({**r, "minutes": None}))
-        self.assertIn("not covered", rules.check_receipt({**r, "transportType": "private_car"}))
-        self.assertIn("already", rules.check_receipt(r, already_paid=["R1"]))
 
     def test_match(self):
         self.assertEqual(rules.match_delay(claim_near(), [DELAY])["delayId"], "D1")
@@ -106,97 +99,216 @@ class Rules(unittest.TestCase):
         self.assertIsNone(rules.match_delay(claim_near(start="Ishøj"), [DELAY]))
 
 
+class StartVariables(unittest.TestCase):
+    def test_claim(self):
+        c = claim_near()
+        v = intake.claim_start_variables(c, [], "2026-11-18T23:30:00+01:00")
+        self.assertEqual(v, {"claimId": "C1", "receiptAttached": True, "daysToClaim": 14, "receiptUsedBefore": False,
+                             "fareDkk": 180.0, "reprocessed": False})
+        # Copenhagen calendar days: 00:30 local on the 19th is day 15
+        self.assertEqual(intake.claim_start_variables(c, [], "2026-11-18T23:30:00+00:00")["daysToClaim"], 15)
+        earlier = {**c, "claimId": "C0"}
+        self.assertTrue(intake.claim_start_variables(c, [earlier, c], c["tripStart"])["receiptUsedBefore"])
+        self.assertFalse(intake.claim_start_variables(c, [c], c["tripStart"])["receiptUsedBefore"])  # itself
+        bare = {k: v for k, v in c.items() if k != "receipt"}
+        v = intake.claim_start_variables(bare, [bare, {**bare, "claimId": "C0"}], c["tripStart"], reprocessed=True)
+        self.assertEqual((v["receiptAttached"], v["fareDkk"], v["receiptUsedBefore"], v["reprocessed"]),
+                         (False, None, False, True))
+        self.assertIsInstance(intake.claim_start_variables({**c, "receipt": {"amountDkk": 200}}, [], c["tripStart"])
+                              ["fareDkk"], float)  # a Double in Camunda
+
+    def test_delay_and_order(self):
+        self.assertEqual(intake.delay_start_variables({**DELAY, "delayMinutes": 40}),
+                         {"delayId": "D1", "line": "L", "delayMinutes": 40.0, "reprocessed": False})
+        a = {"claimId": "B", "tripStart": "2026-11-04T07:00:00+01:00"}
+        b = {"claimId": "A", "tripStart": "2026-11-04T06:30:00Z"}  # later, though the string sorts first
+        self.assertEqual(sorted([b, a], key=intake.replay_order), [a, b])
+
+
 class Workers(unittest.TestCase):
     def setUp(self):
-        self.store, self.cep = Store(), CepSink(url="")
-        self.store.put("delays", "D1", DELAY)
+        self.events = []
+        self.store, self.cep = Store(), CepSink(url="", listeners=[self.events.append])
+        self.store.put("delays", "D1", {**DELAY, "cause": "strike"})
 
-    def run_claim(self, c):
-        self.store.put("claims", c["claimId"], c)
-        v = {"claimId": c["claimId"]}
-        v.update(workers.match_delay(v, self.store, self.cep))
+    def assess(self, delay_id="D1", exclusion="none"):
+        v = {"delayId": delay_id, "line": "L", "delayMinutes": 40.0, "reprocessed": False}
+        v.update(workers.collect_disruption(v, self.store, self.cep))
+        v["exclusion"] = exclusion  # what the Decide exclusion table would set
+        v.update(workers.publish_assessment(v, self.store, self.cep))
         return v
 
-    def test_claim_waits_for_assessment(self):
+    def test_collect_disruption(self):
+        self.store.put("weather", "W1", {"source": "DMI", "level": 2, "validFrom": "2026-11-04T05:00:00+01:00",
+                                         "validTo": "2026-11-04T09:00:00+01:00"})
+        self.store.put("notices", "N1", {"noticeId": "N1", "lines": ["L"], "effectiveFrom": "2026-11-04T06:00:00+01:00",
+                                         "effectiveTo": "2026-11-04T09:00:00+01:00",
+                                         "firstSeen": "2026-11-03T06:00:00+01:00"})
+        v = workers.collect_disruption({"delayId": "D1"}, self.store, self.cep)
+        self.assertEqual(v, {"service": "local train", "operatorCause": "strike", "dmiLevel": 2, "windSpeed": None,
+                             "windGust": None, "rain1h": None, "snow1h": None, "hoursAnnouncedBefore": 24.0})
+        self.store.put("delays", "D2", {**DELAY, "delayId": "D2", "line": "5C", "cause": "signal fault"})
+        v = workers.collect_disruption({"delayId": "D2"}, self.store, self.cep)
+        self.assertEqual((v["service"], v["operatorCause"]), ("bus", "none"))
+
+    def test_assessment_published(self):
+        v = self.assess(exclusion="Strike, weather or force majeure")
+        self.assertFalse(v["guaranteeApplies"])
+        a = self.store.get("assessments", "D1")
+        self.assertEqual((a["exclusion"], a["operatorCause"], a["service"]),
+                         ("Strike, weather or force majeure", "strike", "local train"))
+        self.assertEqual(self.events[-1]["eventType"], "DelayAssessed")
+        workers.notify_passengers({"delayId": "D1", "line": "L"}, self.store, self.cep)
+        self.assertEqual((self.events[-1]["eventType"], self.events[-1]["line"]), ("PassengersNotified", "L"))
+
+    def test_match_claim(self):
+        self.store.put("claims", "C1", claim_near())
         with self.assertRaises(workers.NotReady):
-            self.run_claim(claim_near())
+            workers.match_claim({"claimId": "C1"}, self.store, self.cep)
+        # an assessment the archived Line L process stored has no exclusion: wait for the TO-BE's own
+        self.store.put("assessments", "D1", {"delayId": "D1", "guaranteeApplies": True, "forceMajeure": False})
+        with self.assertRaises(workers.NotReady):
+            workers.match_claim({"claimId": "C1"}, self.store, self.cep)
+        self.assess(exclusion="none")
+        v = workers.match_claim({"claimId": "C1"}, self.store, self.cep)
+        self.assertEqual(v, {"delayId": "D1", "delayMinutes": 40.0, "exclusion": "none", "incident": "delay",
+                             "visibleToDriver": None, "busFull": None, "stopRequested": None,
+                             "minutesToNextDeparture": None})
+        # no delay at that time: every table input still exists, delayMinutes is null
+        self.store.put("claims", "C2", {**claim_near(trip="2026-11-04T15:00:00+01:00"), "claimId": "C2",
+                                        "incident": "bus passed stop", "visibleToDriver": True})
+        v = workers.match_claim({"claimId": "C2"}, self.store, self.cep)
+        self.assertEqual((v["delayId"], v["delayMinutes"], v["exclusion"], v["incident"], v["visibleToDriver"]),
+                         (None, None, "none", "bus passed stop", True))
+        self.assertIn("busFull", v)
 
-    def test_happy_path_and_duplicate(self):
-        v = {"delayId": "D1"}
-        for fn in (workers.check_notice, workers.check_force_majeure, workers.report_assessment):
-            v.update(fn(v, self.store, self.cep))
-        self.assertTrue(v["guaranteeApplies"])
-        c = claim_near(amountDkk=420.0)
-        v = self.run_claim(c)
-        for fn in (workers.check_receipt, workers.check_distance, workers.calc_payout, workers.pay_out,
-                   workers.report_outcome):
-            v.update(fn(v, self.store, self.cep))
-        self.assertEqual(v["payoutDkk"], 300)
-        self.assertEqual(self.store.get("outcomes", "C1")["outcome"], "paid")
-        # same receipt on a second claim is rejected
-        c2 = {**c, "claimId": "C2"}
-        v2 = self.run_claim(c2)
-        v2.update(workers.check_receipt(v2, self.store, self.cep))
-        self.assertFalse(v2["receiptValid"])
+    def test_paid_and_rejected(self):
+        self.store.put("claims", "C1", claim_near())
+        v = {"claimId": "C1", "claimValid": True, "covered": True, "delayId": "D1", "refundDkk": 180.0,
+             "reprocessed": True}
+        v.update(workers.pay_out(v, self.store, self.cep))
+        self.assertEqual(v["payoutReference"], "PAY-C1")
+        workers.send_decision(v, self.store, self.cep)
+        self.assertEqual(self.store.get("outcomes", "C1"), {"claimId": "C1", "delayId": "D1", "outcome": "paid",
+                                                            "payoutDkk": 180.0, "reason": None, "reprocessed": True})
+        self.assertEqual(self.events[-1]["eventType"], "ClaimPaid")
+        # the same receipt cannot be paid twice
+        self.store.put("claims", "C2", {**claim_near(), "claimId": "C2"})
         with self.assertRaises(RuntimeError):
-            workers.pay_out(v2, self.store, self.cep)
+            workers.pay_out({"claimId": "C2"}, self.store, self.cep)
+        for valid, expected in ((True, "Delay 20 min or less"), (False, "No receipt")):
+            v = {"claimId": "C3", "claimValid": valid, "claimReason": "No receipt",
+                 "guaranteeReason": "Delay 20 min or less" if valid else None}
+            v.update(workers.reject(v, self.store, self.cep))
+            self.assertEqual(v["rejectionReason"], expected)
+        workers.send_decision(v, self.store, self.cep)
+        o = self.store.get("outcomes", "C3")
+        self.assertEqual((o["outcome"], o["payoutDkk"], o["reason"], o["reprocessed"]),
+                         ("rejected", 0.0, "No receipt", False))
+        self.assertEqual(self.events[-1]["eventType"], "ClaimRejected")
+
+    def test_appeal(self):
+        self.store.put("claims", "C1", claim_near(amountDkk=420.0))
+        self.store.put("outcomes", "C1", {"claimId": "C1", "outcome": "rejected", "payoutDkk": 0.0,
+                                          "reason": "Planned change"})
+        v = {"claimId": "C1", "appealReason": "The notice was wrong"}
+        v.update(workers.retrieve_claim(v, self.store, self.cep))
+        self.assertEqual(v, {**v, "fareDkk": 420.0, "previousOutcome": "rejected", "previousReason": "Planned change"})
+        v.update(upheld=True, reviewNote="ok", refundDkk=300.0)
+        v.update(workers.pay_out(v, self.store, self.cep))
+        workers.send_appeal_decision(v, self.store, self.cep)
+        self.assertEqual(self.store.get("outcomes", "C1")["outcome"], "paid")
+        self.assertEqual(self.store.get("outcomes", "C1")["payoutDkk"], 300.0)
+        a = self.store.get("appeals", "C1")
+        self.assertEqual((a["upheld"], a["refundDkk"], a["status"]), (True, 300.0, "decided"))
+        self.assertEqual(self.events[-1]["eventType"], "AppealDecided")
+        # dismissed: the outcome stays; no receipt: the fare is 0, so the refund table has a number
+        self.store.put("claims", "C2", {k: x for k, x in claim_near().items() if k != "receipt"} | {"claimId": "C2"})
+        self.assertEqual(workers.retrieve_claim({"claimId": "C2"}, self.store, self.cep)["fareDkk"], 0.0)
+        workers.send_appeal_decision({"claimId": "C2", "upheld": False}, self.store, self.cep)
+        self.assertIsNone(self.store.get("outcomes", "C2"))
+
+    def test_every_topic_has_a_handler(self):
+        self.assertEqual(set(workers.HANDLERS), set(A.TOPICS.values()))
 
 
-class Bpmn(unittest.TestCase):
-    def test_names_topics_messages(self):
-        root = ET.parse(TO_BE).getroot()
-        names = {e.get("name") for e in root.iter() if e.get("name")}
-        for k, n in vars(A).items():
-            if k.isupper():
-                self.assertIn(n, names)
-        topics = {e.get(CAM + "topic") for e in root.iter() if e.get(CAM + "topic")}
-        self.assertEqual(topics, set(workers.HANDLERS))
-        msgs = {m.get("name") for m in root.findall("bpmn:message", NS)}
-        self.assertEqual(msgs, {"DelaySituationDetected", "ClaimSubmitted"})
-        for p in root.findall("bpmn:process", NS):
-            self.assertEqual(p.get("isExecutable"), "true")
-            self.assertTrue(p.get(CAM + "historyTimeToLive"))
+def _process(path):
+    """The first bpmn:process of a file (processdoctor reads only that one)."""
+    root = ET.parse(path).getroot()
+    return root, next(root.iter(BPMN + "process"))
 
-    def test_author_named(self):
-        for f in (TO_BE, AS_IS):
-            with open(f, encoding="utf-8") as fh:
-                self.assertIn("Liam Palmqvist", fh.read())
 
-    def test_offline_traces_follow_the_model(self):
-        """Every directly-follows pair in the offline log must be possible in
-        the TO-BE claim process (through gateways, allowing the parallel pair)."""
-        root = ET.parse(TO_BE).getroot()
-        proc = [p for p in root.findall("bpmn:process", NS) if p.get("id") == "rejsegaranti-claim"][0]
-        name, kind, succ = {}, {}, {}
-        for e in proc:
-            tag = e.tag.split("}")[1]
-            if tag == "sequenceFlow":
-                succ.setdefault(e.get("sourceRef"), []).append(e.get("targetRef"))
-            elif e.get("id"):
-                name[e.get("id")], kind[e.get("id")] = e.get("name"), tag
+def _tag(e):
+    return e.tag.split("}")[1]
 
-        def next_acts(nid, seen=None):
-            out = set()
-            for t in succ.get(nid, []):
-                if kind[t].endswith("Gateway"):
-                    out |= next_acts(t)
-                else:
-                    out.add(name[t])
-            return out
 
-        allowed = set()
-        for nid in name:
-            if not kind[nid].endswith("Gateway"):
-                for b in next_acts(nid):
-                    allowed.add((name[nid], b))
-        allowed |= {(A.CHECK_DISTANCE, A.CHECK_RECEIPT), (A.CHECK_RECEIPT, A.CHECK_DISTANCE),
-                    (A.DELAY_VERIFIED, A.CHECK_DISTANCE)}
-        allowed |= {(A.CHECK_RECEIPT, x) for x in (A.RECEIPT_REJECTED, A.RECEIPT_VERIFIED)}
-        _, traces, _ = simulate.run_offline(simulate.generate(seed=3, n_delays=30), seed=3)
-        for t in traces:
-            seq = [e["name"] for e in t["events"]]
-            for a, b in zip(seq, seq[1:]):
-                self.assertIn((a, b), allowed, f"{t['id']}: {a} -> {b}")
+class Models(unittest.TestCase):
+    def test_names_and_topics_match_activities(self):
+        known = {v for k, v in vars(A).items() if k.isupper() and isinstance(v, str)}
+        seen = set()
+        for name in EXECUTABLE:
+            for path in (os.path.join(TO_BE, name + ".bpmn"), os.path.join(TO_BE, name + ".processdoctor.bpmn")):
+                _, proc = _process(path)
+                for e in proc:
+                    t = _tag(e)
+                    if t == "task" or t.endswith("Task") or t.endswith("Event"):
+                        self.assertIn(e.get("name"), known, f"{os.path.basename(path)}: {e.get('name')}")
+                        seen.add(e.get("name"))
+                    if t == "serviceTask":
+                        self.assertEqual(e.get(CAM + "topic"), A.TOPICS.get(e.get("name")), e.get("name"))
+        root, proc = _process(os.path.join(TO_BE, "assess-disruption.bpmn"))
+        self.assertEqual(proc.get("id"), A.ASSESS_KEY)
+        names = {v for k, v in vars(A).items() if k.isupper() and isinstance(v, str) and not k.endswith(("KEY", "MESSAGE"))}
+        self.assertEqual(names - seen, set())  # every activity name is in a model
+        keys, messages = set(), set()
+        for name in EXECUTABLE:
+            root, proc = _process(os.path.join(TO_BE, name + ".bpmn"))
+            keys.add(proc.get("id"))
+            messages |= {m.get("name") for m in root.findall(BPMN + "message")}
+            self.assertEqual(proc.get("isExecutable"), "true")
+            self.assertTrue(proc.get(CAM + "historyTimeToLive"))
+        self.assertEqual(keys, {A.ASSESS_KEY, A.CLAIM_KEY, A.APPEAL_KEY})
+        self.assertEqual(messages, {A.DELAY_MESSAGE, A.CLAIM_MESSAGE, A.APPEAL_MESSAGE})
+
+    def test_processdoctor_rules(self):
+        files = glob.glob(os.path.join(TO_BE, "*.processdoctor.bpmn")) + [os.path.join(TO_BE, "passenger-journey.bpmn")]
+        self.assertEqual(len(files), 4)
+        for path in files:
+            f = os.path.basename(path)
+            _, proc = _process(path)
+            nodes = {e.get("id"): _tag(e) for e in proc if _tag(e) != "sequenceFlow"}
+            inc, out = {}, {}
+            for e in proc:
+                if _tag(e) == "sequenceFlow":
+                    out[e.get("sourceRef")] = out.get(e.get("sourceRef"), 0) + 1
+                    inc[e.get("targetRef")] = inc.get(e.get("targetRef"), 0) + 1
+            self.assertEqual(sum(t == "startEvent" for t in nodes.values()), 1, f)
+            for nid, t in nodes.items():
+                if t == "task":
+                    self.assertEqual((inc.get(nid, 0), out.get(nid, 0)), (1, 1), f"{f}: {nid}")
+                elif t.endswith("Gateway"):
+                    split = inc.get(nid, 0) == 1 and out.get(nid, 0) > 1
+                    join = inc.get(nid, 0) > 1 and out.get(nid, 0) == 1
+                    self.assertTrue(split or join, f"{f}: gateway {nid} is neither a split nor a join")
+                elif f.endswith(".processdoctor.bpmn"):
+                    self.assertFalse(t.endswith("Task"), f"{f}: typed task {nid} ({t})")
+
+    def test_tables_read_only_variables_the_processes_set(self):
+        """Every input of a ToBe_ table is a start variable, a worker output or a table output."""
+        dmn = ET.parse(os.path.join(TO_BE, "travel-guarantee-to-be.dmn")).getroot()
+        dns = dmn.tag.split("}")[0] + "}"
+        inputs = {e.findtext(dns + "text").strip() for e in dmn.iter(dns + "inputExpression")}
+        decided = {o.get("name") for o in dmn.iter(dns + "output")}
+        s = Store()
+        s.put("delays", "D1", DELAY)
+        s.put("claims", "C1", claim_near())
+        s.put("assessments", "D1", {"delayId": "D1", "exclusion": "none"})
+        cep = CepSink(url="")
+        have = set(intake.delay_start_variables(DELAY)) | set(workers.collect_disruption({"delayId": "D1"}, s, cep))
+        have |= set(intake.claim_start_variables(claim_near(), [], DELAY["detectedAt"]))
+        have |= set(workers.match_claim({"claimId": "C1"}, s, cep))
+        self.assertTrue(inputs)
+        self.assertEqual(inputs - have - decided, set())
 
 
 class Feed(unittest.TestCase):
@@ -214,12 +326,34 @@ class Feed(unittest.TestCase):
             with self.assertRaises(Stop):
                 simulate.feed("http://bridge", batch=3, interval=3600, seed=1)
         self.assertEqual(len(sent), 2)
-        ids = [[c["claimId"] for c in sc["claims"]] + [c["receipt"]["receiptId"] for c in sc["claims"]]
-               + [d["delayId"] for d in sc["delays"]] for sc in sent]
+        ids = [[c["claimId"] for c in sc["claims"]] + [d["delayId"] for d in sc["delays"]] for sc in sent]
         self.assertFalse(set(ids[0]) & set(ids[1]))
         for d in sent[1]["delays"]:
             self.assertLess(simulate.parse_ts(d["detectedAt"]),
                             simulate.datetime(2026, 11, 7, 13, 0, tzinfo=simulate.CPH))
+
+    def test_movia_scenarios(self):
+        sc = simulate.generate(seed=4, n_delays=40, start=simulate.datetime(2026, 11, 2, 6, 0, tzinfo=simulate.CPH))
+        kinds = {c["scenario"] for c in sc["claims"]}
+        self.assertEqual(kinds, {"valid", "no receipt", "fare over 300", "duplicate receipt", "no delay at that time",
+                                 "long after the delay"})
+        delays = sc["delays"]
+        for c in sc["claims"]:
+            r = c.get("receipt")
+            self.assertEqual(r is None, c["scenario"] == "no receipt")
+            if c["scenario"] == "fare over 300":
+                self.assertGreater(r["amountDkk"], 300)
+            elif c["scenario"] == "valid":
+                self.assertLessEqual(r["amountDkk"], 300)
+                self.assertIsNotNone(rules.match_delay(c, delays), c["claimId"])
+            if c["scenario"] in ("no delay at that time", "long after the delay"):
+                self.assertIsNone(rules.match_delay(c, delays), c["claimId"])
+            if r:
+                self.assertEqual(r["transportType"], "taxi")
+        receipts = [c["receipt"]["receiptId"] for c in sc["claims"] if c["scenario"] == "duplicate receipt"]
+        firsts = {c["receipt"]["receiptId"] for c in sc["claims"] if c.get("receipt") and c["scenario"] != "duplicate receipt"}
+        self.assertTrue(receipts)
+        self.assertLessEqual(set(receipts), firsts)
 
 
 class RealDelays(unittest.TestCase):
@@ -249,7 +383,7 @@ class RealDelays(unittest.TestCase):
         with self.assertRaises(ValueError):
             stations.load("150S,NOPE")
 
-    def test_claim_is_measured_against_the_delayed_line(self):
+    def test_claim_is_matched_on_the_delayed_line(self):
         from rejsegaranti import stations
         network = stations.load("150S,5C")
         base = claim_near()
@@ -260,68 +394,6 @@ class RealDelays(unittest.TestCase):
             s, e = stations.station_point("5C", names[4]), stations.station_point("5C", names[8])
             c = {**base, "startLat": s[0], "startLon": s[1], "endLat": e[0], "endLon": e[1]}
             self.assertEqual(rules.match_delay(c, [d, {**d, "delayId": "D2", "line": "150S"}])["delayId"], "D1")
-            self.assertIsNone(rules.check_distance(c, d))
-            self.assertIsNotNone(rules.check_distance(c, {**d, "line": "150S"}))
-
-
-class Dcr(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.tmp = tempfile.mkdtemp()
-        cls.xml = os.path.join(cls.tmp, "rules.xml")
-        dcr.to_xml(cls.xml)
-        cls.g = dcr.Graph.from_xml(cls.xml)
-
-    def test_committed_xml_is_current(self):
-        with open(RULES, encoding="utf-8") as a, open(self.xml, encoding="utf-8") as b:
-            self.assertEqual(a.read(), b.read(), "run: uv run rejsegaranti build-dcr")
-
-    def test_clean_log_conforms(self):
-        _, traces, _ = simulate.run_offline(simulate.generate(seed=5), seed=5)
-        r = dcr.check_log(self.g, traces)
-        self.assertEqual(r["violating"], 0, r["details"])
-
-    def test_violations_found(self):
-        paid = [A.CLAIM_SUBMITTED, A.MATCH_DELAY, A.DELAY_VERIFIED, A.CHECK_RECEIPT, A.CHECK_DISTANCE,
-                A.RECEIPT_VERIFIED, A.TRIP_WITHIN, A.CALC_PAYOUT, A.PAY_OUT, A.REPORT_OUTCOME, A.CLAIM_CLOSED]
-        self.assertEqual(self.g.replay(paid), [])
-        # R1: payout without a verified receipt
-        no_receipt = [x for x in paid if x != A.RECEIPT_VERIFIED]
-        self.assertTrue(self.g.replay(no_receipt))
-        # R2: payout after a notice by the day before
-        notice = [A.CLAIM_SUBMITTED, A.MATCH_DELAY, A.NOTICE_BY_DAY_BEFORE] + paid[2:]
-        self.assertTrue(any("excluded" in p for p in self.g.replay(notice)))
-        # R6: two payouts
-        twice = paid[:9] + [A.PAY_OUT] + paid[9:]
-        self.assertTrue(any("excluded" in p for p in self.g.replay(twice)))
-        # R7: no outcome reported
-        self.assertTrue(any("pending" in p for p in self.g.replay(paid[:9])))
-        # R8: eligible but rejected
-        rejected = paid[:7] + [A.REJECT, A.REPORT_OUTCOME, A.CLAIM_CLOSED]
-        self.assertTrue(any("excluded" in p for p in self.g.replay(rejected)))
-
-    def test_log_roles_match_the_graph(self):
-        # processdoctor replays a log event only on a graph event with the same role
-        root = ET.parse(self.xml).getroot()
-        label = {m.get("eventId"): m.get("labelId") for m in root.iter("labelMapping")}
-        graph_role = {label[e.get("id")]: e.findtext("custom/roles/role")
-                      for e in root.find("specification/resources/events")}
-        _, traces, _ = simulate.run_offline(simulate.generate(seed=5), seed=5)
-        path = os.path.join(self.tmp, "claims.xes")
-        write_xes(path, traces, "test", roles=dcr.ROLES)
-        events = list(ET.parse(path).getroot().iter("{http://www.xes-standard.org/}event"))
-        self.assertTrue(events)
-        for ev in events:
-            a = {x.get("key"): x.get("value") for x in ev}
-            self.assertEqual(a.get("role"), graph_role[a["concept:name"]], a["concept:name"])
-
-    def test_noise_is_detected(self):
-        sc = simulate.generate(seed=9)
-        _, traces, _ = simulate.run_offline(sc, seed=9, noise=0.2)
-        injected = {t["id"] for t in traces if t["attrs"].get("injectedDeviation")}
-        r = dcr.check_log(self.g, traces)
-        self.assertTrue(injected)
-        self.assertEqual(set(r["details"]), injected)
 
 
 class FakeCamunda:
@@ -331,7 +403,7 @@ class FakeCamunda:
     def correlate(self, message, business_key=None, variables=None, correlation_keys=None):
         self.calls.append((message, business_key, variables))
 
-    # the AS-IS tables, enough of them for the results page: the real ones are checked in Camunda by
+    # the AS-IS tables, enough of them for the results pages: the real ones are checked in Camunda by
     # models/travel-guarantee/check_camunda.py
     def evaluate(self, key, variables):
         self.calls.append((key, None, variables))
@@ -350,8 +422,11 @@ class FakeCamunda:
 
 class BridgeHttp(unittest.TestCase):
     def setUp(self):
+        from rejsegaranti import asis
+        asis._cache.clear()
         self.cam = FakeCamunda()
-        self.store = Store()
+        self.tmp = tempfile.mkdtemp()
+        self.store = Store(os.path.join(self.tmp, "registry.json"))
         self.srv = make_server(Bridge(self.store, self.cam), host="127.0.0.1", port=0)
         threading.Thread(target=self.srv.serve_forever, daemon=True).start()
         self.base = f"http://127.0.0.1:{self.srv.server_address[1]}"
@@ -366,32 +441,92 @@ class BridgeHttp(unittest.TestCase):
     def test_flow(self):
         self.assertTrue(self.post("/cep/delay", DELAY)["started"])
         self.assertFalse(self.post("/cep/delay", DELAY)["started"])  # re-emitted, one case per delay
-        self.assertIn("ignored", self.post("/cep/delay", {**DELAY, "delayId": "D2", "delayMinutes": 10}))
+        self.assertTrue(self.post("/cep/delay", {**DELAY, "delayId": "D2", "delayMinutes": 10})["started"])
+        self.assertIn("ignored", self.post("/cep/delay", {**DELAY, "delayId": "D3", "line": "A"}))
         # Siddhi-style {"event": {...}} wrapper
         self.assertEqual(self.post("/cep/notice", {"event": {"noticeId": "N1", "effectiveFrom": "2026-11-04T05:00:00",
                                                             "effectiveTo": "2026-11-04T09:00:00",
                                                             "firstSeen": "2026-11-01T09:00:00"}})["noticeId"], "N1")
         bad = claim_near()
-        del bad["receipt"]["cvr"]
+        del bad["startLat"]
         r = self.post("/claims", bad)
-        self.assertEqual(r["status"], 422)
-        self.assertIn("receipt.cvr", r["missing"])
+        self.assertEqual((r["status"], r["missing"]), (422, ["startLat"]))
+        self.assertEqual(self.post("/claims", {**claim_near(), "tripStart": "yesterday"})["status"], 422)
         self.assertEqual(self.post("/claims", claim_near())["claimId"], "C1")
-        self.assertEqual([c[0] for c in self.cam.calls], ["DelaySituationDetected", "ClaimSubmitted"])
+        self.assertEqual(self.post("/claims", claim_near())["status"], 409)
+        no_receipt = {k: v for k, v in claim_near().items() if k != "receipt"}
+        self.assertEqual(self.post("/claims", {**no_receipt, "claimId": "C2"})["claimId"], "C2")  # the table rejects it
+        self.assertEqual(self.post("/claims", {**claim_near(), "claimId": "C3"})["claimId"], "C3")
+        msgs = [c for c in self.cam.calls if c[0] in (A.DELAY_MESSAGE, A.CLAIM_MESSAGE)]
+        self.assertEqual([m[0] for m in msgs], [A.DELAY_MESSAGE] * 2 + [A.CLAIM_MESSAGE] * 3)
+        self.assertEqual(msgs[0][2], {"delayId": "D1", "line": "L", "delayMinutes": 40.0, "reprocessed": False})
+        c1, c2, c3 = (m[2] for m in msgs[2:])
+        self.assertEqual((c1["receiptAttached"], c1["receiptUsedBefore"], c1["daysToClaim"]), (True, False,
+                         (intake.local_date(intake.parse_ts(self.store.get("claims", "C1")["receivedAt"]))
+                          - intake.local_date(intake.parse_ts(claim_near()["tripStart"]))).days))
+        self.assertEqual((c2["receiptAttached"], c2["fareDkk"]), (False, None))
+        self.assertTrue(c3["receiptUsedBefore"])  # C1 had the same receipt
+        self.assertIn("receivedAt", self.store.get("claims", "C1"))
         with urllib.request.urlopen(self.base + "/state") as resp:
-            self.assertEqual(len(json.load(resp)["claims"]), 1)
+            state = json.load(resp)
+        self.assertEqual((len(state["claims"]), state["appeals"]), (3, []))
 
-    def test_results_page(self):
-        self.post("/claims", {**claim_near(), "passenger": "P0042"})
-        self.store.put("outcomes", "C1", {"claimId": "C1", "outcome": "rejected", "payoutDkk": 0.0,
-                                          "reason": "<b>no delay</b> 8296 m from a station"})
+    def test_appeals(self):
+        self.post("/claims", claim_near())
+        self.assertEqual(self.post("/appeals", {"claimId": "nope", "reason": "x"})["status"], 404)
+        self.assertEqual(self.post("/appeals", {"claimId": "C1"})["status"], 422)
+        self.assertTrue(self.post("/appeals", {"claimId": "C1", "reason": "I was there"})["appealed"])
+        self.assertEqual(self.post("/appeals", {"claimId": "C1", "reason": "again"})["status"], 409)
+        self.assertEqual(self.cam.calls[-1], (A.APPEAL_MESSAGE, "C1", {"claimId": "C1", "appealReason": "I was there"}))
+        self.assertEqual(self.store.get("appeals", "C1")["status"], "open")
+
+    def test_replay_endpoints(self):
+        self.store.put("delays", "D1", DELAY)
+        self.store.put("claims", "C2", {**claim_near(trip="2026-11-04T07:25:00+01:00"), "claimId": "C2"})
+        self.store.put("claims", "C1", claim_near())
+        self.store.put("assessments", "D1", {"delayId": "D1", "exclusion": "none"})
+        self.store.put("outcomes", "C1", {"claimId": "C1", "outcome": "paid"})
+        self.store.mark_paid("R1", "C1")
+        r = self.post("/replay/reset", {})
+        self.assertEqual(r["cleared"], {"assessments": 1, "outcomes": 1, "appeals": 0, "paid_receipts": 1})
+        with open(r["backup"], encoding="utf-8") as fh:
+            self.assertEqual(len(json.load(fh)["outcomes"]), 1)  # the backup has what was there
+        self.assertEqual((self.store.all("outcomes"), self.store.paid_receipts), ([], {}))
+        self.assertEqual(len(self.store.all("claims")), 2)  # what came in stays
+        self.post("/replay/delay", {"delayId": "D1"})
+        self.post("/replay/claim", {"claimId": "C2", "receivedAt": "2026-11-20T09:00:00+01:00"})
+        self.post("/replay/claim", {"claimId": "C1"})
+        self.assertEqual(self.post("/replay/claim", {"claimId": "nope"})["status"], 404)
+        d, c2, c1 = (c[2] for c in self.cam.calls if c[0] in (A.DELAY_MESSAGE, A.CLAIM_MESSAGE))
+        self.assertTrue(d["reprocessed"] and c1["reprocessed"] and c2["reprocessed"])
+        self.assertEqual((c2["daysToClaim"], c2["receiptUsedBefore"]), (16, True))  # C1's trip was earlier
+        self.assertEqual((c1["daysToClaim"], c1["receiptUsedBefore"]), (0, False))  # falls back to the trip start
+        with mock.patch("rejsegaranti.bridge.LOOPBACK", ()):
+            self.assertEqual(self.post("/replay/reset", {})["status"], 403)
+
+    def test_to_be_page_compares_with_as_is(self):
+        self.store.put("delays", "D1", DELAY)
+        for cid, amount, trip in (("C1", 180.0, "2026-11-04T07:20:00+01:00"),  # AS-IS: too late (16 days)
+                                  ("C2", 120.0, "2026-11-04T07:25:00+01:00")):
+            self.store.put("claims", cid, {**claim_near(amountDkk=amount, trip=trip), "claimId": cid, "passenger": "P0042"})
+        self.store.put("outcomes", "C1", {"claimId": "C1", "delayId": "D1", "outcome": "paid", "payoutDkk": 180.0,
+                                          "reason": None})
+        self.store.put("outcomes", "C2", {"claimId": "C2", "delayId": "D1", "outcome": "rejected", "payoutDkk": 0.0,
+                                          "reason": "<b>Planned change</b>"})
         with urllib.request.urlopen(self.base + "/results/to-be?x=1") as resp:
             self.assertIn("text/html", resp.headers["Content-Type"])
             page = resp.read().decode()
+        self.assertIn(": TO-BE</h1>", page)
         self.assertIn("simulator", page)  # every banner says the claims are simulated
-        self.assertIn("&lt;b&gt;no delay&lt;/b&gt; 8.3 km from a station", page)  # escaped, distance in km
+        self.assertIn("The delays are real; every claim is simulated", page)
+        self.assertIn("&lt;b&gt;Planned change&lt;/b&gt;", page)  # escaped
         self.assertNotIn('action="subscribe"', page)  # the sign-up form is hidden
         self.assertNotIn("P0042", page)  # no passenger IDs on the public page
+        self.assertIn("AS-IS against TO-BE", page)
+        # C1: AS-IS rejected (too late), TO-BE paid; C2: AS-IS paid, TO-BE rejected
+        self.assertRegex(page, r"AS-IS paid</th><td class=num>0</td><td class=num>1</td>")
+        self.assertRegex(page, r"AS-IS rejected</th><td class=num>1</td><td class=num>0</td>")
+        self.assertRegex(page, r"C1</td>.*?<td class=rejected>rejected</td>.*?Claim too late.*?<td class=paid>paid</td>")
         self.assertIn('href="claims.csv"', page)
         for path in ("/results/claims.csv", "/claims.csv"):
             with urllib.request.urlopen(self.base + path) as resp:
@@ -403,9 +538,9 @@ class BridgeHttp(unittest.TestCase):
         with urllib.request.urlopen(self.base + "/results/per-line.csv") as resp:
             self.assertTrue(resp.read().decode().startswith("line,journeys,cases"))
         with mock.patch("rejsegaranti.export.traces_from_camunda", return_value=[
-                {"id": "C1", "attrs": {}, "events": [{"name": "Claim received", "time": "2026-11-04T07:30:00+01:00"}]}]):
+                {"id": "C1", "attrs": {}, "events": [{"name": A.CLAIM_SUBMITTED, "time": "2026-11-04T07:30:00+01:00"}]}]):
             with urllib.request.urlopen(self.base + "/results/claims.xes") as resp:
-                self.assertIn(b"Claim received", resp.read())
+                self.assertIn(b"Claim submitted", resp.read())
         for bad in ("/results/registry.json", "/results/../claims.csv", "/state.csv"):
             with self.assertRaises(urllib.error.HTTPError) as e:
                 urllib.request.urlopen(self.base + bad)
@@ -414,11 +549,12 @@ class BridgeHttp(unittest.TestCase):
     def test_as_is_page_is_the_main_page(self):
         self.store.put("delays", "D1", DELAY)
         for cid, amount, trip in (("C1", 450.0, "2026-11-04T07:20:00+01:00"),
-                                  ("C2", 120.0, "2026-11-04T07:25:00+01:00"),
+                                  ("C2", 120.0, "2026-11-04T12:25:00+01:00"),
                                   ("C3", 200.0, "2026-11-04T07:25:00+01:00")):
             self.store.put("claims", cid, {**claim_near(amountDkk=amount, trip=trip), "claimId": cid})
-        self.store.put("outcomes", "C1", {"claimId": "C1", "delayId": "D1", "outcome": "rejected"})
-        self.store.put("outcomes", "C2", {"claimId": "C2", "delayId": None, "outcome": "rejected"})
+        # what the TO-BE decided does not change the AS-IS judgement
+        self.store.put("outcomes", "C3", {"claimId": "C3", "delayId": None, "outcome": "rejected"})
+        self.store.put("assessments", "D1", {"delayId": "D1", "exclusion": "Planned change"})
         for path in ("/", "/results", "/results/"):
             with urllib.request.urlopen(self.base + path) as resp:
                 page = resp.read().decode()
@@ -426,37 +562,25 @@ class BridgeHttp(unittest.TestCase):
             self.assertIn('href="to-be"', page)
         # C1: received 16 days after the trip (FakeCamunda.process_instances) -> too late
         self.assertIn("Claim too late", page)
-        # C2: no matched delay; C3: no outcome yet, matched here -> covered, refund = fare under the cap
+        # C2: no delay at that time; C3: covered, refund = fare under the cap
         self.assertIn("No delay over 20 min found", page)
         self.assertRegex(page, r"C3</td>.*?<td class=paid>paid</td><td class=num>200.00</td>")
         decided = [c for c in self.cam.calls if c[0] == "Decision_TravelGuarantee"]
         self.assertEqual(decided[0][2]["incident"], "delay over 20 min")
         self.assertEqual(decided[0][2]["service"], "local train")  # line L: letters only
+        self.assertEqual(decided[0][2]["cause"], "none")
         with urllib.request.urlopen(self.base + "/to-be") as resp:
             self.assertIn(": TO-BE</h1>", resp.read().decode())
 
-    def test_as_is_refund_capped(self):
+    def test_as_is_refund_capped_and_weather(self):
         from rejsegaranti import asis
-        asis._cache.clear()
         self.store.put("delays", "D1", DELAY)
         self.store.put("claims", "C9", {**claim_near(amountDkk=450.0), "claimId": "C9"})
         row = asis.judge(self.store, self.cam)[0]
-        self.assertEqual((row["outcome"], row["refundDkk"]), ("paid", 300.0))  # received the same day: no history
-
-    def test_live_run_waits_before_reusing_a_receipt(self):
-        refused = {**claim_near(receiptId="R9"), "claimId": "C2"}
-        del refused["receipt"]["cvr"]
-        claims = [claim_near(), refused, {**claim_near(receiptId="R9"), "claimId": "C3"},
-                  {**claim_near(), "claimId": "C4"}]
-        waited = []
-        with mock.patch.object(simulate, "wait_for_outcome", lambda base, cid: waited.append(cid)):
-            simulate.run_live(self.base, {"notices": [], "weather": [], "delays": [], "claims": claims}, pause=0)
-        # C3 reuses a receipt whose only earlier claim was refused at intake; C4 reuses C1's
-        self.assertEqual(waited, ["C1"])
-
-
-if __name__ == "__main__":
-    unittest.main()
+        self.assertEqual((row["outcome"], row["refundDkk"], row["delayId"]), ("paid", 300.0, "D1"))
+        self.store.put("weather", "W1", {"source": "DMI", "level": 2, "validFrom": "2026-11-04T05:00:00+01:00",
+                                         "validTo": "2026-11-04T09:00:00+01:00"})
+        self.assertEqual(asis.judge(self.store, self.cam)[0]["outcome"], "rejected")
 
 
 class WorkerLoop(unittest.TestCase):
@@ -469,9 +593,10 @@ class WorkerLoop(unittest.TestCase):
             base = "fake"
             calls = []
             batches = [[
-                {"id": "t1", "topicName": "rg-check-notice", "variables": {"delayId": {"value": "D1"}}},
-                {"id": "t2", "topicName": "rg-match-delay", "variables": {"claimId": {"value": "C1"}}, "retries": None},
-                {"id": "t3", "topicName": "rg-check-receipt", "variables": {"claimId": {"value": "nope"}}},
+                {"id": "t1", "topicName": "tb-collect-disruption", "variables": {"delayId": {"value": "D1"}}},
+                {"id": "t2", "topicName": "tb-match-claim", "variables": {"claimId": {"value": "C1"}}, "retries": None},
+                {"id": "t3", "topicName": "tb-retrieve-claim", "variables": {}},
+                {"id": "t4", "topicName": "tb-pay-out", "variables": {"claimId": {"value": "C1"}}},
             ]]
 
             def fetch_and_lock(self, worker_id, topics):
@@ -485,12 +610,16 @@ class WorkerLoop(unittest.TestCase):
 
             def failure(self, tid, wid, msg, retries, ms):
                 self.calls.append(("failure", tid, retries))
+                if tid == "t3":
+                    raise OSError("instance deleted")  # the loop must survive this
 
         cam = Cam()
         workers.run_workers(cam, store, CepSink(url=""), stop=stop)
-        self.assertEqual(cam.calls[0], ("complete", "t1", {"noticeExcluded": False, "noticeId": None}))
+        self.assertEqual(cam.calls[0][:2], ("complete", "t1"))
+        self.assertEqual(cam.calls[0][2]["service"], "local train")
         self.assertEqual(cam.calls[1], ("failure", "t2", 4))  # not assessed yet -> retry
         self.assertEqual(cam.calls[2], ("failure", "t3", 0))  # bug/data error -> incident
+        self.assertEqual(cam.calls[3], ("complete", "t4", {"payoutReference": "PAY-C1"}))
 
 
 class PerLine(unittest.TestCase):
@@ -594,6 +723,16 @@ class Mailing(unittest.TestCase):
         self.assertIn("https://example.dk/unsubscribe?token=", body)
         self.assertIn("https://example.dk/unsubscribe?token=", m["List-Unsubscribe"])
 
+    def test_no_email_for_replayed_claims(self):
+        self.people.confirm(self.people.request("a@example.com"))
+        self.store.put("claims", "C1", claim_near())
+        cep = CepSink(url="", listeners=[self.notifier.on_event])
+        cep.emit("ClaimRejected", {"claimId": "C1", "outcome": "rejected", "reason": "No receipt", "reprocessed": True})
+        cep.emit("ClaimRejected", {"claimId": "C1", "outcome": "rejected", "reason": "No receipt", "reprocessed": False})
+        self.wait(1)
+        self.got.wait(0.3)
+        self.assertEqual(len(self.sent), 1)
+
     def test_sign_up_over_http(self):
         srv = make_server(Bridge(self.store, None, self.notifier), host="127.0.0.1", port=0)
         threading.Thread(target=srv.serve_forever, daemon=True).start()
@@ -623,3 +762,7 @@ class Mailing(unittest.TestCase):
         finally:
             srv.shutdown()
             srv.server_close()
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -143,3 +143,34 @@ Decided by Liam on 10 November 2026; implemented by Claude (Anthropic's AI assis
 **Consequences for the analysis.** Delay cases now mix lines with very different frequencies and stop spacing, so per-line results are not comparable without normalising by journeys. The BPMN, DCR and activity names still say Line L, as before. The claims are still simulated. Delays recorded before the change were not replayed into the bridge, so cases start from the deployment onwards.
 
 **Comparing lines.** Raw case counts favour busy lines (5C runs about 490 journeys a weekday, 142 about 64), so `service/rejsegaranti/perline.py` normalises them: delay cases per 1,000 *scheduled* journeys, where the journeys come from GTFS per line and date (`data/journeys.csv`) and are weighted by the share of each day the bridge was receiving data (the recorder's 10-minute weather posts mark that time). Each rate gets a 95% Poisson interval, and lines are ranked by the interval's lower end, so a quiet line with one unlucky journey does not top the list. Counting starts at 10 November 2026 15:00, when the bridge started on every line (`perline.SINCE`). The table is on the results page and in `uv run rejsegaranti per-line` (writes `out/per-line.csv`). Scheduled journeys are the denominator because the recorder only stores journeys that are 20+ minutes late, not every journey that ran; cancelled journeys therefore still count as exposure.
+
+## 12. Process evolution: the Movia TO-BE, decided by the tables
+
+Decided by Liam on 18 November 2026; implemented by Claude (Anthropic's AI assistant, in Claude Code). The full rationale is in `to-be-redesign.md`.
+
+**What changed.** The Line L TO-BE (two processes in one file, rules in Python, checked against a hand-made DCR graph) is replaced by a Movia TO-BE that matches the Movia AS-IS: three executable processes (Assess disruption, Decide claim and pay out, Handle appeal), a passenger journey, a collaboration overview, a process landscape and a TO-BE DRD with six tables. Every decision is taken by a table in Camunda; Python only gathers the inputs and does the side effects (payment, messages, the results page). The old models are in `models/archive/`.
+
+**Why.**
+
+- The old TO-BE used Line L's rules (30 min, 250 m, CVR, notice by the day before), the AS-IS uses Movia's (20 min, 24 h, 14 days, Flextrafik), so comparing them on the same claims compared rule sets, not designs.
+- The AS-IS argues that the rules belong in DMN tables rather than in gateways; the old TO-BE put them back in code and gateways.
+- processdoctor.compute.dtu.dk rejected the old TO-BE: "Gateway 'Force majeure?' could not be paired" (a split without a join). Reading its parser showed further limits: only the first `<bpmn:process>` per file and only plain `<bpmn:task>` elements are read, so typed tasks and milestone events were invisible to it.
+- The old model had no customer side and no person in it; edge cases ended as Camunda incidents.
+- The group had not discussed the TO-BE; this rework was agreed on 18 November 2026 (six models were proposed, judged too complex for one diagram but right as separate levels; paying out stays inside the claim process; the appeal process is kept although appeals are expected to be rare).
+
+**How.**
+
+- `tools/build_to_be_bpmn.py` and `tools/build_to_be_dmn.py` generate the models on an explicit grid (the main path on one row, each branch on its own row), one process per file, block-structured, with a `.processdoctor.bpmn` copy of each executable model in which the typed tasks are plain tasks. All copies pass processdoctor's own parser and translation (run locally from the site's Python source).
+- The TO-BE decisions have their own keys (`ToBe_*`), so the AS-IS tables stay deployed unchanged for the AS-IS results page.
+- `tools/render/render.mjs` renders every model with the bpmn-io viewers, the same rendering as Camunda Modeler; the landscape is a draw.io file in draw.io's default style.
+- `uv run rejsegaranti replay` sends every stored delay and claim through the TO-BE, marked as reprocessed so no emails go out, and `/results/to-be` compares the AS-IS and TO-BE outcomes of the same claims.
+
+**Consequences.** The DCR graph and the `check` command are gone: processdoctor derives a DCR graph from the BPMN itself. Delays of 20 to 30 minutes are now stored (the old bridge ignored them), so the AS-IS and the TO-BE both see them from now on; earlier ones were never stored and cannot be replayed.
+
+**Installing on the server (19 November 2026).** Two problems the local runs could not show, because the local Camunda had never held the Line L process:
+
+- Camunda refused the TO-BE: a message start name must be unique across every deployed process, and the archived Line L claim process, kept for its history, already started on `ClaimSubmitted`. The TO-BE claim message is now `ClaimReceived`.
+- Claims sent by the feed between the install and the replay matched delays that still had a Line L assessment, without an `exclusion`, and failed. A claim now waits until its delay has a TO-BE assessment. The feed is stopped while the replay runs.
+
+The replay then ran with 0 incidents. The registry from before the replay is kept on the server as `/var/lib/rejsegaranti/registry.before-replay-20261119T132922.json`.
+

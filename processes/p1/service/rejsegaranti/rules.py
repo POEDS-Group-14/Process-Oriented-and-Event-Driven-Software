@@ -1,56 +1,27 @@
-"""Business rules of the Line L rejsegaranti (travel guarantee).
+"""Helpers for the travel guarantee: which delays the process takes, which delay a claim refers to, and
+the notice or weather facts around a delay.
 
-Source: https://dinletbane.dk/da/kontakt-og-kundeservice/rejsegaranti/
-(read 31 Oct 2026):
+The TO-BE decisions themselves are DMN tables on Camunda (models/to-be/travel-guarantee-to-be.dmn): every
+limit (20 min, 24 h, 14 days, 300 kr, the weather limits) is a rule there. This module only finds raw
+facts for them. The AS-IS results page (asis.py) still uses the force majeure check below to fill the
+AS-IS tables' inputs.
 
-* Line L announced 30+ minutes late -> alternative transport is covered,
-  up to 300 kr.
-* The trip must start within 250 m of a Line L station hit by the stoppage,
-  and end within 250 m of the nearest Line L station from which the journey
-  can continue.
-* The receipt must state start, end, distance, time, number of minutes and
-  the amount in DKK.
-* The transport must be publicly available and belong to a named,
-  VAT-registered company with a CVR number, approved for commercial
-  passenger transport.
-* Exclusions: planned changes announced in good time, i.e. at the latest the
-  day before; force majeure (fire, unusual natural events, person collisions).
-
-The rules are applied to whatever lines REJSEGARANTI_LINES selects (see stations.py); on the server those
-are every Movia bus and S-tog line serving Copenhagen, standing in for Line L. A delay, a notice and the
-stations a claim is measured against all belong to one line. All functions here are pure: they take plain dicts (as they travel through
+The process runs on whatever lines REJSEGARANTI_LINES selects (see stations.py); on the server those are
+every Movia bus and S-tog line serving Copenhagen. A delay, a notice and the stations a claim is measured
+against all belong to one line. All functions here are pure: they take plain dicts (as they travel through
 Camunda and the CEP) and return plain values, so they are easy to test.
 """
 from __future__ import annotations
 
-import re
 from datetime import datetime, timedelta
-from typing import Iterable, Optional
+from typing import Iterable, Iterator, Optional
 
-from .stations import LINES, nearest_station, station_distance_m
+from .stations import LINES, nearest_station
 from .timeutil import local_date, parse_ts
-
-DELAY_THRESHOLD_MIN = 30
-PAYOUT_CAP_DKK = 300.0  # float, so a capped payout stays a Double in Camunda
-RADIUS_M = 250
 
 # A claim's trip must start between the planned departure and this long
 # after the delay has played out (the passenger gives up and takes a taxi).
 MATCH_GRACE_MIN = 60
-
-ALLOWED_TRANSPORT = {"taxi", "bike_share", "scooter_share", "car_share"}
-RECEIPT_FIELDS = (
-    "receiptId",
-    "provider",
-    "cvr",
-    "transportType",
-    "startAddress",
-    "endAddress",
-    "distanceKm",
-    "minutes",
-    "time",
-    "amountDkk",
-)
 
 # ---- force majeure -------------------------------------------------------
 # DMI warning levels: 1 "Voldsomt vejr", 2 "Farligt vejr" (may disrupt
@@ -77,11 +48,9 @@ FORCE_MAJEURE_CAUSES = {"fire", "person_collision", "natural_event"}
 
 
 def qualifies_as_delay(situation: dict) -> bool:
-    """CEP situation is a delay of 30+ minutes on one of the process's lines."""
-    return (
-        str(situation.get("line", "")).upper() in LINES
-        and float(situation.get("delayMinutes", 0)) >= DELAY_THRESHOLD_MIN
-    )
+    """CEP situation is on one of the process's lines. How long the delay must be is a rule in the
+    ToBe_Incident table (more than 20 minutes), not here; the recorder only reports 20+ minute delays."""
+    return str(situation.get("line", "")).upper() in LINES
 
 
 def delay_time(situation: dict) -> datetime:
@@ -95,18 +64,11 @@ def _covers(stops: Iterable[str], affected: Iterable[str]) -> bool:
     return bool(set(stops) & set(affected))
 
 
-# ---- exclusion 1: planned change announced by the day before -------------
+# ---- notices of planned changes ----------------------------------------------
 
-def notice_excludes(delay: dict, notices: Iterable[dict], min_notice: Optional[timedelta] = None) -> Optional[dict]:
-    """Return the notice that excludes this delay, or None.
-
-    A notice excludes the delay when it covers the delay's line (a notice without lines covers
-    every line), covers the affected
-    stops and the delay time, and was first seen on a day before the change
-    took effect (local Copenhagen date), or with min_notice, at least that long
-    before. We only know when our recorder
-    first saw a notice, not when it was published (see issue #6).
-    """
+def covering_notices(delay: dict, notices: Iterable[dict]) -> Iterator[dict]:
+    """The notices of a planned change that cover this delay: its line (a notice without lines covers
+    every line), its affected stops and the delay time. Nothing is decided here."""
     t = delay_time(delay)
     for n in notices:
         lines = [str(x).upper() for x in n.get("lines") or []]
@@ -114,10 +76,32 @@ def notice_excludes(delay: dict, notices: Iterable[dict], min_notice: Optional[t
             continue
         if not _covers(n.get("stops", []), delay.get("stops", [])):
             continue
-        start, end = parse_ts(n["effectiveFrom"]), parse_ts(n["effectiveTo"])
-        if not (start <= t <= end):
-            continue
-        seen = parse_ts(n["firstSeen"])
+        if parse_ts(n["effectiveFrom"]) <= t <= parse_ts(n["effectiveTo"]):
+            yield n
+
+
+def hours_announced_before(notice: dict) -> float:
+    """Hours from when the recorder first saw the notice to when the change took effect (negative if it
+    was first seen after). We only know when our recorder first saw a notice, not when it was published
+    (see issue #6)."""
+    return round((parse_ts(notice["effectiveFrom"]) - parse_ts(notice["firstSeen"])).total_seconds() / 3600, 2)
+
+
+def covering_notice(delay: dict, notices: Iterable[dict]) -> Optional[dict]:
+    """The covering notice announced longest before the change, or None. The ToBe_Exclusion table decides
+    whether it was announced in time."""
+    found = list(covering_notices(delay, notices))
+    return max(found, key=hours_announced_before) if found else None
+
+
+def notice_excludes(delay: dict, notices: Iterable[dict], min_notice: Optional[timedelta] = None) -> Optional[dict]:
+    """Return the notice that excludes this delay, or None (the AS-IS rule).
+
+    A covering notice excludes the delay when it was first seen on a day before the change took effect
+    (local Copenhagen date), or with min_notice, at least that long before.
+    """
+    for n in covering_notices(delay, notices):
+        start, seen = parse_ts(n["effectiveFrom"]), parse_ts(n["firstSeen"])
         if (seen <= start - min_notice) if min_notice else (local_date(seen) < local_date(start)):
             return n
     return None
@@ -128,6 +112,23 @@ def notice_excludes(delay: dict, notices: Iterable[dict], min_notice: Optional[t
 def owm_exceeds(metrics: dict) -> list:
     """Names of OpenWeatherMap metrics at or above the thresholds."""
     return [k for k, lim in OWM_THRESHOLDS.items() if float(metrics.get(k, 0) or 0) >= lim]
+
+
+def weather_at(delay: dict, weather: Iterable[dict]) -> dict:
+    """The weather facts at the delay time, for the ToBe_Cause table: the highest level of the DMI warnings
+    in force (dmiLevel) and the readings of the OpenWeatherMap observation valid then (windSpeed, windGust,
+    rain1h, snow1h). None where nothing covers the delay time; the table decides what counts."""
+    t = delay_time(delay)
+    active = [w for w in weather if parse_ts(w["validFrom"]) <= t <= parse_ts(w["validTo"])]
+    dmi = [int(w.get("level", 0)) for w in active if str(w.get("source", "")).upper() == "DMI"]
+    owm = [w for w in active if str(w.get("source", "")).upper() == "OWM"]
+    metrics = max(owm, key=lambda w: parse_ts(w["validFrom"])).get("metrics", {}) if owm else {}
+
+    def reading(k):
+        v = metrics.get(k)
+        return None if v is None else float(v)
+    return {"dmiLevel": max(dmi) if dmi else None, "windSpeed": reading("wind_speed"),
+            "windGust": reading("wind_gust"), "rain1h": reading("rain_1h"), "snow1h": reading("snow_1h")}
 
 
 def force_majeure(delay: dict, weather: Iterable[dict]) -> Optional[str]:
@@ -174,46 +175,3 @@ def match_delay(claim: dict, delays: Iterable[dict]) -> Optional[dict]:
     if not candidates:
         return None
     return min(candidates, key=lambda d: abs((delay_time(d) - t).total_seconds()))
-
-
-def missing_receipt_fields(receipt: dict) -> list:
-    return [f for f in RECEIPT_FIELDS if receipt.get(f) in (None, "")]
-
-
-def check_receipt(receipt: dict, already_paid: Iterable[str] = ()) -> Optional[str]:
-    """Return None if the receipt is acceptable, else the rejection reason."""
-    missing = missing_receipt_fields(receipt)
-    if missing:
-        return "missing fields: " + ", ".join(missing)
-    if not re.fullmatch(r"\d{8}", str(receipt["cvr"])):
-        return "provider has no valid CVR number"
-    if receipt["transportType"] not in ALLOWED_TRANSPORT:
-        return f"transport type {receipt['transportType']!r} not covered"
-    if receipt.get("publiclyAvailable") is False:
-        return "transport is not publicly available"
-    if float(receipt["amountDkk"]) <= 0:
-        return "amount must be positive"
-    if receipt["receiptId"] in set(already_paid):
-        return "receipt already paid out"
-    return None
-
-
-def check_distance(claim: dict, delay: Optional[dict]) -> Optional[str]:
-    """Return None if start and end are within 250 m of valid stations of the delayed line."""
-    line = (delay or {}).get("line")  # no delay: any line
-    s_name, s_dist = nearest_station(float(claim["startLat"]), float(claim["startLon"]), line)
-    affected = (delay or {}).get("stops") or []
-    if affected:
-        # distance to the closest *affected* station
-        s_dist = min(station_distance_m(float(claim["startLat"]), float(claim["startLon"]), s, line)
-                     for s in affected)
-    if s_dist > RADIUS_M:
-        return f"trip starts {s_dist:.0f} m from an affected station"
-    e_name, e_dist = nearest_station(float(claim["endLat"]), float(claim["endLon"]), line)
-    if e_dist > RADIUS_M:
-        return f"trip ends {e_dist:.0f} m from the nearest station ({e_name})"
-    return None
-
-
-def payout(amount_dkk: float) -> float:
-    return round(min(float(amount_dkk), PAYOUT_CAP_DKK), 2)

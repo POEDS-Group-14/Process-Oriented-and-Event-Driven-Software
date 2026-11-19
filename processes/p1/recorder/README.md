@@ -54,7 +54,7 @@ How this feeds the models:
 The recorder is installed together with the rest of process 1, as the systemd service `rejsegaranti-recorder` (see "Always on: the pinklady server" in `../README.md`). From the laptop:
 
 ```bash
-../deploy/install.sh liam@pinklady.local
+../deploy/install.sh liam@pinklady
 ```
 
 On the first install, `deploy/recorder.env` is copied to `/etc/rejsegaranti-recorder.env` (mode 600), which the service reads. Edit that file on the server to change settings, then `sudo systemctl restart rejsegaranti-recorder`. It uses the system `python3`; the Dataudveksleren feed needs the Azure SDK, which `setup-server.sh` installs from Debian (`python3-azure`). Elsewhere, install the package's `siri` extra.
@@ -88,7 +88,7 @@ sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.ta
 # and in /etc/systemd/logind.conf: HandleLidSwitch=ignore, then: sudo systemctl restart systemd-logind
 ```
 
-**Getting the data home.** Copy the folder (including `recorder.sqlite`) to your own machine with, for example, `rsync -av liam@pinklady.local:/var/lib/rejsegaranti-recorder/ ./recorder-data/`.
+**Getting the data home.** Copy the folder (including `recorder.sqlite`) to your own machine with, for example, `rsync -av liam@pinklady:/var/lib/rejsegaranti-recorder/ ./recorder-data/`.
 
 ## Tests
 

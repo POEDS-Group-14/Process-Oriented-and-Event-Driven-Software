@@ -1,5 +1,7 @@
 # Process 1 - Event log and conformance check (issue #11)
 
+> **Superseded on 18 November 2026.** This describes the Line L TO-BE and its hand-made DCR graph, which are now in `models/archive/`. The Movia TO-BE is checked on processdoctor.compute.dtu.dk instead, which derives the DCR graph from each `models/to-be/*.processdoctor.bpmn` file; see `to-be-redesign.md` and `process-log.md` section 12. The command `rejsegaranti check` no longer exists.
+
 Author: Liam Palmqvist
 
 ## Status
