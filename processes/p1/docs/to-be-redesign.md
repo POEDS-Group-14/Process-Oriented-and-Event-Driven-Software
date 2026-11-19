@@ -119,6 +119,10 @@ Result on a copy of the server's data taken on 18 November 2026 (299 real delays
 
 - **TO-BE:** 713 paid (158,258 kr), 43 rejected: 22 "No verified delay" and 21 "Receipt already claimed".
   0 incidents, and running the replay twice gives the same result.
+- **On the server (19 November 2026, 352 real delays, 1,007 simulated claims, received times from the AS-IS-era
+  Camunda instances):** the AS-IS pays 965 and rejects 42; the TO-BE pays 936 and rejects 71 (36 "No verified
+  delay", 30 "Receipt already claimed", 5 "No receipt"). The 29 claims decided differently are again reused
+  receipts, and there were 0 incidents. The live comparison is at https://pinklady.tail3b2c97.ts.net/to-be.
 - **The 21 claims decided differently are all reused receipts.** The AS-IS tables have no rule for a receipt
   that was already refunded, so the AS-IS pays them; the TO-BE rejects them in "Claim valid" (change 8).
 - **The 22 "No verified delay" claims are rejected by both.** Their trip matches no recorded delay.

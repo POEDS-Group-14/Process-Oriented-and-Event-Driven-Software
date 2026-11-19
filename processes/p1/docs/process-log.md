@@ -166,3 +166,11 @@ Decided by Liam on 18 November 2026; implemented by Claude (Anthropic's AI assis
 - `uv run rejsegaranti replay` sends every stored delay and claim through the TO-BE, marked as reprocessed so no emails go out, and `/results/to-be` compares the AS-IS and TO-BE outcomes of the same claims.
 
 **Consequences.** The DCR graph and the `check` command are gone: processdoctor derives a DCR graph from the BPMN itself. Delays of 20 to 30 minutes are now stored (the old bridge ignored them), so the AS-IS and the TO-BE both see them from now on; earlier ones were never stored and cannot be replayed.
+
+**Installing on the server (19 November 2026).** Two problems the local runs could not show, because the local Camunda had never held the Line L process:
+
+- Camunda refused the TO-BE: a message start name must be unique across every deployed process, and the archived Line L claim process, kept for its history, already started on `ClaimSubmitted`. The TO-BE claim message is now `ClaimReceived`.
+- Claims sent by the feed between the install and the replay matched delays that still had a Line L assessment, without an `exclusion`, and failed. A claim now waits until its delay has a TO-BE assessment. The feed is stopped while the replay runs.
+
+The replay then ran with 0 incidents. The registry from before the replay is kept on the server as `/var/lib/rejsegaranti/registry.before-replay-20261119T132922.json`.
+
