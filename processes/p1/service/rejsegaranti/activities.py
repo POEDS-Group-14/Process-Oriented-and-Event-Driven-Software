@@ -35,9 +35,11 @@ REVIEW_APPEAL = "Review appeal"
 SEND_APPEAL_DECISION = "Send appeal decision"
 APPEAL_DECIDED = "Appeal decided"
 
-# Messages that start the processes
+# Messages that start the processes. Camunda needs a message start name to be unique across every deployed
+# process, and the archived Line L claim process (still deployed on the server, for its history) starts on
+# "ClaimSubmitted", so the TO-BE claim message has its own name.
 DELAY_MESSAGE = "DelayReported"
-CLAIM_MESSAGE = "ClaimSubmitted"
+CLAIM_MESSAGE = "ClaimReceived"
 APPEAL_MESSAGE = "AppealSubmitted"
 
 # External-task topics (service tasks); the business rule tasks call the ToBe_ decisions directly

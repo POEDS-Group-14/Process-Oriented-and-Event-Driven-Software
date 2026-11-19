@@ -14,7 +14,7 @@ The bridge (`uv run rejsegaranti run`) listens on `http://localhost:8090`. Bodie
 
 | Endpoint | Sent by | Effect |
 |---|---|---|
-| `POST /claims` | claim form or simulator | Stamps `receivedAt` and starts `tobe-decide-claim` (message `ClaimSubmitted`). Needs `tripStart`, `startLat`, `startLon`, `endLat`, `endLon` (422 with the missing fields otherwise); the receipt is optional, a claim without one is rejected by the tables ("No receipt"). 409 if the `claimId` was submitted already |
+| `POST /claims` | claim form or simulator | Stamps `receivedAt` and starts `tobe-decide-claim` (message `ClaimReceived`). Needs `tripStart`, `startLat`, `startLon`, `endLat`, `endLon` (422 with the missing fields otherwise); the receipt is optional, a claim without one is rejected by the tables ("No receipt"). 409 if the `claimId` was submitted already |
 | `POST /appeals` | the passenger | `{"claimId": "...", "reason": "..."}`. Starts `tobe-handle-appeal` (message `AppealSubmitted`, business key the claim id). 404 if the claim is unknown, 409 if it was appealed already |
 | `POST /replay/reset`, `/replay/delay`, `/replay/claim` | `rejsegaranti replay`, on the same machine only | Back up the registry and clear the decisions, then start the instances again with `reprocessed = true` |
 

@@ -38,7 +38,7 @@ def replay_order(claim: dict) -> tuple:
 
 
 def claim_start_variables(claim: dict, earlier_claims: Iterable[dict], received_at, reprocessed: bool = False) -> dict:
-    """Variables for tobe-decide-claim (message ClaimSubmitted).
+    """Variables for tobe-decide-claim (message ClaimReceived).
 
     earlier_claims are the claims submitted before this one: receiptUsedBefore is true when one of them has
     the same receipt. received_at is when the claim reached Movia (a datetime or an ISO timestamp);

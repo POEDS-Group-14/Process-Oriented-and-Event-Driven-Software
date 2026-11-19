@@ -5,7 +5,7 @@ Endpoints (JSON bodies, see docs/cep-interface.md):
   POST /cep/delay     delay situation         -> starts tobe-assess-disruption (message DelayReported)
   POST /cep/weather   DMI warning / OWM observation situation (stored)
   POST /cep/notice    planned service change notice from process 6 (stored)
-  POST /claims        passenger claim         -> starts tobe-decide-claim (message ClaimSubmitted)
+  POST /claims        passenger claim         -> starts tobe-decide-claim (message ClaimReceived)
   POST /appeals       {claimId, reason}       -> starts tobe-handle-appeal (message AppealSubmitted);
                       404 if the claim is unknown, 409 if it was appealed already
   POST /replay/reset  back up the registry and clear what the processes decided   (from this machine only)
