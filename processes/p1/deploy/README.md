@@ -34,7 +34,7 @@ The services start in order: Camunda, then the bridge, then the feed. On this ma
 
 ## Opening it
 
-From the home network, or from anywhere through Tailscale. pinklady is on Liam's tailnet as `pinklady` (100.84.116.80).
+Through Tailscale, from anywhere. pinklady is on Liam's tailnet as `pinklady` (100.84.116.80).
 
 | What | Address |
 |---|---|
@@ -49,9 +49,9 @@ The Camunda login is `admin`. The password was generated at install time and is 
 ssh pinklady 'sudo cat /etc/rejsegaranti/camunda-admin'
 ```
 
-On the home network, `pinklady.local` works too. Away from home, your device must have Tailscale switched on.
+pinklady is reached through Tailscale only, not a local network, so your device must have Tailscale switched on (`tailscale status` should list pinklady). If MagicDNS is off, use 100.84.116.80 instead of `pinklady`.
 
-**The REST API and the bridge have no login.** Anyone who can reach ports 8085 and 8090 can start and complete process instances. That's acceptable on the home network and the tailnet, with simulated data. Never put them on Tailscale Funnel or a port forward.
+**The REST API and the bridge have no login.** Anyone who can reach ports 8085 and 8090 can start and complete process instances. That's acceptable on the tailnet, with simulated data. Never put them on Tailscale Funnel or a port forward.
 
 ## Sharing with people outside the tailnet
 
@@ -108,7 +108,7 @@ rsync -av pinklady:/var/lib/rejsegaranti-recorder/ ./recorder-data/
 Run from the laptop, in `processes/p1`:
 
 ```bash
-deploy/install.sh liam@pinklady.local
+deploy/install.sh liam@pinklady
 ```
 
 It copies this folder to `~/rejsegaranti-src` on the server, then runs `deploy/setup-server.sh` there with sudo, which asks for the password once. The setup can run again safely. It updates the code and restarts the services, but keeps Camunda's database, the bridge's state and the recorder's data.
