@@ -165,6 +165,10 @@ class Workers(unittest.TestCase):
         self.store.put("claims", "C1", claim_near())
         with self.assertRaises(workers.NotReady):
             workers.match_claim({"claimId": "C1"}, self.store, self.cep)
+        # an assessment the archived Line L process stored has no exclusion: wait for the TO-BE's own
+        self.store.put("assessments", "D1", {"delayId": "D1", "guaranteeApplies": True, "forceMajeure": False})
+        with self.assertRaises(workers.NotReady):
+            workers.match_claim({"claimId": "C1"}, self.store, self.cep)
         self.assess(exclusion="none")
         v = workers.match_claim({"claimId": "C1"}, self.store, self.cep)
         self.assertEqual(v, {"delayId": "D1", "delayMinutes": 40.0, "exclusion": "none", "incident": "delay",

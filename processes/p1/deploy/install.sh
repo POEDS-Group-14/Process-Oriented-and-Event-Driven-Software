@@ -5,7 +5,7 @@
 set -eu
 HOST=${1:?usage: deploy/install.sh user@host}
 cd "$(dirname "$0")/.."
-rsync -a --delete --exclude out/ --exclude .venv --exclude venv.nosync/ --exclude __pycache__/ \
+rsync -a --delete --exclude out/ --exclude .venv --exclude venv.nosync/ --exclude __pycache__/ --exclude node_modules/ \
   --exclude .DS_Store --exclude '*.pdf' --exclude '*.png' --exclude '*.svg' \
   ./ "$HOST":rejsegaranti-src/
 ssh -t "$HOST" 'sudo sh rejsegaranti-src/deploy/setup-server.sh'

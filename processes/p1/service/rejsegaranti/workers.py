@@ -86,7 +86,7 @@ def match_claim(v: dict, store: Store, cep: CepSink) -> dict:
     if delay is None:
         return {"delayId": None, "delayMinutes": None, "exclusion": "none", **incident}
     a = store.get("assessments", delay["delayId"])
-    if a is None:
+    if a is None or "exclusion" not in a:  # none yet, or one the archived Line L process stored
         raise NotReady(f"delay {delay['delayId']} not assessed yet")
     return {"delayId": delay["delayId"], "delayMinutes": float(delay["delayMinutes"]),
             "exclusion": a["exclusion"], **incident}
