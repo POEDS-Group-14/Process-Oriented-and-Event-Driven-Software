@@ -1,0 +1,114 @@
+@App:name('P3_Kontrolafgift')
+@App:description('P3 kontrolafgift disputes: events to and from the P3 Flask app (DCR graph on dcrgraphs.net)')
+
+-- One port, one address for everything coming in (Siddhi in Docker only exposes 8280,
+-- and this Siddhi version cannot share one port between several http sources):
+--   POST http://localhost:8280/p3
+--     outside events:  {"event": {"fineId": "F1", "eventType": "ComplaintReceived", "onBehalfOfAdult": false}}
+--     fee payments:    {"event": {"fineId": "F1", "eventType": "FeePaid", "amountDkk": 160}}
+--     P3's own events: sent by the Flask app (CEP_URL=http://localhost:8280/p3); they carry "process": "P3"
+--   The P3 Flask app runs on Windows, port 5000; Siddhi (in Docker) reaches it as host.docker.internal.
+-- Siddhi needs every stream and table defined first, and all queries after them.
+
+-- ============================ STREAMS AND TABLES ============================
+
+@source(type='http', receiver.url='http://0.0.0.0:8280/p3', basic.auth.enabled='false',
+        @map(type='json', fail.on.missing.attribute='false'))
+define stream Inbound (fineId string, eventType string, process string, onBehalfOfAdult bool,
+                       amount int, newAmount int, amountDkk int, label string, role string, pending string);
+
+define stream ExternalEvent (fineId string, eventType string, onBehalfOfAdult bool, amount int, newAmount int);
+define stream Payment (fineId string, amountDkk int);
+define stream P3Out (fineId string, eventType string, label string, role string,
+                     amount int, newAmount int, pending string);
+
+-- Siddhi -> P3 Flask app
+@sink(type='http', publisher.url='http://host.docker.internal:5000/event', method='POST',
+      headers="'Content-Type:application/json'", @map(type='json'))
+define stream ToP3 (fineId string, eventType string, onBehalfOfAdult bool, amount int, newAmount int);
+
+-- Siddhi -> P3 Flask app, for events without data (payments, the watchdog)
+@sink(type='http', publisher.url='http://host.docker.internal:5000/event', method='POST',
+      headers="'Content-Type:application/json'", @map(type='json'))
+define stream ToP3Plain (fineId string, eventType string);
+
+@sink(type='log', prefix='P3 did')
+define stream P3Log (fineId string, role string, label string);
+
+@sink(type='log', prefix='ALERT to the secretariat: wrong appeal fee')
+define stream FeeAlert (fineId string, paid int, expected int);
+
+-- For now only logged. Once P2 runs in Camunda, replace the log sink with an http sink to
+-- Camunda's message API (message names agreed with the P2 owner).
+@sink(type='log', prefix='to P2')
+define stream ToP2 (fineId string, outcome string, newAmount int);
+
+define stream CheckedPayment (fineId string, paid int, expected int);
+
+define table AppealTable (fineId string, amount int);
+
+-- ================================= QUERIES =================================
+
+-- 0. Sort what comes in: P3's own events, fee payments, everything else from outside
+from Inbound[process == 'P3']
+select fineId, eventType, label, role, amount, newAmount, pending
+insert into P3Out;
+
+from Inbound[process is null and eventType == 'FeePaid']
+select fineId, amountDkk
+insert into Payment;
+
+from Inbound[process is null and eventType != 'FeePaid']
+select fineId, eventType, onBehalfOfAdult, amount, newAmount
+insert into ExternalEvent;
+
+-- 1. Outside world -> P3, passed on unchanged
+from ExternalEvent
+select fineId, eventType, onBehalfOfAdult, amount, newAmount
+insert into ToP3;
+
+-- 2. Log everything P3 does
+from P3Out
+select fineId, role, label
+insert into P3Log;
+
+-- 3. Fee payments (TO-BE change 2): remember the disputed amount from "Submit appeal form",
+--    check each payment (160 kr from 160 kr and up, otherwise 80 kr, P3-21)
+from P3Out[eventType == 'SubmitForm']
+select fineId, amount
+update or insert into AppealTable
+    on AppealTable.fineId == fineId;
+
+from Payment as p join AppealTable as a
+    on p.fineId == a.fineId
+select p.fineId as fineId, p.amountDkk as paid, ifThenElse(a.amount >= 160, 160, 80) as expected
+insert into CheckedPayment;
+
+from CheckedPayment[paid == expected]
+select fineId, ifThenElse(expected == 160, 'PayFee160', 'PayFee80') as eventType
+insert into ToP3Plain;
+
+from CheckedPayment[paid != expected]
+select fineId, paid, expected
+insert into FeeAlert;
+
+-- 4. 90-day watchdog (TO-BE change 1, P3-35): sent to the board, and no board decision or other
+--    ending follows -> "Notify parties of delay". Demo: 2 minutes. Real use: for 90 days.
+from every e1=P3Out[eventType == 'SendToBoard']
+     -> not P3Out[fineId == e1.fineId and (eventType == 'Uphold' or eventType == 'RejectAppeal'
+                  or eventType == 'RejectCase' or eventType == 'Withdraw' or eventType == 'Settle')] for 2 min
+select e1.fineId as fineId, 'BoardDelayDeadline' as eventType
+insert into ToP3Plain;
+
+-- 5. P3 -> P2: the outcomes P2 has to react to
+from P3Out[eventType == 'AcceptCompl' or eventType == 'Uphold']
+select fineId, 'fine cancelled' as outcome, 0 as newAmount
+insert into ToP2;
+
+from P3Out[eventType == 'NewDeadline']
+select fineId, 'new deadline' as outcome, newAmount
+insert into ToP2;
+
+from P3Out[eventType == 'CreateCase']
+select fineId, 'appeal case created: pause collection' as outcome, 0 as newAmount
+insert into ToP2;

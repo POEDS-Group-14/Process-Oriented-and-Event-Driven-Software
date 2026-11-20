@@ -1,0 +1,1874 @@
+<dcrgraph title="P3_updated" dataTypesStatus="hide" filterLevel="-1" insightFilter="false" zoomLevel="-9" formGroupStyle="Normal" formLayoutStyle="Horizontal" formShowPendingCount="true" graphBG="#EBEBEB" graphType="0" exercise="false" version="1.1">
+    <meta>
+        <graph id="2016797" hash="ed2181924a47a722682d0f786333c553529f791f7f959b519205e81e0c4b92c3" guid="E08B30AF-4FB6-4128-8764-3CE2E4FA5C12" OwnerName="Petru Razvan Ilisei" OwnerId="176208" categoryId="19168" categoryTitle="Default" Keywords="" processDefinitionId="E08B30AF-4FB6-4128-8764-3CE2E4FA5C12"/>
+        <revision id="5905181" type="medium" date="2026-11-18T15:34:06.0000000+01:00" title="" comment="" RevisionId="0.1"/>
+        <organization id="18" name="DTU - Danish Technical University"/>
+    </meta>
+    <specification>
+        <resources>
+            <events>
+                <event id="Complaint" type="nesting">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="20" yLoc="70"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles/>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>1</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                    <event id="Complain">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="50" yLoc="120"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Passenger</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>2</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <dataType sequence="2" width="small" placeholder="" hinttext="on behalf of another adult?" dataSetList="" radio="horizontal" multiple="false" format="bool">choice</dataType>
+                                <dictionary>
+                                    <item label="True" value="true"/>
+                                    <item label="False" value="false"/>
+                                </dictionary>
+                                <validationRules/>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="ComplainMisuse">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="60" yLoc="300"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Passenger</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>3</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                </event>
+                <event id="Requirements" type="nesting">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="250" yLoc="120"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles/>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>4</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                    <event id="AttachAuth">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="350" yLoc="170"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Passenger</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>5</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="HandleMisuse">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="280" yLoc="310"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Operator</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>6</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                </event>
+                <event id="OperatorDecision" type="nesting">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="500" yLoc="60"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles/>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>7</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                    <event id="AcceptCompl">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="560" yLoc="110"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Operator</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>8</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="Unfavourable" type="nesting">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="530" yLoc="335"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles/>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>9</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                        <event id="RejectCompl">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="560" yLoc="385"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles>
+                                    <role description="" specification="">Operator</role>
+                                </roles>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>10</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                        <event id="ReduceFine">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="560" yLoc="575"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles>
+                                    <role description="" specification="">Operator</role>
+                                </roles>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>11</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                    </event>
+                </event>
+                <event id="Case" type="nesting">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="820" yLoc="60"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles/>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>12</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                    <event id="Appeal" type="nesting">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="850" yLoc="120"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles/>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>13</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                        <event id="SubmitForm">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="880" yLoc="170"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles>
+                                    <role description="" specification="">Passenger</role>
+                                </roles>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>14</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <dataType sequence="14" width="small" min="NaN" max="NaN" placeholder="" hinttext="disputed amount">int</dataType>
+                                    <validationRules/>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                        <event id="PayFee160">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="1070" yLoc="170"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles>
+                                    <role description="" specification="">Passenger</role>
+                                </roles>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>15</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                        <event id="PayFee80">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="880" yLoc="360"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles>
+                                    <role description="" specification="">Passenger</role>
+                                </roles>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>16</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                    </event>
+                    <event id="OnBehalf">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="860" yLoc="610"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Passenger</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>17</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="PassengerDetails">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="1050" yLoc="610"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Passenger</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>18</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="CreateCase">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="1300" yLoc="170"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Secretariat</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>19</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="Handling" type="nesting">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="1490" yLoc="110"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles/>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>20</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                        <event id="Hearing">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="1950" yLoc="165"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles>
+                                    <role description="" specification="">Secretariat</role>
+                                </roles>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>21</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                        <event id="RequestInfo">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="1550" yLoc="360"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles>
+                                    <role description="" specification="">Secretariat</role>
+                                </roles>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>22</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                        <event id="PriorJudgment">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="1930" yLoc="360"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles>
+                                    <role description="" specification="">Secretariat</role>
+                                </roles>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>23</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                        <event id="SendToBoard">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="1740" yLoc="160"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles>
+                                    <role description="" specification="">Secretariat</role>
+                                </roles>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>24</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                        <event id="Closers" type="nesting">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="1520" yLoc="570"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles/>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>25</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                            <event id="Withdraw">
+                                <precondition message=""/>
+                                <custom>
+                                    <visualization>
+                                        <location xLoc="1550" yLoc="620"/>
+                                        <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                    </visualization>
+                                    <roles>
+                                        <role description="" specification="">Passenger</role>
+                                    </roles>
+                                    <readRoles/>
+                                    <groups>
+                                        <group/>
+                                    </groups>
+                                    <phases>
+                                        <phase/>
+                                    </phases>
+                                    <eventType/>
+                                    <eventScope>private</eventScope>
+                                    <eventTypeData/>
+                                    <eventDescription/>
+                                    <purpose/>
+                                    <guide/>
+                                    <insight use="false"/>
+                                    <level>100</level>
+                                    <sequence>26</sequence>
+                                    <costs>0</costs>
+                                    <eventData>
+                                        <styles/>
+                                    </eventData>
+                                    <interfaces/>
+                                </custom>
+                            </event>
+                            <event id="Settle">
+                                <precondition message=""/>
+                                <custom>
+                                    <visualization>
+                                        <location xLoc="1740" yLoc="620"/>
+                                        <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                    </visualization>
+                                    <roles>
+                                        <role description="" specification="">Operator</role>
+                                    </roles>
+                                    <readRoles/>
+                                    <groups>
+                                        <group/>
+                                    </groups>
+                                    <phases>
+                                        <phase/>
+                                    </phases>
+                                    <eventType/>
+                                    <eventScope>private</eventScope>
+                                    <eventTypeData/>
+                                    <eventDescription/>
+                                    <purpose/>
+                                    <guide/>
+                                    <insight use="false"/>
+                                    <level>100</level>
+                                    <sequence>27</sequence>
+                                    <costs>0</costs>
+                                    <eventData>
+                                        <styles/>
+                                    </eventData>
+                                    <interfaces/>
+                                </custom>
+                            </event>
+                            <event id="RejectCase">
+                                <precondition message=""/>
+                                <custom>
+                                    <visualization>
+                                        <location xLoc="1930" yLoc="620"/>
+                                        <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                    </visualization>
+                                    <roles>
+                                        <role description="" specification="">Secretariat</role>
+                                    </roles>
+                                    <readRoles/>
+                                    <groups>
+                                        <group/>
+                                    </groups>
+                                    <phases>
+                                        <phase/>
+                                    </phases>
+                                    <eventType/>
+                                    <eventScope>private</eventScope>
+                                    <eventTypeData/>
+                                    <eventDescription/>
+                                    <purpose/>
+                                    <guide/>
+                                    <insight use="false"/>
+                                    <level>100</level>
+                                    <sequence>28</sequence>
+                                    <costs>0</costs>
+                                    <eventData>
+                                        <styles/>
+                                    </eventData>
+                                    <interfaces/>
+                                </custom>
+                            </event>
+                        </event>
+                        <event id="Event_0zujvdo">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="1550" yLoc="160"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles>
+                                    <role description="" specification="">Passenger</role>
+                                </roles>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>29</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                    </event>
+                    <event id="BoardDecision" type="nesting">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="2180" yLoc="120"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles/>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>30</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                        <event id="Uphold">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="2210" yLoc="170"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles>
+                                    <role description="" specification="">Board</role>
+                                </roles>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>31</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                        <event id="RejectAppeal">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="2210" yLoc="360"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles>
+                                    <role description="" specification="">Board</role>
+                                </roles>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>32</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                    </event>
+                </event>
+                <event id="Costs" type="nesting">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="2450" yLoc="60"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles/>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>33</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                    <event id="Refund">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="2480" yLoc="110"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Secretariat</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>34</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="CaseFee">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="2480" yLoc="300"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Secretariat</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>35</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                </event>
+                <event id="RequestReview">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="2480" yLoc="560"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles>
+                            <role description="" specification="">Passenger</role>
+                        </roles>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>36</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                </event>
+                <event id="OperatorResponse" type="nesting">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="2700" yLoc="60"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles/>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>37</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                    <event id="Comply">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="2730" yLoc="110"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Operator</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>38</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="OptOut">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="2730" yLoc="300"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Operator</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>39</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                </event>
+                <event id="Forwarding" type="nesting">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="2950" yLoc="60"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles/>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>40</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                    <event id="RequestForward">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="2980" yLoc="110"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Passenger</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>41</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="Forward">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="2980" yLoc="300"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Secretariat</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>42</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                </event>
+                <event id="P2" type="nesting">
+                    <precondition message=""/>
+                    <custom>
+                        <visualization>
+                            <location xLoc="70" yLoc="1070"/>
+                            <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                        </visualization>
+                        <roles/>
+                        <readRoles/>
+                        <groups>
+                            <group/>
+                        </groups>
+                        <phases>
+                            <phase/>
+                        </phases>
+                        <eventType/>
+                        <eventScope>private</eventScope>
+                        <eventTypeData/>
+                        <eventDescription/>
+                        <purpose/>
+                        <guide/>
+                        <insight use="false"/>
+                        <level>100</level>
+                        <sequence>43</sequence>
+                        <costs>0</costs>
+                        <eventData>
+                            <styles/>
+                        </eventData>
+                        <interfaces/>
+                    </custom>
+                    <event id="IssueFine">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="100" yLoc="1270"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles>
+                                <role description="" specification="">Operator</role>
+                            </roles>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>44</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                    </event>
+                    <event id="Payment" type="nesting">
+                        <precondition message=""/>
+                        <custom>
+                            <visualization>
+                                <location xLoc="285" yLoc="1120"/>
+                                <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                            </visualization>
+                            <roles/>
+                            <readRoles/>
+                            <groups>
+                                <group/>
+                            </groups>
+                            <phases>
+                                <phase/>
+                            </phases>
+                            <eventType/>
+                            <eventScope>private</eventScope>
+                            <eventTypeData/>
+                            <eventDescription/>
+                            <purpose/>
+                            <guide/>
+                            <insight use="false"/>
+                            <level>100</level>
+                            <sequence>45</sequence>
+                            <costs>0</costs>
+                            <eventData>
+                                <styles/>
+                            </eventData>
+                            <interfaces/>
+                        </custom>
+                        <event id="NewDeadline">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="780" yLoc="1220"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles>
+                                    <role description="" specification="">Operator</role>
+                                </roles>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>46</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <dataType sequence="46" width="small" min="NaN" max="NaN" placeholder="" hinttext="new amount">int</dataType>
+                                    <validationRules/>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                        </event>
+                        <event id="Collection" type="nesting">
+                            <precondition message=""/>
+                            <custom>
+                                <visualization>
+                                    <location xLoc="315" yLoc="1170"/>
+                                    <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                </visualization>
+                                <roles/>
+                                <readRoles/>
+                                <groups>
+                                    <group/>
+                                </groups>
+                                <phases>
+                                    <phase/>
+                                </phases>
+                                <eventType/>
+                                <eventScope>private</eventScope>
+                                <eventTypeData/>
+                                <eventDescription/>
+                                <purpose/>
+                                <guide/>
+                                <insight use="false"/>
+                                <level>100</level>
+                                <sequence>47</sequence>
+                                <costs>0</costs>
+                                <eventData>
+                                    <styles/>
+                                </eventData>
+                                <interfaces/>
+                            </custom>
+                            <event id="Transfer">
+                                <precondition message=""/>
+                                <custom>
+                                    <visualization>
+                                        <location xLoc="535" yLoc="1220"/>
+                                        <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                    </visualization>
+                                    <roles>
+                                        <role description="" specification="">Operator</role>
+                                    </roles>
+                                    <readRoles/>
+                                    <groups>
+                                        <group/>
+                                    </groups>
+                                    <phases>
+                                        <phase/>
+                                    </phases>
+                                    <eventType/>
+                                    <eventScope>private</eventScope>
+                                    <eventTypeData/>
+                                    <eventDescription/>
+                                    <purpose/>
+                                    <guide/>
+                                    <insight use="false"/>
+                                    <level>100</level>
+                                    <sequence>48</sequence>
+                                    <costs>0</costs>
+                                    <eventData>
+                                        <styles/>
+                                    </eventData>
+                                    <interfaces/>
+                                </custom>
+                            </event>
+                            <event id="SendReminder">
+                                <precondition message=""/>
+                                <custom>
+                                    <visualization>
+                                        <location xLoc="345" yLoc="1220"/>
+                                        <colors bg="#f9f7ed" textStroke="#000000" stroke="#cccccc"/>
+                                    </visualization>
+                                    <roles>
+                                        <role description="" specification="">Operator</role>
+                                    </roles>
+                                    <readRoles/>
+                                    <groups>
+                                        <group/>
+                                    </groups>
+                                    <phases>
+                                        <phase/>
+                                    </phases>
+                                    <eventType/>
+                                    <eventScope>private</eventScope>
+                                    <eventTypeData/>
+                                    <eventDescription/>
+                                    <purpose/>
+                                    <guide/>
+                                    <insight use="false"/>
+                                    <level>100</level>
+                                    <sequence>49</sequence>
+                                    <costs>0</costs>
+                                    <eventData>
+                                        <styles/>
+                                    </eventData>
+                                    <interfaces/>
+                                </custom>
+                            </event>
+                        </event>
+                    </event>
+                </event>
+            </events>
+            <subProcesses/>
+            <labels>
+                <label id="Complaint"/>
+                <label id="Complain to operator"/>
+                <label id="Complain about identity misuse"/>
+                <label id="Before Movia decides"/>
+                <label id="Attach authorisation"/>
+                <label id="Handle identity-misuse claim"/>
+                <label id="Operator decision"/>
+                <label id="Accept complaint"/>
+                <label id="Appealable decision"/>
+                <label id="Reject complaint"/>
+                <label id="Reduce fine"/>
+                <label id="Ankenaevnet case"/>
+                <label id="Appeal"/>
+                <label id="Submit appeal form"/>
+                <label id="Pay fee 160 kr"/>
+                <label id="Pay fee 80 kr"/>
+                <label id="Appeal on behalf of another person"/>
+                <label id="Enter passenger details"/>
+                <label id="Create case"/>
+                <label id="Case handling"/>
+                <label id="Party hearing"/>
+                <label id="Request additional information"/>
+                <label id="Register prior judgment or settlement"/>
+                <label id="Send to board"/>
+                <label id="Close without a decision"/>
+                <label id="Withdraw"/>
+                <label id="Settle"/>
+                <label id="Reject case"/>
+                <label id="Send additional information"/>
+                <label id="Board decision"/>
+                <label id="Uphold complaint (fine cancelled)"/>
+                <label id="Reject appeal"/>
+                <label id="Costs"/>
+                <label id="Refund appeal fee"/>
+                <label id="Charge company case fee"/>
+                <label id="Request board review of rejection"/>
+                <label id="Operator response (30 days)"/>
+                <label id="Comply with decision"/>
+                <label id="Opt out of decision"/>
+                <label id="Forwarding"/>
+                <label id="Request forwarding"/>
+                <label id="Forward to Consumer Authority"/>
+                <label id="Process 2 - fine (stand-in)"/>
+                <label id="Issue fine (P2)"/>
+                <label id="Payment of the fine"/>
+                <label id="Send decision with new deadline(P2)"/>
+                <label id="Collection"/>
+                <label id="Transfer to Gaeldsstyrelsen (P2)"/>
+                <label id="Send reminder (P2)"/>
+            </labels>
+            <labelMappings>
+                <labelMapping eventId="Complaint" labelId="Complaint"/>
+                <labelMapping eventId="Complain" labelId="Complain to operator"/>
+                <labelMapping eventId="ComplainMisuse" labelId="Complain about identity misuse"/>
+                <labelMapping eventId="Requirements" labelId="Before Movia decides"/>
+                <labelMapping eventId="AttachAuth" labelId="Attach authorisation"/>
+                <labelMapping eventId="HandleMisuse" labelId="Handle identity-misuse claim"/>
+                <labelMapping eventId="OperatorDecision" labelId="Operator decision"/>
+                <labelMapping eventId="AcceptCompl" labelId="Accept complaint"/>
+                <labelMapping eventId="Unfavourable" labelId="Appealable decision"/>
+                <labelMapping eventId="RejectCompl" labelId="Reject complaint"/>
+                <labelMapping eventId="ReduceFine" labelId="Reduce fine"/>
+                <labelMapping eventId="Case" labelId="Ankenaevnet case"/>
+                <labelMapping eventId="Appeal" labelId="Appeal"/>
+                <labelMapping eventId="SubmitForm" labelId="Submit appeal form"/>
+                <labelMapping eventId="PayFee160" labelId="Pay fee 160 kr"/>
+                <labelMapping eventId="PayFee80" labelId="Pay fee 80 kr"/>
+                <labelMapping eventId="OnBehalf" labelId="Appeal on behalf of another person"/>
+                <labelMapping eventId="PassengerDetails" labelId="Enter passenger details"/>
+                <labelMapping eventId="CreateCase" labelId="Create case"/>
+                <labelMapping eventId="Handling" labelId="Case handling"/>
+                <labelMapping eventId="Hearing" labelId="Party hearing"/>
+                <labelMapping eventId="RequestInfo" labelId="Request additional information"/>
+                <labelMapping eventId="PriorJudgment" labelId="Register prior judgment or settlement"/>
+                <labelMapping eventId="SendToBoard" labelId="Send to board"/>
+                <labelMapping eventId="Closers" labelId="Close without a decision"/>
+                <labelMapping eventId="Withdraw" labelId="Withdraw"/>
+                <labelMapping eventId="Settle" labelId="Settle"/>
+                <labelMapping eventId="RejectCase" labelId="Reject case"/>
+                <labelMapping eventId="Event_0zujvdo" labelId="Send additional information"/>
+                <labelMapping eventId="BoardDecision" labelId="Board decision"/>
+                <labelMapping eventId="Uphold" labelId="Uphold complaint (fine cancelled)"/>
+                <labelMapping eventId="RejectAppeal" labelId="Reject appeal"/>
+                <labelMapping eventId="Costs" labelId="Costs"/>
+                <labelMapping eventId="Refund" labelId="Refund appeal fee"/>
+                <labelMapping eventId="CaseFee" labelId="Charge company case fee"/>
+                <labelMapping eventId="RequestReview" labelId="Request board review of rejection"/>
+                <labelMapping eventId="OperatorResponse" labelId="Operator response (30 days)"/>
+                <labelMapping eventId="Comply" labelId="Comply with decision"/>
+                <labelMapping eventId="OptOut" labelId="Opt out of decision"/>
+                <labelMapping eventId="Forwarding" labelId="Forwarding"/>
+                <labelMapping eventId="RequestForward" labelId="Request forwarding"/>
+                <labelMapping eventId="Forward" labelId="Forward to Consumer Authority"/>
+                <labelMapping eventId="P2" labelId="Process 2 - fine (stand-in)"/>
+                <labelMapping eventId="IssueFine" labelId="Issue fine (P2)"/>
+                <labelMapping eventId="Payment" labelId="Payment of the fine"/>
+                <labelMapping eventId="NewDeadline" labelId="Send decision with new deadline(P2)"/>
+                <labelMapping eventId="Collection" labelId="Collection"/>
+                <labelMapping eventId="Transfer" labelId="Transfer to Gaeldsstyrelsen (P2)"/>
+                <labelMapping eventId="SendReminder" labelId="Send reminder (P2)"/>
+            </labelMappings>
+            <expressions>
+                <expression id="Complain-path-AttachAuth--response" value="Complain = true"/>
+                <expression id="Complain-path-AttachAuth--include" value="Complain = true"/>
+                <expression id="SubmitForm-path-PayFee160--include" value="SubmitForm &gt; 159"/>
+                <expression id="SubmitForm-path-PayFee80--include" value="SubmitForm &lt; 160"/>
+                <expression id="Complain-path-AttachAuth--exclude" value="Complain = false"/>
+            </expressions>
+            <variables/>
+            <variableAccesses>
+                <writeAccesses/>
+            </variableAccesses>
+            <custom>
+                <keywords/>
+                <roles>
+                    <role description="" specification="">Operator</role>
+                    <role description="" specification="">Passenger</role>
+                    <role description="" specification="">Secretariat</role>
+                    <role description="" specification="">Board</role>
+                </roles>
+                <groups/>
+                <phases/>
+                <eventTypes/>
+                <eventParameters/>
+                <graphDetails>DCR Process</graphDetails>
+                <graphDocumentation/>
+                <graphLanguage>en-US</graphLanguage>
+                <graphDomain>process</graphDomain>
+                <graphFilters>
+                    <filteredGroups/>
+                    <filteredRoles/>
+                    <filteredPhases/>
+                </graphFilters>
+                <highlighterMarkup>
+                    <highlightLayers>
+                        <highlightLayer default="true" name="description">DCR Process</highlightLayer>
+                    </highlightLayers>
+                    <highlights/>
+                </highlighterMarkup>
+            </custom>
+        </resources>
+        <constraints>
+            <conditions>
+                <condition sourceId="Hearing" targetId="SendToBoard" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="SendToBoard" targetId="BoardDecision" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="RequestInfo" targetId="Event_0zujvdo" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="PassengerDetails" targetId="CreateCase" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="Appeal" targetId="CreateCase" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="RequestForward" targetId="Forward" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="IssueFine" targetId="Complaint" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="SendReminder" targetId="Transfer" filterLevel="100" description="" time="" groups=""/>
+                <condition sourceId="IssueFine" targetId="SendReminder" filterLevel="100" description="" time="" groups=""/>
+            </conditions>
+            <responses>
+                <response sourceId="Complain" targetId="AttachAuth" filterLevel="100" description="" time="" groups="" expressionId="Complain-path-AttachAuth--response"/>
+                <response sourceId="ComplainMisuse" targetId="HandleMisuse" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="RejectCompl" targetId="NewDeadline" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="ReduceFine" targetId="NewDeadline" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="Settle" targetId="CaseFee" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="PriorJudgment" targetId="RejectCase" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="Closers" targetId="Refund" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="RequestInfo" targetId="Event_0zujvdo" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="Uphold" targetId="Costs" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="Uphold" targetId="OperatorResponse" filterLevel="100" description="" time="P30D" groups=""/>
+                <response sourceId="RejectAppeal" targetId="NewDeadline" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="CreateCase" targetId="BoardDecision" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="RequestForward" targetId="Forward" filterLevel="100" description="" time="" groups=""/>
+                <response sourceId="Complaint" targetId="OperatorDecision" filterLevel="100" description="" time="" groups=""/>
+            </responses>
+            <coresponses/>
+            <includes>
+                <include sourceId="Complain" targetId="AttachAuth" filterLevel="100" description="" time="" groups="" expressionId="Complain-path-AttachAuth--include"/>
+                <include sourceId="ComplainMisuse" targetId="HandleMisuse" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="RejectCompl" targetId="NewDeadline" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="ReduceFine" targetId="NewDeadline" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="Unfavourable" targetId="SubmitForm" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="SubmitForm" targetId="PayFee160" filterLevel="100" description="" time="" groups="" expressionId="SubmitForm-path-PayFee160--include"/>
+                <include sourceId="SubmitForm" targetId="PayFee80" filterLevel="100" description="" time="" groups="" expressionId="SubmitForm-path-PayFee80--include"/>
+                <include sourceId="SubmitForm" targetId="OnBehalf" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="SubmitForm" targetId="CreateCase" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="Settle" targetId="CaseFee" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="RejectCase" targetId="RequestReview" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="Closers" targetId="Refund" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="Uphold" targetId="Costs" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="Uphold" targetId="OperatorResponse" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="RejectAppeal" targetId="NewDeadline" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="OnBehalf" targetId="PassengerDetails" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="CreateCase" targetId="Handling" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="CreateCase" targetId="BoardDecision" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="OptOut" targetId="Forwarding" filterLevel="100" description="" time="" groups=""/>
+                <include sourceId="Complaint" targetId="OperatorDecision" filterLevel="100" description="" time="" groups=""/>
+            </includes>
+            <excludes>
+                <exclude sourceId="Complain" targetId="AttachAuth" filterLevel="100" description="" time="" groups="" expressionId="Complain-path-AttachAuth--exclude"/>
+                <exclude sourceId="AttachAuth" targetId="AttachAuth" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="HandleMisuse" targetId="HandleMisuse" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="AcceptCompl" targetId="Case" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="AcceptCompl" targetId="Payment" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="SubmitForm" targetId="SubmitForm" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="PayFee160" targetId="PayFee160" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="PayFee80" targetId="PayFee80" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="Settle" targetId="Payment" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="SendToBoard" targetId="Withdraw" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="SendToBoard" targetId="Settle" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="Closers" targetId="Case" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="SendToBoard" targetId="SendToBoard" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="PriorJudgment" targetId="PriorJudgment" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="Uphold" targetId="Payment" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="CreateCase" targetId="OnBehalf" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="BoardDecision" targetId="BoardDecision" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="BoardDecision" targetId="Handling" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="OnBehalf" targetId="OnBehalf" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="PassengerDetails" targetId="PassengerDetails" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="CreateCase" targetId="CreateCase" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="Refund" targetId="Refund" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="CaseFee" targetId="CaseFee" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="Comply" targetId="OperatorResponse" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="OptOut" targetId="OperatorResponse" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="RequestForward" targetId="RequestForward" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="Forward" targetId="Forward" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="IssueFine" targetId="IssueFine" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="NewDeadline" targetId="NewDeadline" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="Transfer" targetId="Transfer" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="Transfer" targetId="Complaint" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="Complaint" targetId="Complaint" filterLevel="100" description="" time="" groups=""/>
+                <exclude sourceId="OperatorDecision" targetId="OperatorDecision" filterLevel="100" description="" time="" groups=""/>
+            </excludes>
+            <milestones>
+                <milestone sourceId="RejectCase" targetId="SendToBoard" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="RejectCase" targetId="BoardDecision" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="Event_0zujvdo" targetId="SendToBoard" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="BoardDecision" targetId="Collection" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="Requirements" targetId="OperatorDecision" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="OperatorDecision" targetId="SubmitForm" filterLevel="100" description="" time="" groups=""/>
+                <milestone sourceId="OperatorDecision" targetId="Collection" filterLevel="100" description="" time="" groups=""/>
+            </milestones>
+            <spawns/>
+            <templateSpawns/>
+            <updates/>
+        </constraints>
+    </specification>
+    <runtime accepting="false">
+        <custom>
+            <globalMarking>
+                <enabled/>
+                <enabledSubprocesses/>
+                <executed/>
+                <pending/>
+                <included/>
+            </globalMarking>
+        </custom>
+        <marking>
+            <globalStore/>
+            <executed/>
+            <included>
+                <event id="Complain"/>
+                <event id="ComplainMisuse"/>
+                <event id="IssueFine"/>
+                <event id="Transfer"/>
+                <event id="SendReminder"/>
+            </included>
+            <pendingResponses/>
+        </marking>
+    </runtime>
+</dcrgraph>

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dcr:definitions xmlns:dcr="http://tk/schema/dcr" xmlns:dcrDi="http://tk/schema/dcrDi" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC">
+  <dcr:dcrGraph id="dcrGraph">
+    <dcr:nesting id="Board" description="Board decision">
+      <dcr:event id="Uphold" role="Board" description="Uphold complaint (fine cancelled)" included="false" executed="false" pending="false" enabled="false" />
+      <dcr:event id="RejectAppeal" role="Board" description="Reject appeal" included="false" executed="false" pending="false" enabled="false" />
+    </dcr:nesting>
+    <dcr:nesting id="Closers" description="Close without a decision">
+      <dcr:event id="Withdraw" role="Passenger" description="Withdraw" included="true" executed="false" pending="false" enabled="false" />
+      <dcr:event id="Settle" role="Operator" description="Settle" included="true" executed="false" pending="false" enabled="false" />
+      <dcr:event id="RejectCase" role="Secretariat" description="Reject case" included="true" executed="false" pending="false" enabled="false" />
+    </dcr:nesting>
+    <dcr:nesting id="Collection" description="Collection">
+      <dcr:event id="SendReminder" role="Operator" description="Send reminder (P2)" included="true" executed="false" pending="false" enabled="false" />
+      <dcr:event id="Transfer" role="Operator" description="Transfer to Gaeldsstyrelsen (P2)" included="true" executed="false" pending="false" enabled="false" />
+    </dcr:nesting>
+    <dcr:event id="CreateCase" role="Secretariat" description="Create case" included="true" executed="false" pending="false" enabled="false" />
+    <dcr:relation id="R_0" type="include" sourceRef="CreateCase" targetRef="Board" />
+    <dcr:relation id="R_1" type="response" sourceRef="CreateCase" targetRef="Board" />
+    <dcr:relation id="R_2" type="exclude" sourceRef="Board" targetRef="Board" />
+    <dcr:relation id="R_3" type="exclude" sourceRef="Closers" targetRef="Board" />
+    <dcr:relation id="R_4" type="milestone" sourceRef="Board" targetRef="Collection" />
+  </dcr:dcrGraph>
+  <dcrDi:dcrRootBoard id="RootBoard">
+    <dcrDi:dcrPlane id="Plane" boardElement="dcrGraph">
+      <dcrDi:dcrShape id="CreateCase_di" boardElement="CreateCase">
+        <dc:Bounds x="140" y="115" width="130" height="150" />
+      </dcrDi:dcrShape>
+      <dcrDi:dcrShape id="Board_di" boardElement="Board">
+        <dc:Bounds x="420" y="40" width="180" height="440" />
+      </dcrDi:dcrShape>
+      <dcrDi:dcrShape id="Uphold_di" boardElement="Uphold">
+        <dc:Bounds x="445" y="115" width="130" height="150" />
+      </dcrDi:dcrShape>
+      <dcrDi:dcrShape id="RejectAppeal_di" boardElement="RejectAppeal">
+        <dc:Bounds x="445" y="305" width="130" height="150" />
+      </dcrDi:dcrShape>
+      <dcrDi:dcrShape id="Closers_di" boardElement="Closers">
+        <dc:Bounds x="750" y="40" width="180" height="630" />
+      </dcrDi:dcrShape>
+      <dcrDi:dcrShape id="Withdraw_di" boardElement="Withdraw">
+        <dc:Bounds x="775" y="115" width="130" height="150" />
+      </dcrDi:dcrShape>
+      <dcrDi:dcrShape id="Settle_di" boardElement="Settle">
+        <dc:Bounds x="775" y="305" width="130" height="150" />
+      </dcrDi:dcrShape>
+      <dcrDi:dcrShape id="RejectCase_di" boardElement="RejectCase">
+        <dc:Bounds x="775" y="495" width="130" height="150" />
+      </dcrDi:dcrShape>
+      <dcrDi:dcrShape id="Collection_di" boardElement="Collection">
+        <dc:Bounds x="1080" y="40" width="180" height="440" />
+      </dcrDi:dcrShape>
+      <dcrDi:dcrShape id="SendReminder_di" boardElement="SendReminder">
+        <dc:Bounds x="1105" y="115" width="130" height="150" />
+      </dcrDi:dcrShape>
+      <dcrDi:dcrShape id="Transfer_di" boardElement="Transfer">
+        <dc:Bounds x="1105" y="305" width="130" height="150" />
+      </dcrDi:dcrShape>
+      <dcrDi:relation id="R_0_di" boardElement="R_0">
+        <dcrDi:waypoint x="270" y="155" />
+        <dcrDi:waypoint x="345" y="155" />
+        <dcrDi:waypoint x="345" y="80" />
+        <dcrDi:waypoint x="420" y="80" />
+      </dcrDi:relation>
+      <dcrDi:relation id="R_1_di" boardElement="R_1">
+        <dcrDi:waypoint x="270" y="169" />
+        <dcrDi:waypoint x="352" y="169" />
+        <dcrDi:waypoint x="352" y="94" />
+        <dcrDi:waypoint x="420" y="94" />
+      </dcrDi:relation>
+      <dcrDi:relation id="R_2_di" boardElement="R_2">
+        <dcrDi:waypoint x="600" y="435" />
+        <dcrDi:waypoint x="622" y="435" />
+        <dcrDi:waypoint x="622" y="465" />
+        <dcrDi:waypoint x="600" y="465" />
+      </dcrDi:relation>
+      <dcrDi:relation id="R_3_di" boardElement="R_3">
+        <dcrDi:waypoint x="840" y="670" />
+        <dcrDi:waypoint x="840" y="700" />
+        <dcrDi:waypoint x="510" y="700" />
+        <dcrDi:waypoint x="510" y="480" />
+      </dcrDi:relation>
+      <dcrDi:relation id="R_4_di" boardElement="R_4">
+        <dcrDi:waypoint x="510" y="40" />
+        <dcrDi:waypoint x="510" y="20" />
+        <dcrDi:waypoint x="1170" y="20" />
+        <dcrDi:waypoint x="1170" y="40" />
+      </dcrDi:relation>
+    </dcrDi:dcrPlane>
+  </dcrDi:dcrRootBoard>
+</dcr:definitions>
