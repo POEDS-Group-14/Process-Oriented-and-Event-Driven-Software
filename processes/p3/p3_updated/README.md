@@ -2,7 +2,6 @@
 
 Owner: **Razvan**. The passenger disputes a fine: complaint to Movia, Movia's decision (accept, reject or reduce), appeal to Ankenævnet, case handling, the board's decision and Movia's response. P3 is the group's DCR process and its knowledge-intensive process. It is linked to P2 (fine collection in Camunda), which pauses and resumes around it.
 
-AI use: models, scripts and documents were made with help from Claude (see the group's AI-use declaration).
 
 ## What is where
 
