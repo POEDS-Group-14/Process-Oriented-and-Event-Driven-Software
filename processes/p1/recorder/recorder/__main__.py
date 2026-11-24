@@ -5,6 +5,8 @@
   python -m recorder dmi-stations   list DMI stations near RECORDER_LAT/LON (to pick DMI_STATION_ID)
   python -m recorder run            log all configured sources until stopped (used by systemd)
   python -m recorder sql "SELECT ..."   query recorder.sqlite (read-only)
+  python -m recorder feed-stats [--from YYYY-MM-DD] [--to YYYY-MM-DD]
+                                    disruption counts in the raw SIRI-ET feeds (see feedstats.py)
 
 Output (RECORDER_DATA_DIR):
   raw/<source>/YYYY-MM-DD.jsonl.gz   every API response / feed message, unchanged
@@ -185,8 +187,10 @@ class Recorder:
 
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(prog="recorder", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["check", "once", "dmi-stations", "run", "sql"])
+    ap.add_argument("command", choices=["check", "once", "dmi-stations", "run", "sql", "feed-stats"])
     ap.add_argument("query", nargs="?", help="SQL for the sql command")
+    ap.add_argument("--from", dest="start", help="feed-stats: first file date (UTC), YYYY-MM-DD")
+    ap.add_argument("--to", dest="end", help="feed-stats: last file date (UTC), YYYY-MM-DD")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     logging.getLogger("azure").setLevel(logging.WARNING)  # it logs every HTTP request and AMQP state change at INFO
@@ -209,6 +213,10 @@ def main(argv=None) -> None:
         print(" | ".join(d[0] for d in cur.description or []))
         for row in cur:
             print(" | ".join("" if v is None else str(v) for v in row))
+        return
+    if a.command == "feed-stats":
+        from . import feedstats
+        print(feedstats.report(feedstats.stats(cfg.data_dir, a.start, a.end)))
         return
     if a.command == "dmi-stations":
         data = dmi.fetch_stations_near(cfg.dmi_api_key, cfg.lat, cfg.lon)

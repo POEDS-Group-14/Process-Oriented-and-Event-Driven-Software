@@ -192,5 +192,21 @@ class RecorderTest(unittest.TestCase):
         self.assertTrue(os.listdir(os.path.join(self.dir, "raw", "dataudveksleren")))
 
 
+
+class FeedStatsTest(unittest.TestCase):
+    def test_counts_journeys_and_cancellations(self):
+        from recorder import feedstats
+        d = tempfile.mkdtemp()
+        folder = os.path.join(d, "raw", "dataudveksleren", "t-test")
+        os.makedirs(folder)
+        whole = ET_XML.replace("<RecordedCalls>", "<Cancellation>true</Cancellation><RecordedCalls>")
+        for day, xml in (("2026-11-04", ET_XML), ("2026-11-05", whole), ("2026-11-06", ET_XML)):
+            with gzip.open(os.path.join(folder, day + ".jsonl.gz"), "wt", encoding="utf-8") as fh:
+                fh.write(json.dumps({"payload": xml}) + "\n" + json.dumps({"payload": xml}) + "\n")
+        r = feedstats.stats(d, "2026-11-04", "2026-11-05")["t-test"]
+        self.assertEqual((r["files"], r["counts"]["updates"], len(r["journeys"])), (2, 4, 1))
+        self.assertEqual((len(r["cancelled"]), len(r["skipped"])), (1, 1))  # J1 cancelled on the 5th; S4 skipped
+        self.assertEqual((r["counts"]["flags true"], r["counts"]["causes"]), (6, 0))
+
 if __name__ == "__main__":
     unittest.main()

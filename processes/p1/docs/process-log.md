@@ -174,3 +174,8 @@ Decided by Liam on 18 November 2026; implemented by Claude (Anthropic's AI assis
 
 The replay then ran with 0 incidents. The registry from before the replay is kept on the server as `/var/lib/rejsegaranti/registry.before-replay-20261119T132922.json`.
 
+## 13. Feed statistics for the report
+
+On 24 November 2026 Claude (Claude Code), on Liam's instructions, searched the recorded SIRI-ET messages for cause codes, to check whether force majeure could be decided from operator causes. First on the server, then on a local copy, because the server's CPU is too slow and is needed by the live services. The search was turned into `python -m recorder feed-stats` (`recorder/recorder/feedstats.py`, with a test) so the numbers in the report can be reproduced. Result and command: `recorder/README.md`, section "Feed statistics". In short, neither feed carries a cause for any delay or cancellation.
+
+The same session corrected the documentation that still said cases start at 30+ minutes (commit b15db8f).

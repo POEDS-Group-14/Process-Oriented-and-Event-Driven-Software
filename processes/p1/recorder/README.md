@@ -90,6 +90,36 @@ sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.ta
 
 **Getting the data home.** Copy the folder (including `recorder.sqlite`) to your own machine with, for example, `rsync -av liam@pinklady:/var/lib/rejsegaranti-recorder/ ./recorder-data/`.
 
+## Feed statistics
+
+`feed-stats` counts what the raw SIRI-ET files say about disruptions: journey updates, unique journeys, cancelled journeys, journeys with skipped stops, and any cause element (`SituationRef` or a reason). It only reads `raw/dataudveksleren/`. File dates are UTC receive dates.
+
+```bash
+sudo -u rejsegaranti env RECORDER_DATA_DIR=/var/lib/rejsegaranti-recorder python3 -m recorder feed-stats --from 2026-11-07 --to 2026-11-23
+```
+
+On the server's two old cores this takes a long time and competes with the live services. It is faster to copy the files and run it locally (`RECORDER_DATA_DIR` must contain `raw/dataudveksleren/`):
+
+```bash
+mkdir -p recorder-data/raw && rsync -a pinklady:/var/lib/rejsegaranti-recorder/raw/dataudveksleren recorder-data/raw/
+RECORDER_DATA_DIR=recorder-data python3 -m recorder feed-stats --from 2026-11-07 --to 2026-11-23
+```
+
+Result for 7 to 23 November 2026 (recording started 7 November 22:20 UTC):
+
+| | Movia bus (788) | DSB S-tog (801) |
+|---|---|---|
+| Compressed data | 1,018 MB | 265 MB |
+| Journey updates | 4,418,890 | 367,150 |
+| Unique journeys | 266,114 | 18,355 |
+| Cancelled outright | 171 | 34 |
+| Skipped stops only | 9,895 | 297 |
+| `Cancellation` true / false | 24,816 / 0 | 2,750 / 0 |
+| `PredictionInaccurate` true | 0 | 0 |
+| Cause elements | 0 | 0 |
+
+Neither feed says why a journey was late or cancelled, and Dataudveksleren has no SIRI-SX dataset for Movia or DSB, so operator cause codes and planned-change notices have no real source.
+
 ## Tests
 
 ```bash
