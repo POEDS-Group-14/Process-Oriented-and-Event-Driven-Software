@@ -2,6 +2,8 @@
 
 Notes for the write-up of process 1 (rejsegaranti). Dates are 2026; times are UTC unless marked as Copenhagen time.
 
+This describes the system up to 10 November, when it still used Line L's rules (30 minutes, 250 m). The Movia models that replaced them use Movia's rules, including more than 20 minutes late; see `as-is.md` and `to-be-redesign.md`.
+
 ## 1. Context: the event-driven set-up
 
 Process 1 is event-driven end to end:

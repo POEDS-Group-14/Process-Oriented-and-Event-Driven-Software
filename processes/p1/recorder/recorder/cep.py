@@ -6,7 +6,7 @@
 - every OpenWeatherMap observation as a weather situation (POST /cep/weather), valid until the next one.
 
 Stops are named by station, as in data/stations.csv: the stop name without the street in brackets.
-The bridge applies the rules (30+ minutes, force-majeure thresholds); this only reports.
+The decision tables in Camunda apply the rules (more than 20 minutes, force-majeure thresholds); this only reports.
 """
 from __future__ import annotations
 
